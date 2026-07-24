@@ -104,6 +104,14 @@ class BootstrapSeedShellTests(unittest.TestCase):
             setup_script,
         )
 
+    def test_setup_installs_node_dependencies_without_mutating_lockfile(self) -> None:
+        setup_script = (
+            PROJECT_ROOT / "server_tools" / "setup_local_dev_environment.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("npm ci --silent", setup_script)
+        self.assertNotIn("npm install --silent", setup_script)
+
 
 if __name__ == "__main__":
     unittest.main()

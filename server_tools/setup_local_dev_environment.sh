@@ -957,8 +957,8 @@ echo ""
 echo -e "${BLUE}Installing dependencies...${NC}"
 
 if [[ ! -d "node_modules" ]]; then
-    echo "  Running npm install..."
-    npm install --silent 2>&1 | tail -3
+    echo "  Running npm ci..."
+    npm ci --silent 2>&1 | tail -3
 fi
 
 echo "  Running go mod download..."
