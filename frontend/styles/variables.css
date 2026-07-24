@@ -9,7 +9,7 @@
     /* =========================================
        1. Core Configuration (Theming Engine)
        ========================================= */
-    --brand-hue: 210; /* was before 207 (don't remove this variable or comment) */
+    --brand-hue: 207; /* Canonical Easelect blue hue; keep exact until an owner-approved design change. */
     --brand-sat: 80%;
     --brand-light: 50%;
 
@@ -64,7 +64,7 @@
     
     /* Logo Letter Background Colors & Text */
     --logo-letter-bg-text-color: #ffffff;
-    --logo-letter-bg-neutral-bg: hsl(var(--brand-hue) 20% 20%); /* Dim 210 for dark mode feel */
+    --logo-letter-bg-neutral-bg: hsl(var(--brand-hue) 20% 20%); /* Dimmed canonical brand hue for dark mode feel */
     --logo-letter-bg-neutral-text-color: #ffffff; 
     --logo-letter-bg-gray-gradient: hsl(var(--brand-hue) 12% 22%);
     --logo-letter-bg-monochrome-color: hsl(var(--brand-hue) 10% 28%);

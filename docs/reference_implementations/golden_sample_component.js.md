@@ -15,11 +15,11 @@ It is stored as a `.md` file to prevent linter/build interference, but the code 
  * Key Principles:
  * 1. Descriptive Naming: Variables and functions have long, clear names.
  * 2. No External Dependencies: Uses vanilla JS.
- * 3. JSDoc Comments: All functions have clear documentation.
+ * 3. JSDoc Comments: Public and non-obvious workflow functions are documented.
  * 4. Early Returns: Guard clauses are used to reduce nesting.
  * 5. No Magic Values: Constants are defined at the top.
  * 6. Separation of Concerns: UI logic is separate from data processing.
- * 7. File Header: Every file must have a header comment like this one.
+ * 7. File Header: New or materially edited human-maintained source files use this format.
  */
 
 // ==========================================
