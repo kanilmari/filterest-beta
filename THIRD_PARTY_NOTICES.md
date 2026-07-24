@@ -6,7 +6,7 @@ not legal advice and still needs human/project approval before publication.
 
 ## Candidate
 
-- Filterest app version: `8.27.91`
+- Filterest app version: `8.27.92`
 - Database version: `8.0.55`
 - Go metadata source: `go list metadata with go mod download cache`
 - npm metadata source: `package-lock.json with installed package.json license metadata`
@@ -590,7 +590,7 @@ not legal advice and still needs human/project approval before publication.
 | mitt | 3.0.1 | MIT | node_modules/mitt (package-lock.json) |
 | module-details-from-path | 1.0.4 | MIT | node_modules/module-details-from-path (package-lock.json) |
 | ms | 2.1.3 | MIT | node_modules/ms (package.json license) |
-| nanoid | 3.3.12 | MIT | node_modules/nanoid (package-lock.json) |
+| nanoid | 3.3.16 | MIT | node_modules/nanoid (package-lock.json) |
 | natural-compare | 1.4.0 | MIT | node_modules/natural-compare (package.json license) |
 | netmask | 2.1.1 | MIT | node_modules/netmask (package-lock.json) |
 | normalize-path | 3.0.0 | MIT | node_modules/normalize-path (package-lock.json) |
@@ -628,7 +628,7 @@ not legal advice and still needs human/project approval before publication.
 | playwright | 1.56.1 | Apache-2.0 | node_modules/playwright (package-lock.json) |
 | playwright-core | 1.56.1 | Apache-2.0 | node_modules/playwright-core (package-lock.json) |
 | possible-typed-array-names | 1.1.0 | MIT | node_modules/possible-typed-array-names (package.json license) |
-| postcss | 8.5.15 | MIT | node_modules/postcss (package-lock.json) |
+| postcss | 8.5.23 | MIT | node_modules/postcss (package-lock.json) |
 | postcss-resolve-nested-selector | 0.1.6 | MIT | node_modules/postcss-resolve-nested-selector (package-lock.json) |
 | postcss-safe-parser | 7.0.1 | MIT | node_modules/postcss-safe-parser (package-lock.json) |
 | postcss-selector-parser | 7.1.0 | MIT | node_modules/postcss-selector-parser (package-lock.json) |
