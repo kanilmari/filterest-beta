@@ -1,7 +1,7 @@
 // eslint.config.mjs
 import js from "@eslint/js";
 import globals from "globals";
-import * as importPlugin from "eslint-plugin-import";
+import importPlugin from "eslint-plugin-import-x";
 
 export default [
   {
@@ -22,6 +22,14 @@ export default [
     ]
   },
   js.configs.recommended,
+  {
+    // ESLint 10 added these rules to its recommended set. Keep the previous
+    // lint contract until their existing findings are reviewed separately.
+    rules: {
+      "no-useless-assignment": "off",
+      "preserve-caught-error": "off",
+    },
+  },
   {
     files: ["**/*.mjs"],
     languageOptions: {

@@ -6,12 +6,12 @@ not legal advice and still needs human/project approval before publication.
 
 ## Candidate
 
-- Filterest app version: `8.27.95`
+- Filterest app version: `8.27.96`
 - Database version: `8.0.55`
 - Go metadata source: `go list metadata with go mod download cache`
 - npm metadata source: `package-lock.json with installed package.json license metadata`
 - Go modules listed: `96`
-- npm packages listed: `533`
+- npm packages listed: `453`
 - bundled asset files listed: `60`
 - dependency rows still requiring license review: `0`
 
@@ -39,13 +39,13 @@ not legal advice and still needs human/project approval before publication.
 
 - `(MIT OR CC0-1.0)`: 1
 - `0BSD`: 1
-- `Apache-2.0`: 44
+- `Apache-2.0`: 43
 - `BSD-2-Clause`: 9
 - `BSD-3-Clause`: 12
 - `BlueOak-1.0.0`: 5
 - `CC0-1.0`: 1
-- `ISC`: 24
-- `MIT`: 429
+- `ISC`: 23
+- `MIT`: 351
 - `MIT-0`: 3
 - `MPL-2.0`: 3
 - `Python-2.0`: 1
@@ -183,6 +183,9 @@ not legal advice and still needs human/project approval before publication.
 | @csstools/media-query-list-parser | 4.0.2 | MIT | node_modules/@csstools/media-query-list-parser (package-lock.json) |
 | @csstools/selector-specificity | 5.0.0 | MIT-0 | node_modules/@csstools/selector-specificity (package-lock.json) |
 | @dual-bundle/import-meta-resolve | 4.1.0 | MIT | node_modules/@dual-bundle/import-meta-resolve (package-lock.json) |
+| @emnapi/core | 1.10.0 | MIT | node_modules/@emnapi/core (package-lock.json) |
+| @emnapi/runtime | 1.10.0 | MIT | node_modules/@emnapi/runtime (package-lock.json) |
+| @emnapi/wasi-threads | 1.2.1 | MIT | node_modules/@emnapi/wasi-threads (package-lock.json) |
 | @esbuild/aix-ppc64 | 0.25.4 | MIT | node_modules/@esbuild/aix-ppc64 (package-lock.json) |
 | @esbuild/android-arm | 0.25.4 | MIT | node_modules/@esbuild/android-arm (package-lock.json) |
 | @esbuild/android-arm64 | 0.25.4 | MIT | node_modules/@esbuild/android-arm64 (package-lock.json) |
@@ -209,15 +212,14 @@ not legal advice and still needs human/project approval before publication.
 | @esbuild/win32-ia32 | 0.25.4 | MIT | node_modules/@esbuild/win32-ia32 (package-lock.json) |
 | @esbuild/win32-x64 | 0.25.4 | MIT | node_modules/@esbuild/win32-x64 (package-lock.json) |
 | @eslint-community/eslint-utils | 4.9.1 | MIT | node_modules/@eslint-community/eslint-utils (package-lock.json) |
-| @eslint-community/regexpp | 4.12.1 | MIT | node_modules/@eslint-community/regexpp (package.json license) |
-| @eslint/compat | 1.2.6 | Apache-2.0 | node_modules/@eslint/compat (package-lock.json) |
-| @eslint/config-array | 0.21.2 | Apache-2.0 | node_modules/@eslint/config-array (package-lock.json) |
-| @eslint/config-helpers | 0.4.2 | Apache-2.0 | node_modules/@eslint/config-helpers (package-lock.json) |
-| @eslint/core | 0.17.0 | Apache-2.0 | node_modules/@eslint/core (package-lock.json) |
-| @eslint/eslintrc | 3.3.5 | MIT | node_modules/@eslint/eslintrc (package-lock.json) |
-| @eslint/js | 9.39.4 | MIT | node_modules/@eslint/js (package-lock.json) |
-| @eslint/object-schema | 2.1.7 | Apache-2.0 | node_modules/@eslint/object-schema (package-lock.json) |
-| @eslint/plugin-kit | 0.4.1 | Apache-2.0 | node_modules/@eslint/plugin-kit (package-lock.json) |
+| @eslint-community/regexpp | 4.12.2 | MIT | node_modules/@eslint-community/regexpp (package-lock.json) |
+| @eslint/compat | 2.1.0 | Apache-2.0 | node_modules/@eslint/compat (package-lock.json) |
+| @eslint/config-array | 0.23.5 | Apache-2.0 | node_modules/@eslint/config-array (package-lock.json) |
+| @eslint/config-helpers | 0.7.0 | Apache-2.0 | node_modules/@eslint/config-helpers (package-lock.json) |
+| @eslint/core | 1.2.1 | Apache-2.0 | node_modules/@eslint/core (package-lock.json) |
+| @eslint/js | 10.0.1 | MIT | node_modules/@eslint/js (package-lock.json) |
+| @eslint/object-schema | 3.0.5 | Apache-2.0 | node_modules/@eslint/object-schema (package-lock.json) |
+| @eslint/plugin-kit | 0.7.2 | Apache-2.0 | node_modules/@eslint/plugin-kit (package-lock.json) |
 | @exodus/bytes | 1.15.0 | MIT | node_modules/@exodus/bytes (package-lock.json) |
 | @formatjs/ecma402-abstract | 2.3.6 | MIT | node_modules/@formatjs/ecma402-abstract (package-lock.json) |
 | @formatjs/fast-memoize | 2.2.7 | MIT | node_modules/@formatjs/fast-memoize (package-lock.json) |
@@ -232,6 +234,7 @@ not legal advice and still needs human/project approval before publication.
 | @humanwhocodes/retry | 0.4.3 | Apache-2.0 | node_modules/@humanwhocodes/retry (package-lock.json) |
 | @jridgewell/sourcemap-codec | 1.5.5 | MIT | node_modules/@jridgewell/sourcemap-codec (package-lock.json) |
 | @keyv/serialize | 1.0.2 | MIT | node_modules/@keyv/serialize (package-lock.json) |
+| @napi-rs/wasm-runtime | 1.1.6 | MIT | node_modules/@napi-rs/wasm-runtime (package-lock.json) |
 | @nodelib/fs.scandir | 2.1.5 | MIT | node_modules/@nodelib/fs.scandir (package-lock.json) |
 | @nodelib/fs.stat | 2.0.5 | MIT | node_modules/@nodelib/fs.stat (package-lock.json) |
 | @nodelib/fs.walk | 1.2.8 | MIT | node_modules/@nodelib/fs.walk (package-lock.json) |
@@ -271,7 +274,6 @@ not legal advice and still needs human/project approval before publication.
 | @rollup/rollup-win32-ia32-msvc | 4.60.4 | MIT | node_modules/@rollup/rollup-win32-ia32-msvc (package-lock.json) |
 | @rollup/rollup-win32-x64-gnu | 4.60.4 | MIT | node_modules/@rollup/rollup-win32-x64-gnu (package-lock.json) |
 | @rollup/rollup-win32-x64-msvc | 4.60.4 | MIT | node_modules/@rollup/rollup-win32-x64-msvc (package-lock.json) |
-| @rtsao/scc | 1.1.0 | MIT | node_modules/@rtsao/scc (package.json license) |
 | @sentry/conventions | 0.16.0 | MIT | node_modules/@sentry/conventions (package-lock.json) |
 | @sentry/core | 10.68.0 | MIT | node_modules/@sentry/core (package-lock.json) |
 | @sentry/node | 10.68.0 | MIT | node_modules/@sentry/node (package-lock.json) |
@@ -280,12 +282,36 @@ not legal advice and still needs human/project approval before publication.
 | @sentry/server-utils | 10.68.0 | MIT | node_modules/@sentry/server-utils (package-lock.json) |
 | @sidvind/better-ajv-errors | 4.0.1 | Apache-2.0 | node_modules/html-validate/node_modules/@sidvind/better-ajv-errors (package-lock.json) |
 | @standard-schema/spec | 1.1.0 | MIT | node_modules/@standard-schema/spec (package-lock.json) |
+| @tybys/wasm-util | 0.10.3 | MIT | node_modules/@tybys/wasm-util (package-lock.json) |
 | @types/chai | 5.2.3 | MIT | node_modules/@types/chai (package-lock.json) |
 | @types/deep-eql | 4.0.2 | MIT | node_modules/@types/deep-eql (package-lock.json) |
+| @types/esrecurse | 4.3.1 | MIT | node_modules/@types/esrecurse (package-lock.json) |
 | @types/estree | 1.0.8 | MIT | node_modules/@types/estree (package-lock.json) |
 | @types/json-schema | 7.0.15 | MIT | node_modules/@types/json-schema (package-lock.json) |
-| @types/json5 | 0.0.29 | MIT | node_modules/@types/json5 (package.json license) |
 | @types/node | 24.9.1 | MIT | node_modules/@types/node (package-lock.json) |
+| @typescript-eslint/types | 8.65.0 | MIT | node_modules/@typescript-eslint/types (package-lock.json) |
+| @unrs/resolver-binding-android-arm-eabi | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-android-arm-eabi (package-lock.json) |
+| @unrs/resolver-binding-android-arm64 | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-android-arm64 (package-lock.json) |
+| @unrs/resolver-binding-darwin-arm64 | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-darwin-arm64 (package-lock.json) |
+| @unrs/resolver-binding-darwin-x64 | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-darwin-x64 (package-lock.json) |
+| @unrs/resolver-binding-freebsd-x64 | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-freebsd-x64 (package-lock.json) |
+| @unrs/resolver-binding-linux-arm-gnueabihf | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-arm-gnueabihf (package-lock.json) |
+| @unrs/resolver-binding-linux-arm-musleabihf | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-arm-musleabihf (package-lock.json) |
+| @unrs/resolver-binding-linux-arm64-gnu | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-arm64-gnu (package-lock.json) |
+| @unrs/resolver-binding-linux-arm64-musl | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-arm64-musl (package-lock.json) |
+| @unrs/resolver-binding-linux-loong64-gnu | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-loong64-gnu (package-lock.json) |
+| @unrs/resolver-binding-linux-loong64-musl | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-loong64-musl (package-lock.json) |
+| @unrs/resolver-binding-linux-ppc64-gnu | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-ppc64-gnu (package-lock.json) |
+| @unrs/resolver-binding-linux-riscv64-gnu | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-riscv64-gnu (package-lock.json) |
+| @unrs/resolver-binding-linux-riscv64-musl | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-riscv64-musl (package-lock.json) |
+| @unrs/resolver-binding-linux-s390x-gnu | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-s390x-gnu (package-lock.json) |
+| @unrs/resolver-binding-linux-x64-gnu | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-x64-gnu (package-lock.json) |
+| @unrs/resolver-binding-linux-x64-musl | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-linux-x64-musl (package-lock.json) |
+| @unrs/resolver-binding-openharmony-arm64 | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-openharmony-arm64 (package-lock.json) |
+| @unrs/resolver-binding-wasm32-wasi | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-wasm32-wasi (package-lock.json) |
+| @unrs/resolver-binding-win32-arm64-msvc | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-win32-arm64-msvc (package-lock.json) |
+| @unrs/resolver-binding-win32-ia32-msvc | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-win32-ia32-msvc (package-lock.json) |
+| @unrs/resolver-binding-win32-x64-msvc | 1.12.2 | MIT | node_modules/@unrs/resolver-binding-win32-x64-msvc (package-lock.json) |
 | @vitest/expect | 4.1.0 | MIT | node_modules/@vitest/expect (package-lock.json) |
 | @vitest/mocker | 4.1.0 | MIT | node_modules/@vitest/mocker (package-lock.json) |
 | @vitest/pretty-format | 4.1.0 | MIT | node_modules/@vitest/pretty-format (package-lock.json) |
@@ -293,7 +319,7 @@ not legal advice and still needs human/project approval before publication.
 | @vitest/snapshot | 4.1.0 | MIT | node_modules/@vitest/snapshot (package-lock.json) |
 | @vitest/spy | 4.1.0 | MIT | node_modules/@vitest/spy (package-lock.json) |
 | @vitest/utils | 4.1.0 | MIT | node_modules/@vitest/utils (package-lock.json) |
-| acorn | 8.16.0 | MIT | node_modules/acorn (package-lock.json) |
+| acorn | 8.17.0 | MIT | node_modules/acorn (package-lock.json) |
 | acorn-jsx | 5.3.2 | MIT | node_modules/acorn-jsx (package-lock.json) |
 | ajv | 6.15.0 | MIT | node_modules/ajv (package-lock.json) |
 | ajv | 8.18.0 | MIT | node_modules/html-validate/node_modules/ajv (package-lock.json) |
@@ -304,37 +330,23 @@ not legal advice and still needs human/project approval before publication.
 | ansi-styles | 4.3.0 | MIT | node_modules/ansi-styles (package.json license) |
 | ansi-styles | 6.2.3 | MIT | node_modules/@puppeteer/browsers/node_modules/ansi-styles (package-lock.json) |
 | argparse | 2.0.1 | Python-2.0 | node_modules/argparse (package.json license) |
-| array-buffer-byte-length | 1.0.2 | MIT | node_modules/array-buffer-byte-length (package.json license) |
-| array-includes | 3.1.8 | MIT | node_modules/array-includes (package.json license) |
 | array-union | 2.1.0 | MIT | node_modules/array-union (package-lock.json) |
-| array.prototype.findlastindex | 1.2.5 | MIT | node_modules/array.prototype.findlastindex (package.json license) |
-| array.prototype.flat | 1.3.3 | MIT | node_modules/array.prototype.flat (package.json license) |
-| array.prototype.flatmap | 1.3.3 | MIT | node_modules/array.prototype.flatmap (package.json license) |
-| arraybuffer.prototype.slice | 1.0.4 | MIT | node_modules/arraybuffer.prototype.slice (package.json license) |
 | assertion-error | 2.0.1 | MIT | node_modules/assertion-error (package-lock.json) |
 | astral-regex | 2.0.0 | MIT | node_modules/astral-regex (package-lock.json) |
 | astring | 1.9.0 | MIT | node_modules/astring (package-lock.json) |
-| async-function | 1.0.0 | MIT | node_modules/async-function (package.json license) |
 | atomically | 2.1.1 | MIT | node_modules/atomically (package-lock.json) |
-| available-typed-arrays | 1.0.7 | MIT | node_modules/available-typed-arrays (package.json license) |
 | axe-core | 4.11.4 | MPL-2.0 | node_modules/axe-core (package-lock.json) |
 | axe-core | 4.12.1 | MPL-2.0 | node_modules/lighthouse/node_modules/axe-core (package-lock.json) |
-| balanced-match | 1.0.2 | MIT | node_modules/balanced-match (package.json license) |
 | balanced-match | 2.0.0 | MIT | node_modules/stylelint/node_modules/balanced-match (package-lock.json) |
 | balanced-match | 4.0.4 | MIT | node_modules/glob/node_modules/balanced-match (package-lock.json) |
 | base64-js | 1.5.1 | MIT | node_modules/base64-js (package-lock.json) |
 | bidi-js | 1.0.3 | MIT | node_modules/bidi-js (package-lock.json) |
-| brace-expansion | 1.1.16 | MIT | node_modules/brace-expansion (package-lock.json) |
 | brace-expansion | 5.0.8 | MIT | node_modules/glob/node_modules/brace-expansion (package-lock.json) |
 | braces | 3.0.3 | MIT | node_modules/braces (package-lock.json) |
 | buffer | 6.0.3 | MIT | node_modules/buffer (package-lock.json) |
 | cacheable | 1.8.8 | MIT | node_modules/cacheable (package-lock.json) |
-| call-bind | 1.0.8 | MIT | node_modules/call-bind (package.json license) |
-| call-bind-apply-helpers | 1.0.2 | MIT | node_modules/call-bind-apply-helpers (package.json license) |
-| call-bound | 1.0.3 | MIT | node_modules/call-bound (package.json license) |
 | callsites | 3.1.0 | MIT | node_modules/callsites (package.json license) |
 | chai | 6.2.2 | MIT | node_modules/chai (package-lock.json) |
-| chalk | 4.1.2 | MIT | node_modules/chalk (package.json license) |
 | chrome-launcher | 1.2.1 | Apache-2.0 | node_modules/chrome-launcher (package-lock.json) |
 | chromium-bidi | 16.0.1 | Apache-2.0 | node_modules/chromium-bidi (package-lock.json) |
 | cjs-module-lexer | 2.2.0 | MIT | node_modules/cjs-module-lexer (package-lock.json) |
@@ -343,7 +355,7 @@ not legal advice and still needs human/project approval before publication.
 | color-convert | 2.0.1 | MIT | node_modules/color-convert (package.json license) |
 | color-name | 1.1.4 | MIT | node_modules/color-name (package.json license) |
 | colord | 2.9.3 | MIT | node_modules/colord (package-lock.json) |
-| concat-map | 0.0.1 | MIT | node_modules/concat-map (package.json license) |
+| comment-parser | 1.4.7 | MIT | node_modules/comment-parser (package-lock.json) |
 | configstore | 7.1.0 | BSD-2-Clause | node_modules/configstore (package-lock.json) |
 | convert-source-map | 2.0.0 | MIT | node_modules/convert-source-map (package-lock.json) |
 | cosmiconfig | 9.0.0 | MIT | node_modules/cosmiconfig (package-lock.json) |
@@ -353,48 +365,32 @@ not legal advice and still needs human/project approval before publication.
 | css-tree | 3.2.1 | MIT | node_modules/css-tree (package-lock.json) |
 | cssesc | 3.0.0 | MIT | node_modules/cssesc (package-lock.json) |
 | data-urls | 7.0.0 | MIT | node_modules/data-urls (package-lock.json) |
-| data-view-buffer | 1.0.2 | MIT | node_modules/data-view-buffer (package.json license) |
-| data-view-byte-length | 1.0.2 | MIT | node_modules/data-view-byte-length (package.json license) |
-| data-view-byte-offset | 1.0.1 | MIT | node_modules/data-view-byte-offset (package.json license) |
-| debug | 3.2.7 | MIT | node_modules/eslint-plugin-import/node_modules/debug (package.json license) |
 | debug | 4.4.3 | MIT | node_modules/debug (package-lock.json) |
 | decimal.js | 10.6.0 | MIT | node_modules/decimal.js (package-lock.json) |
 | deep-is | 0.1.4 | MIT | node_modules/deep-is (package.json license) |
-| define-data-property | 1.1.4 | MIT | node_modules/define-data-property (package.json license) |
 | define-lazy-prop | 2.0.0 | MIT | node_modules/define-lazy-prop (package-lock.json) |
-| define-properties | 1.2.1 | MIT | node_modules/define-properties (package.json license) |
 | devtools-protocol | 0.0.1638949 | BSD-3-Clause | node_modules/puppeteer-core/node_modules/devtools-protocol (package-lock.json) |
 | devtools-protocol | 0.0.1663043 | BSD-3-Clause | node_modules/devtools-protocol (package-lock.json) |
 | dir-glob | 3.0.1 | MIT | node_modules/dir-glob (package-lock.json) |
-| doctrine | 2.1.0 | Apache-2.0 | node_modules/doctrine (package.json license) |
 | dot-prop | 9.0.0 | MIT | node_modules/dot-prop (package-lock.json) |
-| dunder-proto | 1.0.1 | MIT | node_modules/dunder-proto (package.json license) |
 | emoji-regex | 10.6.0 | MIT | node_modules/@puppeteer/browsers/node_modules/emoji-regex (package-lock.json) |
 | emoji-regex | 8.0.0 | MIT | node_modules/emoji-regex (package-lock.json) |
 | enquirer | 2.4.1 | MIT | node_modules/enquirer (package-lock.json) |
 | entities | 6.0.1 | BSD-2-Clause | node_modules/entities (package-lock.json) |
 | env-paths | 2.2.1 | MIT | node_modules/env-paths (package-lock.json) |
 | error-ex | 1.3.2 | MIT | node_modules/error-ex (package-lock.json) |
-| es-abstract | 1.23.9 | MIT | node_modules/es-abstract (package.json license) |
-| es-define-property | 1.0.1 | MIT | node_modules/es-define-property (package.json license) |
-| es-errors | 1.3.0 | MIT | node_modules/es-errors (package.json license) |
 | es-module-lexer | 2.3.1 | MIT | node_modules/es-module-lexer (package-lock.json) |
-| es-object-atoms | 1.1.1 | MIT | node_modules/es-object-atoms (package.json license) |
-| es-set-tostringtag | 2.1.0 | MIT | node_modules/es-set-tostringtag (package.json license) |
-| es-shim-unscopables | 1.1.0 | MIT | node_modules/es-shim-unscopables (package.json license) |
-| es-to-primitive | 1.3.0 | MIT | node_modules/es-to-primitive (package.json license) |
 | esbuild | 0.25.4 | MIT | node_modules/esbuild (package-lock.json) |
 | escalade | 3.2.0 | MIT | node_modules/escalade (package-lock.json) |
 | escape-string-regexp | 4.0.0 | MIT | node_modules/escape-string-regexp (package.json license) |
-| eslint | 9.39.4 | MIT | node_modules/eslint (package-lock.json) |
+| eslint | 10.8.0 | MIT | node_modules/eslint (package-lock.json) |
 | eslint-define-config | 2.1.0 | MIT | node_modules/eslint-define-config (package-lock.json) |
-| eslint-import-resolver-node | 0.3.9 | MIT | node_modules/eslint-import-resolver-node (package.json license) |
-| eslint-module-utils | 2.12.0 | MIT | node_modules/eslint-module-utils (package.json license) |
-| eslint-plugin-import | 2.31.0 | MIT | node_modules/eslint-plugin-import (package-lock.json) |
-| eslint-scope | 8.4.0 | BSD-2-Clause | node_modules/eslint-scope (package-lock.json) |
+| eslint-import-context | 0.1.9 | MIT | node_modules/eslint-import-context (package-lock.json) |
+| eslint-plugin-import-x | 4.17.1 | MIT | node_modules/eslint-plugin-import-x (package-lock.json) |
+| eslint-scope | 9.1.2 | BSD-2-Clause | node_modules/eslint-scope (package-lock.json) |
 | eslint-visitor-keys | 3.4.3 | Apache-2.0 | node_modules/@eslint-community/eslint-utils/node_modules/eslint-visitor-keys (package-lock.json) |
-| eslint-visitor-keys | 4.2.1 | Apache-2.0 | node_modules/eslint-visitor-keys (package-lock.json) |
-| espree | 10.4.0 | BSD-2-Clause | node_modules/espree (package-lock.json) |
+| eslint-visitor-keys | 5.0.1 | Apache-2.0 | node_modules/eslint-visitor-keys (package-lock.json) |
+| espree | 11.2.0 | BSD-2-Clause | node_modules/espree (package-lock.json) |
 | esquery | 1.7.0 | BSD-3-Clause | node_modules/esquery (package-lock.json) |
 | esrecurse | 4.3.0 | BSD-2-Clause | node_modules/esrecurse (package-lock.json) |
 | estraverse | 5.3.0 | BSD-2-Clause | node_modules/estraverse (package.json license) |
@@ -417,36 +413,21 @@ not legal advice and still needs human/project approval before publication.
 | flat-cache | 4.0.1 | MIT | node_modules/flat-cache (package.json license) |
 | flat-cache | 6.1.6 | MIT | node_modules/stylelint/node_modules/flat-cache (package-lock.json) |
 | flatted | 3.4.2 | ISC | node_modules/flatted (package-lock.json) |
-| for-each | 0.3.5 | MIT | node_modules/for-each (package.json license) |
 | fsevents | 2.3.2 | MIT | node_modules/playwright/node_modules/fsevents (package-lock.json) |
 | fsevents | 2.3.3 | MIT | node_modules/fsevents (package-lock.json) |
-| function-bind | 1.1.2 | MIT | node_modules/function-bind (package.json license) |
-| function.prototype.name | 1.1.8 | MIT | node_modules/function.prototype.name (package.json license) |
-| functions-have-names | 1.2.3 | MIT | node_modules/functions-have-names (package.json license) |
 | get-caller-file | 2.0.5 | ISC | node_modules/get-caller-file (package-lock.json) |
 | get-east-asian-width | 1.6.0 | MIT | node_modules/get-east-asian-width (package-lock.json) |
-| get-intrinsic | 1.2.7 | MIT | node_modules/get-intrinsic (package.json license) |
-| get-proto | 1.0.1 | MIT | node_modules/get-proto (package.json license) |
-| get-symbol-description | 1.1.0 | MIT | node_modules/get-symbol-description (package.json license) |
+| get-tsconfig | 4.14.0 | MIT | node_modules/get-tsconfig (package-lock.json) |
 | glob | 13.0.6 | BlueOak-1.0.0 | node_modules/glob (package-lock.json) |
 | glob-parent | 5.1.2 | ISC | node_modules/fast-glob/node_modules/glob-parent (package-lock.json) |
 | glob-parent | 6.0.2 | ISC | node_modules/glob-parent (package.json license) |
 | global-modules | 2.0.0 | MIT | node_modules/global-modules (package-lock.json) |
 | global-prefix | 3.0.0 | MIT | node_modules/global-prefix (package-lock.json) |
-| globals | 14.0.0 | MIT | node_modules/@eslint/eslintrc/node_modules/globals (package-lock.json) |
 | globals | 15.15.0 | MIT | node_modules/globals (package-lock.json) |
-| globalthis | 1.0.4 | MIT | node_modules/globalthis (package.json license) |
 | globby | 11.1.0 | MIT | node_modules/globby (package-lock.json) |
 | globjoin | 0.1.4 | MIT | node_modules/globjoin (package-lock.json) |
-| gopd | 1.2.0 | MIT | node_modules/gopd (package.json license) |
 | graceful-fs | 4.2.11 | ISC | node_modules/graceful-fs (package-lock.json) |
-| has-bigints | 1.1.0 | MIT | node_modules/has-bigints (package.json license) |
 | has-flag | 4.0.0 | MIT | node_modules/has-flag (package.json license) |
-| has-property-descriptors | 1.0.2 | MIT | node_modules/has-property-descriptors (package.json license) |
-| has-proto | 1.2.0 | MIT | node_modules/has-proto (package.json license) |
-| has-symbols | 1.1.0 | MIT | node_modules/has-symbols (package.json license) |
-| has-tostringtag | 1.0.2 | MIT | node_modules/has-tostringtag (package.json license) |
-| hasown | 2.0.2 | MIT | node_modules/hasown (package.json license) |
 | hookified | 1.7.1 | MIT | node_modules/hookified (package-lock.json) |
 | html-encoding-sniffer | 6.0.0 | MIT | node_modules/html-encoding-sniffer (package-lock.json) |
 | html-tags | 3.3.1 | MIT | node_modules/html-tags (package-lock.json) |
@@ -460,39 +441,16 @@ not legal advice and still needs human/project approval before publication.
 | import-in-the-middle | 3.3.2 | Apache-2.0 | node_modules/import-in-the-middle (package-lock.json) |
 | imurmurhash | 0.1.4 | MIT | node_modules/imurmurhash (package.json license) |
 | ini | 1.3.8 | ISC | node_modules/ini (package-lock.json) |
-| internal-slot | 1.1.0 | MIT | node_modules/internal-slot (package.json license) |
 | intl-messageformat | 10.7.18 | BSD-3-Clause | node_modules/intl-messageformat (package-lock.json) |
-| is-array-buffer | 3.0.5 | MIT | node_modules/is-array-buffer (package.json license) |
 | is-arrayish | 0.2.1 | MIT | node_modules/is-arrayish (package-lock.json) |
-| is-async-function | 2.1.1 | MIT | node_modules/is-async-function (package.json license) |
-| is-bigint | 1.1.0 | MIT | node_modules/is-bigint (package.json license) |
-| is-boolean-object | 1.2.2 | MIT | node_modules/is-boolean-object (package.json license) |
-| is-callable | 1.2.7 | MIT | node_modules/is-callable (package.json license) |
-| is-core-module | 2.16.1 | MIT | node_modules/is-core-module (package.json license) |
-| is-data-view | 1.0.2 | MIT | node_modules/is-data-view (package.json license) |
-| is-date-object | 1.1.0 | MIT | node_modules/is-date-object (package.json license) |
 | is-docker | 2.2.1 | MIT | node_modules/is-docker (package-lock.json) |
 | is-extglob | 2.1.1 | MIT | node_modules/is-extglob (package.json license) |
-| is-finalizationregistry | 1.1.1 | MIT | node_modules/is-finalizationregistry (package.json license) |
 | is-fullwidth-code-point | 3.0.0 | MIT | node_modules/is-fullwidth-code-point (package-lock.json) |
-| is-generator-function | 1.1.0 | MIT | node_modules/is-generator-function (package.json license) |
 | is-glob | 4.0.3 | MIT | node_modules/is-glob (package.json license) |
-| is-map | 2.0.3 | MIT | node_modules/is-map (package.json license) |
 | is-number | 7.0.0 | MIT | node_modules/is-number (package-lock.json) |
-| is-number-object | 1.1.1 | MIT | node_modules/is-number-object (package.json license) |
 | is-plain-object | 5.0.0 | MIT | node_modules/is-plain-object (package-lock.json) |
 | is-potential-custom-element-name | 1.0.1 | MIT | node_modules/is-potential-custom-element-name (package-lock.json) |
-| is-regex | 1.2.1 | MIT | node_modules/is-regex (package.json license) |
-| is-set | 2.0.3 | MIT | node_modules/is-set (package.json license) |
-| is-shared-array-buffer | 1.0.4 | MIT | node_modules/is-shared-array-buffer (package.json license) |
-| is-string | 1.1.1 | MIT | node_modules/is-string (package.json license) |
-| is-symbol | 1.1.1 | MIT | node_modules/is-symbol (package.json license) |
-| is-typed-array | 1.1.15 | MIT | node_modules/is-typed-array (package.json license) |
-| is-weakmap | 2.0.2 | MIT | node_modules/is-weakmap (package.json license) |
-| is-weakref | 1.1.1 | MIT | node_modules/is-weakref (package.json license) |
-| is-weakset | 2.0.4 | MIT | node_modules/is-weakset (package.json license) |
 | is-wsl | 2.2.0 | MIT | node_modules/is-wsl (package-lock.json) |
-| isarray | 2.0.5 | MIT | node_modules/isarray (package.json license) |
 | isexe | 2.0.0 | ISC | node_modules/isexe (package.json license) |
 | jpeg-js | 0.4.4 | BSD-3-Clause | node_modules/jpeg-js (package-lock.json) |
 | js-library-detector | 6.7.0 | MIT | node_modules/js-library-detector (package-lock.json) |
@@ -504,7 +462,6 @@ not legal advice and still needs human/project approval before publication.
 | json-schema-traverse | 0.4.1 | MIT | node_modules/json-schema-traverse (package-lock.json) |
 | json-schema-traverse | 1.0.0 | MIT | node_modules/table/node_modules/json-schema-traverse (package-lock.json) |
 | json-stable-stringify-without-jsonify | 1.0.1 | MIT | node_modules/json-stable-stringify-without-jsonify (package.json license) |
-| json5 | 1.0.2 | MIT | node_modules/json5 (package.json license) |
 | keyv | 4.5.4 | MIT | node_modules/keyv (package.json license) |
 | keyv | 5.2.3 | MIT | node_modules/cacheable/node_modules/keyv (package-lock.json) |
 | kind-of | 6.0.3 | MIT | node_modules/kind-of (package-lock.json) |
@@ -519,13 +476,11 @@ not legal advice and still needs human/project approval before publication.
 | lines-and-columns | 1.2.4 | MIT | node_modules/lines-and-columns (package-lock.json) |
 | locate-path | 6.0.0 | MIT | node_modules/locate-path (package.json license) |
 | lodash-es | 4.18.1 | MIT | node_modules/lodash-es (package-lock.json) |
-| lodash.merge | 4.6.2 | MIT | node_modules/lodash.merge (package.json license) |
 | lodash.truncate | 4.4.2 | MIT | node_modules/lodash.truncate (package-lock.json) |
 | lookup-closest-locale | 6.2.0 | MIT | node_modules/lookup-closest-locale (package-lock.json) |
 | lru-cache | 11.2.7 | BlueOak-1.0.0 | node_modules/lru-cache (package-lock.json) |
 | magic-string | 0.30.21 | MIT | node_modules/magic-string (package-lock.json) |
 | marky | 1.3.0 | Apache-2.0 | node_modules/marky (package-lock.json) |
-| math-intrinsics | 1.1.0 | MIT | node_modules/math-intrinsics (package.json license) |
 | mathml-tag-names | 2.1.3 | MIT | node_modules/mathml-tag-names (package-lock.json) |
 | mdn-data | 2.27.1 | CC0-1.0 | node_modules/mdn-data (package-lock.json) |
 | meow | 13.2.0 | MIT | node_modules/meow (package-lock.json) |
@@ -533,7 +488,6 @@ not legal advice and still needs human/project approval before publication.
 | meriyah | 6.1.4 | ISC | node_modules/meriyah (package-lock.json) |
 | micromatch | 4.0.8 | MIT | node_modules/micromatch (package-lock.json) |
 | minimatch | 10.2.5 | BlueOak-1.0.0 | node_modules/glob/node_modules/minimatch (package-lock.json) |
-| minimatch | 3.1.5 | ISC | node_modules/minimatch (package-lock.json) |
 | minimist | 1.2.8 | MIT | node_modules/minimist (package.json license) |
 | minipass | 7.1.3 | BlueOak-1.0.0 | node_modules/minipass (package-lock.json) |
 | mitt | 3.0.1 | MIT | node_modules/mitt (package-lock.json) |
@@ -541,18 +495,12 @@ not legal advice and still needs human/project approval before publication.
 | module-details-from-path | 1.0.4 | MIT | node_modules/module-details-from-path (package-lock.json) |
 | ms | 2.1.3 | MIT | node_modules/ms (package.json license) |
 | nanoid | 3.3.16 | MIT | node_modules/nanoid (package-lock.json) |
+| napi-postinstall | 0.3.4 | MIT | node_modules/napi-postinstall (package-lock.json) |
 | natural-compare | 1.4.0 | MIT | node_modules/natural-compare (package.json license) |
 | normalize-path | 3.0.0 | MIT | node_modules/normalize-path (package-lock.json) |
-| object-inspect | 1.13.4 | MIT | node_modules/object-inspect (package.json license) |
-| object-keys | 1.1.1 | MIT | node_modules/object-keys (package.json license) |
-| object.assign | 4.1.7 | MIT | node_modules/object.assign (package.json license) |
-| object.fromentries | 2.0.8 | MIT | node_modules/object.fromentries (package.json license) |
-| object.groupby | 1.0.3 | MIT | node_modules/object.groupby (package.json license) |
-| object.values | 1.2.1 | MIT | node_modules/object.values (package.json license) |
 | obug | 2.1.1 | MIT | node_modules/obug (package-lock.json) |
 | open | 8.4.2 | MIT | node_modules/open (package-lock.json) |
 | optionator | 0.9.4 | MIT | node_modules/optionator (package.json license) |
-| own-keys | 1.0.1 | MIT | node_modules/own-keys (package.json license) |
 | p-limit | 3.1.0 | MIT | node_modules/p-limit (package.json license) |
 | p-locate | 5.0.0 | MIT | node_modules/p-locate (package.json license) |
 | parent-module | 1.0.1 | MIT | node_modules/parent-module (package.json license) |
@@ -560,7 +508,6 @@ not legal advice and still needs human/project approval before publication.
 | parse5 | 8.0.0 | MIT | node_modules/parse5 (package-lock.json) |
 | path-exists | 4.0.0 | MIT | node_modules/path-exists (package.json license) |
 | path-key | 3.1.1 | MIT | node_modules/path-key (package.json license) |
-| path-parse | 1.0.7 | MIT | node_modules/path-parse (package.json license) |
 | path-scurry | 2.0.2 | BlueOak-1.0.0 | node_modules/path-scurry (package-lock.json) |
 | path-type | 4.0.0 | MIT | node_modules/path-type (package-lock.json) |
 | pathe | 2.0.3 | MIT | node_modules/pathe (package-lock.json) |
@@ -569,7 +516,6 @@ not legal advice and still needs human/project approval before publication.
 | picomatch | 4.0.4 | MIT | node_modules/vitest/node_modules/picomatch (package-lock.json) |
 | playwright | 1.56.1 | Apache-2.0 | node_modules/playwright (package-lock.json) |
 | playwright-core | 1.56.1 | Apache-2.0 | node_modules/playwright-core (package-lock.json) |
-| possible-typed-array-names | 1.1.0 | MIT | node_modules/possible-typed-array-names (package.json license) |
 | postcss | 8.5.23 | MIT | node_modules/postcss (package-lock.json) |
 | postcss-resolve-nested-selector | 0.1.6 | MIT | node_modules/postcss-resolve-nested-selector (package-lock.json) |
 | postcss-safe-parser | 7.0.1 | MIT | node_modules/postcss-safe-parser (package-lock.json) |
@@ -580,34 +526,22 @@ not legal advice and still needs human/project approval before publication.
 | punycode | 2.3.1 | MIT | node_modules/punycode (package.json license) |
 | puppeteer-core | 25.3.0 | Apache-2.0 | node_modules/puppeteer-core (package-lock.json) |
 | queue-microtask | 1.2.3 | MIT | node_modules/queue-microtask (package-lock.json) |
-| reflect.getprototypeof | 1.0.10 | MIT | node_modules/reflect.getprototypeof (package.json license) |
-| regexp.prototype.flags | 1.5.4 | MIT | node_modules/regexp.prototype.flags (package.json license) |
 | require-directory | 2.1.1 | MIT | node_modules/require-directory (package-lock.json) |
 | require-from-string | 2.0.2 | MIT | node_modules/require-from-string (package-lock.json) |
 | require-in-the-middle | 8.0.1 | MIT | node_modules/require-in-the-middle (package-lock.json) |
-| resolve | 1.22.10 | MIT | node_modules/resolve (package.json license) |
 | resolve-from | 4.0.0 | MIT | node_modules/resolve-from (package.json license) |
 | resolve-from | 5.0.0 | MIT | node_modules/stylelint/node_modules/resolve-from (package-lock.json) |
+| resolve-pkg-maps | 1.0.0 | MIT | node_modules/resolve-pkg-maps (package-lock.json) |
 | reusify | 1.0.4 | MIT | node_modules/reusify (package-lock.json) |
 | robots-parser | 3.0.1 | MIT | node_modules/robots-parser (package-lock.json) |
 | rollup | 4.60.4 | MIT | node_modules/rollup (package-lock.json) |
 | run-parallel | 1.2.0 | MIT | node_modules/run-parallel (package-lock.json) |
-| safe-array-concat | 1.1.3 | MIT | node_modules/safe-array-concat (package.json license) |
-| safe-push-apply | 1.0.0 | MIT | node_modules/safe-push-apply (package.json license) |
-| safe-regex-test | 1.1.0 | MIT | node_modules/safe-regex-test (package.json license) |
 | saxes | 6.0.0 | ISC | node_modules/saxes (package-lock.json) |
 | semifies | 1.0.0 | Apache-2.0 | node_modules/semifies (package-lock.json) |
-| semver | 6.3.1 | ISC | node_modules/semver (package.json license) |
 | semver | 7.7.4 | ISC | node_modules/html-validate/node_modules/semver (package-lock.json) |
-| set-function-length | 1.2.2 | MIT | node_modules/set-function-length (package.json license) |
-| set-function-name | 2.0.2 | MIT | node_modules/set-function-name (package.json license) |
-| set-proto | 1.0.0 | MIT | node_modules/set-proto (package.json license) |
+| semver | 7.8.5 | ISC | node_modules/eslint-plugin-import-x/node_modules/semver (package-lock.json) |
 | shebang-command | 2.0.0 | MIT | node_modules/shebang-command (package.json license) |
 | shebang-regex | 3.0.0 | MIT | node_modules/shebang-regex (package.json license) |
-| side-channel | 1.1.0 | MIT | node_modules/side-channel (package.json license) |
-| side-channel-list | 1.0.0 | MIT | node_modules/side-channel-list (package.json license) |
-| side-channel-map | 1.0.1 | MIT | node_modules/side-channel-map (package.json license) |
-| side-channel-weakmap | 1.0.2 | MIT | node_modules/side-channel-weakmap (package.json license) |
 | siginfo | 2.0.0 | ISC | node_modules/siginfo (package-lock.json) |
 | signal-exit | 4.1.0 | ISC | node_modules/signal-exit (package-lock.json) |
 | sisteransi | 1.0.5 | MIT | node_modules/sisteransi (package-lock.json) |
@@ -616,17 +550,13 @@ not legal advice and still needs human/project approval before publication.
 | source-map | 0.6.1 | BSD-3-Clause | node_modules/source-map (package-lock.json) |
 | source-map-js | 1.2.1 | BSD-3-Clause | node_modules/source-map-js (package-lock.json) |
 | speedline-core | 1.4.3 | MIT | node_modules/speedline-core (package-lock.json) |
+| stable-hash-x | 0.2.0 | MIT | node_modules/stable-hash-x (package-lock.json) |
 | stackback | 0.0.2 | MIT | node_modules/stackback (package-lock.json) |
 | std-env | 4.0.0 | MIT | node_modules/std-env (package-lock.json) |
 | string-width | 4.2.3 | MIT | node_modules/string-width (package-lock.json) |
 | string-width | 7.2.0 | MIT | node_modules/@puppeteer/browsers/node_modules/string-width (package-lock.json) |
-| string.prototype.trim | 1.2.10 | MIT | node_modules/string.prototype.trim (package.json license) |
-| string.prototype.trimend | 1.0.9 | MIT | node_modules/string.prototype.trimend (package.json license) |
-| string.prototype.trimstart | 1.0.8 | MIT | node_modules/string.prototype.trimstart (package.json license) |
 | strip-ansi | 6.0.1 | MIT | node_modules/strip-ansi (package-lock.json) |
 | strip-ansi | 7.2.0 | MIT | node_modules/@puppeteer/browsers/node_modules/strip-ansi (package-lock.json) |
-| strip-bom | 3.0.0 | MIT | node_modules/strip-bom (package.json license) |
-| strip-json-comments | 3.1.1 | MIT | node_modules/strip-json-comments (package-lock.json) |
 | stubborn-fs | 2.0.0 | MIT | node_modules/stubborn-fs (package-lock.json) |
 | stubborn-utils | 1.0.2 | MIT | node_modules/stubborn-utils (package-lock.json) |
 | stylelint | 16.14.1 | MIT | node_modules/stylelint (package-lock.json) |
@@ -634,7 +564,6 @@ not legal advice and still needs human/project approval before publication.
 | stylelint-config-standard | 37.0.0 | MIT | node_modules/stylelint-config-standard (package-lock.json) |
 | supports-color | 7.2.0 | MIT | node_modules/supports-color (package.json license) |
 | supports-hyperlinks | 3.2.0 | MIT | node_modules/supports-hyperlinks (package-lock.json) |
-| supports-preserve-symlinks-flag | 1.0.0 | MIT | node_modules/supports-preserve-symlinks-flag (package.json license) |
 | svg-tags | 1.0.0 | MIT | node_modules/svg-tags (package.json licenses) |
 | symbol-tree | 3.2.4 | MIT | node_modules/symbol-tree (package-lock.json) |
 | table | 6.9.0 | BSD-3-Clause | node_modules/table (package-lock.json) |
@@ -649,18 +578,13 @@ not legal advice and still needs human/project approval before publication.
 | to-regex-range | 5.0.1 | MIT | node_modules/to-regex-range (package-lock.json) |
 | tough-cookie | 6.0.1 | BSD-3-Clause | node_modules/tough-cookie (package-lock.json) |
 | tr46 | 6.0.0 | MIT | node_modules/tr46 (package-lock.json) |
-| tsconfig-paths | 3.15.0 | MIT | node_modules/tsconfig-paths (package.json license) |
 | tslib | 2.8.1 | 0BSD | node_modules/tslib (package-lock.json) |
 | type-check | 0.4.0 | MIT | node_modules/type-check (package.json license) |
 | type-fest | 4.41.0 | (MIT OR CC0-1.0) | node_modules/type-fest (package-lock.json) |
-| typed-array-buffer | 1.0.3 | MIT | node_modules/typed-array-buffer (package.json license) |
-| typed-array-byte-length | 1.0.3 | MIT | node_modules/typed-array-byte-length (package.json license) |
-| typed-array-byte-offset | 1.0.4 | MIT | node_modules/typed-array-byte-offset (package.json license) |
-| typed-array-length | 1.0.7 | MIT | node_modules/typed-array-length (package.json license) |
 | typed-query-selector | 2.12.2 | MIT | node_modules/typed-query-selector (package-lock.json) |
-| unbox-primitive | 1.1.0 | MIT | node_modules/unbox-primitive (package.json license) |
 | undici | 7.28.0 | MIT | node_modules/undici (package-lock.json) |
 | undici-types | 7.16.0 | MIT | node_modules/undici-types (package-lock.json) |
+| unrs-resolver | 1.12.2 | MIT | node_modules/unrs-resolver (package-lock.json) |
 | uri-js | 4.4.1 | BSD-2-Clause | node_modules/uri-js (package-lock.json) |
 | util-deprecate | 1.0.2 | MIT | node_modules/util-deprecate (package-lock.json) |
 | vite | 6.4.3 | MIT | node_modules/vite (package-lock.json) |
@@ -674,10 +598,6 @@ not legal advice and still needs human/project approval before publication.
 | when-exit | 2.1.5 | MIT | node_modules/when-exit (package-lock.json) |
 | which | 1.3.1 | ISC | node_modules/global-prefix/node_modules/which (package-lock.json) |
 | which | 2.0.2 | ISC | node_modules/which (package.json license) |
-| which-boxed-primitive | 1.1.1 | MIT | node_modules/which-boxed-primitive (package.json license) |
-| which-builtin-type | 1.2.1 | MIT | node_modules/which-builtin-type (package.json license) |
-| which-collection | 1.0.2 | MIT | node_modules/which-collection (package.json license) |
-| which-typed-array | 1.1.18 | MIT | node_modules/which-typed-array (package.json license) |
 | why-is-node-running | 2.3.0 | MIT | node_modules/why-is-node-running (package-lock.json) |
 | word-wrap | 1.2.5 | MIT | node_modules/word-wrap (package.json license) |
 | wrap-ansi | 7.0.0 | MIT | node_modules/wrap-ansi (package-lock.json) |
