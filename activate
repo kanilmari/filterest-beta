@@ -1,0 +1,55 @@
+#!/bin/bash
+# ==============================================================================
+# activate: Add this project directory to PATH
+#
+# Source this script to make root CLI wrappers available as bare
+# commands (without ./ prefix): ctl, db_task, api_lang, api_crud, search,
+# retention helpers, worker_agent, queen, and related developer tools.
+#
+# Usage (after su, or in any new shell):
+#   source activate
+#   source /path/to/project/activate
+#
+# Or use:  su -m   (preserves current PATH — no activation needed)
+# ==============================================================================
+
+# Must be sourced, not executed
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo -e "\033[0;31mError: This script must be sourced, not executed.\033[0m"
+    echo "Use: source activate"
+    echo "Not: ./activate"
+    exit 1
+fi
+
+_EASELECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Add project dir to PATH if not already there
+if [[ ":$PATH:" != *":$_EASELECT_DIR:"* ]]; then
+    export PATH="$_EASELECT_DIR:$PATH"
+    echo -e "\033[0;32m✅ Project activated: $_EASELECT_DIR added to PATH\033[0m"
+else
+    echo -e "\033[1;33m⚠️  Filterest already in PATH\033[0m"
+fi
+
+# Also source resolve_env.sh for /snap/bin etc.
+source "$_EASELECT_DIR/server_tools/ctl/lib/resolve_env.sh"
+
+# Load tab-completion for ctl and worker_agent.
+_CTL_COMP="$_EASELECT_DIR/server_tools/ctl/ctl_completions.bash"
+if [[ -f "$_CTL_COMP" ]]; then
+    source "$_CTL_COMP"
+fi
+
+_WA_COMP="$_EASELECT_DIR/server_tools/agent_tools/worker_agent/worker_agent_completions.bash"
+if [[ -f "$_WA_COMP" ]]; then
+    source "$_WA_COMP"
+fi
+unset _CTL_COMP
+unset _WA_COMP
+
+echo "   Available commands: ctl, refresh_targets, db, db_task, api_lang, api_crud,"
+echo "                       easelect_mcp, search, safe_grep, safe_test, guardian,"
+echo "                       graph, queen, worker_agent, db_log_retention,"
+echo "                       db_data_retention, dev_status, codesize"
+
+unset _EASELECT_DIR

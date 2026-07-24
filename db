@@ -1,0 +1,29 @@
+#!/bin/bash
+# ==============================================================================
+# db: Easelect Database Query Shortcut
+#
+# Thin wrapper that calls the main implementation in:
+#   server_tools/agent_tools/db.py
+#
+# Usage:
+#   db "SELECT * FROM users LIMIT 5"
+#   db --instance serlog.com "SELECT COUNT(*) FROM datasets"
+#   db --local "SELECT * FROM system_db_tables LIMIT 5"
+#   db --list
+# ==============================================================================
+
+# Prevent sourcing - this script must be executed, not sourced
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    echo -e "\033[0;31mError: This script must be executed, not sourced.\033[0m"
+    echo "Use: ./db \"SELECT ...\""
+    return 1 2>/dev/null || exit 1
+fi
+
+# Get the directory where this script is located (project root)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Resolve environment (PATH, cd to project root) — needed for su/root
+source "$PROJECT_ROOT/server_tools/ctl/lib/resolve_env.sh"
+
+# Call db.py with all arguments
+exec python3 "$PROJECT_ROOT/server_tools/agent_tools/db.py" "$@"

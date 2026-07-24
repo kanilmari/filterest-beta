@@ -1,0 +1,40 @@
+# ==============================================================================
+# Dockerfile.dev: Development image with hot reload support
+# Includes both Go and Node.js runtimes for live development
+# ==============================================================================
+
+FROM golang:1.26.5-alpine3.24
+
+# Install Node.js and other development dependencies
+# libwebp-dev and build-base are needed for chai2010/webp (CGO)
+RUN apk add --no-cache \
+    nodejs=24.17.0-r0 \
+    npm=11.12.1-r0 \
+    git=2.54.0-r0 \
+    bash=5.3.9-r1 \
+    ca-certificates=20260611-r0 \
+    build-base=0.5-r4 \
+    libwebp-dev=1.6.0-r0
+
+WORKDIR /app
+
+# Copy package files for npm install
+COPY package.json package-lock.json* ./
+
+# Install Node.js dependencies
+RUN npm ci
+
+# Copy go mod files for dependency caching
+COPY go.mod go.sum ./
+
+# Download Go dependencies
+RUN go mod download
+
+# Copy source (will be overwritten by volume mount in development)
+COPY . .
+
+# Expose ports
+EXPOSE 8082 5173
+
+# Default command (overridden in docker-compose.dev.yml)
+CMD ["sh", "-c", "npm run dev & go run main.go"]

@@ -1,0 +1,14 @@
+#!/bin/bash
+# ==============================================================================
+# db_log_retention: Authenticated log-retention wrapper for Easelect
+#
+# Thin wrapper that calls server_tools/agent_tools/db_log_retention.py
+# Canonical execution path: admin API (/api/log-retention/*), never direct SQL
+# ==============================================================================
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/server_tools/ctl/lib/resolve_env.sh"
+
+exec python3 "$PROJECT_ROOT/server_tools/agent_tools/db_log_retention.py" "$@"

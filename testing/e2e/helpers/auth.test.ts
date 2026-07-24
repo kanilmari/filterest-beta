@@ -1,0 +1,60 @@
+/**
+ * auth.test.ts
+ * Verifies strict E2E session identity matching without launching a browser.
+ * Bridges user-profile response shapes and the shared authentication helper.
+ * Exists so missing or swapped usernames cannot silently pass as authenticated sessions.
+ */
+
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+import { describe, expect, it } from 'vitest';
+
+import { loadOtpCode, sessionMatchesExpectedIdentity } from './auth';
+
+describe('sessionMatchesExpectedIdentity', () => {
+  it('accepts only the exact requested non-guest identity', () => {
+    expect(sessionMatchesExpectedIdentity(
+      { user_id: 4, username: 'test_admin' },
+      'test_admin',
+    )).toBe(true);
+  });
+
+  it.each([
+    [{ user_id: 4 }, 'test_admin'],
+    [{ user_id: 4, username: '' }, 'test_admin'],
+    [{ user_id: 4, username: 'another_admin' }, 'test_admin'],
+    [{ user_id: 1, username: 'test_admin' }, 'test_admin'],
+    [{ user_id: 4, username: 'test_admin' }, '   '],
+  ])('rejects an incomplete or mismatched session %#', (sessionInfo, expectedUsername) => {
+    expect(sessionMatchesExpectedIdentity(sessionInfo, expectedUsername)).toBe(false);
+  });
+});
+
+describe('loadOtpCode', () => {
+  it('prefers the explicit process configuration', () => {
+    expect(loadOtpCode({
+      environment: { LOGIN_OTP_CODE: '654321' },
+      devEnvFile: '/missing/dev_env.txt',
+    })).toBe('654321');
+  });
+
+  it('reads the ignored native dev environment as the local fallback', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'easelect-e2e-otp-'));
+    const devEnvFile = path.join(tempDir, 'dev_env.txt');
+    fs.writeFileSync(devEnvFile, 'DB_PORT=5433\nLOGIN_OTP_CODE=123456\n', 'utf8');
+    try {
+      expect(loadOtpCode({ environment: {}, devEnvFile })).toBe('123456');
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
+  it('fails clearly when no OTP is configured', () => {
+    expect(() => loadOtpCode({
+      environment: {},
+      devEnvFile: '/missing/dev_env.txt',
+    })).toThrow('Missing LOGIN_OTP_CODE');
+  });
+});

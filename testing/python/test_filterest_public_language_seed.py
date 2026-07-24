@@ -1,0 +1,191 @@
+"""Guard the language keys required by the public Filterest article fixture.
+
+The required set comes from authenticated, uncached article-route runtime
+captures with both supported field-selection states. Keeping it here makes
+missing bootstrap translations fail before the browser falls back to repeat
+AI-translation requests.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+LANGUAGE_SEED = (
+    REPO_ROOT
+    / "server_tools/public_slice_export/public_bootstrap/app_tables.lang_keys.sql"
+)
+LANGUAGE_MIGRATION = (
+    REPO_ROOT
+    / "server_tools/migrations/20260720000003_seed_filterest_public_metadata_lang_keys.sql"
+)
+
+REQUIRED_ARTICLE_RUNTIME_KEYS = frozenset(
+    """
+    account logout system_config users admin_and_development_tools admin_tools
+    permissions queen_chat table_tools create_table foreign_keys asset_linking
+    card_visibility service_catalog_moderation child_tab_config
+    dataset_alias_management dataset_header_config maintenance
+    add_notification_trigger refresh_embeddings check_json_columns
+    database_consistency empty_rows fix_media_subfolders fk_cache_triggers
+    translation_helper text_index_maintenance user_tools create user register
+    database other_tables ai_chat_conversations dokumentaatio_tiketit_relation
+    palvelukatalogi_dokumentaatio_relation palvelukatalogi_riskienhallinta_relation
+    palvelukatalogi_tiketit_relation payments
+    riskienhallinta_dokumentaatio_relation riskienhallinta_tiketit_relation
+    spatial_ref_sys system_about system_audit_log system_child_tab_config
+    system_column_control system_column_details system_db_tables system_db_version
+    system_foreign_key_relations_1_m system_foreign_key_relations_m_m
+    system_functions system_group_table_func_rights system_lang_keys
+    system_lang_keys_archive system_lang_key_sources system_schema_migrations
+    system_table_folders system_table_row_view_counts system_table_views
+    system_transaction_log system_user_column_settings
+    system_user_group_memberships system_user_groups system_users views
+    geography_columns geometry_columns palvelu_id open_in_new_tab palvelu_name
+    dokumentaatio_id dokumentaatio_name kuva riski_id riski_name edit cancel
+    delete search_for_riski_id search_for_maarapaiva search_for_id
+    search_for_palvelu_id search_for_dokumentaatio_id search_for_kuva
+    search_for_created search_for_updated chat_for_table chat_welcome_message
+    delete_history open showing_first_50 name comments write_comment send
+    """.split()
+) | frozenset(
+    {
+        "riski_name (ln)",
+        "search_for_riski_name (ln)",
+        "palvelu_name (ln)",
+        "search_for_palvelu_name (ln)",
+        "dokumentaatio_name (ln)",
+        "search_for_dokumentaatio_name (ln)",
+    }
+)
+
+REQUIRED_APP_DATASET_FIELD_KEYS = frozenset(
+    """
+    id created updated palvelu kuvaus omistava_tiimi palvelutaso tila
+    vastuuhenkilo cached_image vaikutus riskitaso riski todennakoisyys
+    alentamistoimet palvelu_id otsikko kohdetiimi ohje paivitetty voimassaolo
+    kuva vastuutiimi maarapaiva riski_id prioriteetti pyyntotyyppi
+    dokumentaatio_id
+    """.split()
+)
+
+REQUIRED_METADATA_SEED_KEYS = frozenset(
+    """
+    id created updated admin_access_allowed admin_approved admin_user_id
+    amount_cents applied_at app_name archived_at auth_name auth_srid
+    bio_social_medias boolean_value bridging_col_a bridging_col_b
+    bridging_table_name bridging_table_uid cached_name_col_in_src cached_oid
+    card_detail_capitalization card_detail_icon_key card_detail_icon_svg
+    card_detail_label_mode card_details_layout card_element card_style_variant
+    ch column_label column_name column_uid column_width_px co_number created_at
+    creation_spec currency customer_email dataset data_type default_view_id
+    details disabled display_name duration_ms editable_in_ui en enabled
+    error_message external_order_id fco_number fi filename
+    filterbar_visible_by_default fk_display_column folder_description folder_id
+    folder_name full_name function_id group_id handler_name hidden
+    hide_everywhere hide_false_null_on_big_crd hide_false_null_on_sml_crd
+    hide_in_filter_panel hide_on_bg_crd_if_not_own hide_on_small_card
+    http_method icon_key insertable insert_expln_langkey
+    insert_new_source_with_target insert_new_target_with_source instance_id
+    int_value ip_address is_about_table is_current_project is_default is_hidden
+    is_main_table is_multilingual is_removable json_value key lang_key
+    lang_key_id lang_key_type last_seen main_group_id mandatory messages
+    metadata method multi_lang_embeddings must_be_true_unless_own
+    name_col_in_tgt operation_type original_created original_id original_updated
+    orphan_since package paid_at parent_id parent_table payment_token
+    predecessor_id preview privileged proj4text rate_limit_amount
+    rate_limit_minutes reference_direction revolut_checkout_url revolut_order_id
+    row_id row_policy_owner_column schema_name sco_number search_placeholder
+    search_slogan search_vector_simple show_key_on_card show_value_on_card
+    sort_order source_column_name source_high source_insert_specs source_low
+    source_table_uid source_type specific_table_related sql_dump_policy srid
+    srtext status success tab_key table_a_column table_a_uid table_b_column
+    table_b_uid table_name table_uid tab_order tab_order_json target_column_name
+    target_insert_specs target_schema_name target_table_uid text_value tiketti_id
+    title ui_only updated_at url_path url_route_endpoint usage_explanation
+    user_group_id username value_type version viewed_by_user_id visible
+    webhook_received_at yue
+    """.split()
+)
+
+SQL_VALUE = r"'((?:''|[^'])*)'"
+LANGUAGE_ROW = re.compile(
+    rf"^\s*\({SQL_VALUE},\s*{SQL_VALUE},\s*{SQL_VALUE},\s*{SQL_VALUE},\s*"
+    rf"{SQL_VALUE},\s*{SQL_VALUE}\)[,;]?\s*$",
+    re.MULTILINE,
+)
+
+
+def _seed_rows() -> list[tuple[str, ...]]:
+    source = LANGUAGE_SEED.read_text(encoding="utf-8")
+    return [
+        tuple(value.replace("''", "'") for value in match.groups())
+        for match in LANGUAGE_ROW.finditer(source)
+    ]
+
+
+def test_public_article_runtime_keys_have_complete_four_language_seed_rows() -> None:
+    rows = _seed_rows()
+    rows_by_key = {row[0]: row for row in rows}
+
+    assert len(REQUIRED_ARTICLE_RUNTIME_KEYS) == 102
+    assert REQUIRED_ARTICLE_RUNTIME_KEYS <= rows_by_key.keys()
+    for lang_key in REQUIRED_ARTICLE_RUNTIME_KEYS:
+        _, fi, en, ch, yue, creation_spec = rows_by_key[lang_key]
+        assert all(value.strip() for value in (fi, en, ch, yue))
+        assert creation_spec == "public fixture seed"
+
+
+def test_public_app_language_seed_does_not_duplicate_keys() -> None:
+    lang_keys = [row[0] for row in _seed_rows()]
+
+    assert len(lang_keys) == len(set(lang_keys))
+
+
+def test_four_public_app_datasets_have_complete_four_language_field_labels() -> None:
+    rows_by_key = {row[0]: row for row in _seed_rows()}
+
+    assert REQUIRED_APP_DATASET_FIELD_KEYS <= rows_by_key.keys()
+    for lang_key in REQUIRED_APP_DATASET_FIELD_KEYS:
+        assert all(value.strip() for value in rows_by_key[lang_key][1:5])
+
+
+def test_public_runtime_metadata_has_complete_four_language_seed_rows() -> None:
+    metadata_rows = {
+        row[0]: row
+        for row in _seed_rows()
+        if row[5] == "public fixture metadata seed"
+    }
+
+    assert len(REQUIRED_METADATA_SEED_KEYS) == 168
+    assert REQUIRED_METADATA_SEED_KEYS == metadata_rows.keys()
+    for row in metadata_rows.values():
+        assert all(value.strip() for value in row[1:5])
+
+
+def test_public_seed_derives_missing_filter_and_dataset_page_labels() -> None:
+    source = LANGUAGE_SEED.read_text(encoding="utf-8")
+
+    assert "'search_for_' || base.lang_key" in source
+    assert "COALESCE(NULLIF(details.lang_key, ''), details.column_name)" in source
+    assert "'search_for_' || tables.table_name" in source
+    assert "tables.table_name || '_front_page'" in source
+    assert source.count("WHERE NOT EXISTS (") >= 2
+
+
+def test_filterest_metadata_language_migration_matches_public_seed() -> None:
+    source = LANGUAGE_MIGRATION.read_text(encoding="utf-8")
+    rows = [
+        tuple(value.replace("''", "'") for value in match.groups())
+        for match in LANGUAGE_ROW.finditer(source)
+    ]
+    rows_by_key = {row[0]: row for row in rows}
+
+    assert REQUIRED_METADATA_SEED_KEYS == rows_by_key.keys()
+    assert "MERGE INTO public.system_lang_keys" in source
+    assert "ON CONFLICT" not in source
+    assert "v_instance_kind NOT IN ('filterest_sibling', 'filterest_domain')" in source
+    assert "'search_for_' || base.lang_key" in source
+    assert "tables.table_name || '_front_page'" in source

@@ -1,0 +1,236 @@
+#!/bin/bash
+# ==============================================================================
+# instance_helpers.sh: Shared helper functions for instance management
+#
+# Contains utility functions used by multiple instance management modules:
+# - Terminal hyperlink helper (OSC 8)
+# - Table separator printing
+# - Seed database configuration reader
+# - Docker health-check waiter
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Helper: Normalize an Easelect instance role / bootstrap seed profile.
+# Between instance .env files and bootstrap consumers it keeps one small role
+# vocabulary. Why: management instances must be initialized from management
+# seeds, not from normal application/dev data.
+# ------------------------------------------------------------------------------
+normalize_instance_role() {
+    local instance_role="${1:-application}"
+
+    case "${instance_role}" in
+        application|management)
+            printf '%s\n' "${instance_role}"
+            ;;
+        *)
+            echo -e "${RED}❌ Unsupported instance role: ${instance_role}${NC}" >&2
+            echo "   Expected: application or management" >&2
+            return 1
+            ;;
+    esac
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Resolve bootstrap seed profile from an instance env file.
+# Between INSTANCE_ROLE and BOOTSTRAP_SEED_PROFILE it preserves one import
+# decision. Why: old envs may know only the role, while new envs can pin the
+# seed profile explicitly.
+# ------------------------------------------------------------------------------
+instance_seed_profile_from_env() {
+    local env_file="$1"
+    local seed_profile=""
+    local instance_role=""
+
+    seed_profile=$(grep -E "^BOOTSTRAP_SEED_PROFILE=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    instance_role=$(grep -E "^INSTANCE_ROLE=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
+
+    normalize_instance_role "${seed_profile:-${instance_role:-application}}"
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Create clickable terminal hyperlink (OSC 8)
+# Usage: make_link "https://url" "display text"
+# Falls back to plain text if terminal doesn't support hyperlinks.
+# ------------------------------------------------------------------------------
+make_link() {
+    local url="$1"
+    local text="$2"
+    # OSC 8 hyperlink: \e]8;;URL\e\\TEXT\e]8;;\e\\
+    printf '\e]8;;%s\e\\%s\e]8;;\e\\' "$url" "$text"
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Print a row of dashes matching total table width
+# Uses plain ASCII dash for reliable width in all terminals.
+# ------------------------------------------------------------------------------
+print_separator() {
+    local width="$1"
+    printf '%*s\n' "$width" '' | tr ' ' '-'
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Read seed DB credentials from dev_env.txt
+# Used by both sync_instance and init_instance to connect to the local dev DB.
+# Returns variables: seed_host, seed_port, seed_user, seed_name, seed_password
+# ------------------------------------------------------------------------------
+read_seed_db_config() {
+    local config_file="$PROJECT_ROOT/dev_env.txt"
+
+    if [[ ! -f "$config_file" ]]; then
+        echo -e "${RED}❌ dev_env.txt not found at project root${NC}"
+        exit 1
+    fi
+
+    # Read DB_HOST, DB_PORT from dev_env.txt
+    seed_host=$(grep -E "^DB_HOST=" "$config_file" | tail -1 | cut -d'=' -f2)
+    seed_port=$(grep -E "^DB_PORT=" "$config_file" | tail -1 | cut -d'=' -f2)
+    seed_name=$(grep -E "^DB_NAME=" "$config_file" | tail -1 | cut -d'=' -f2)
+
+    # Admin credentials are marked with ###. This basic-regex form works with
+    # the BSD sed shipped on macOS; BSD grep has no GNU Perl-regex option.
+    seed_user=$(sed -n 's/^###DB_USER=\([^#]*\).*/\1/p' "$config_file" | head -1)
+    seed_password=$(sed -n 's/^###DB_PASSWORD=\([^#]*\).*/\1/p' "$config_file" | head -1)
+
+    seed_host="${seed_host:-localhost}"
+    seed_port="${seed_port:-5433}"
+    seed_user="${seed_user:-admin_user}"
+    seed_name="${seed_name:-easelect}"
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Wait for a Docker instance's app to become reachable via HTTP(S)
+# Usage: wait_for_instance_app <instance_name> <port> [timeout_seconds]
+# Returns 0 if healthy, 1 if timed out.
+# ------------------------------------------------------------------------------
+wait_for_instance_app() {
+    local instance="$1"
+    local port="$2"
+    local timeout="${3:-60}"
+
+    for i in $(seq 1 "$timeout"); do
+        if curl -s -o /dev/null "http://localhost:${port}/" --max-time 2 2>/dev/null; then
+            return 0
+        fi
+        if curl -k -s -o /dev/null "https://localhost:${port}/" --max-time 2 2>/dev/null; then
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Wait for a Docker instance's database to become ready
+# Usage: wait_for_instance_db <instance_name> <db_admin_user> <db_name> [timeout]
+# Returns 0 if ready, 1 if timed out.
+# ------------------------------------------------------------------------------
+wait_for_instance_db() {
+    local instance="$1"
+    local db_admin="$2"
+    local db_name="$3"
+    local timeout="${4:-60}"
+
+    for i in $(seq 1 "$timeout"); do
+        if docker exec "easelect-${instance}-db" pg_isready -h 127.0.0.1 -U "$db_admin" -d "$db_name" &>/dev/null; then
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Derive Docker Compose project name from instance name
+# Matches the convention used by existing containers (first segment before dot).
+# Examples: "serlog.com" → "serlog", "example.com" → "example"
+# Usage: local proj=$(compose_project_name "serlog.com")
+# ------------------------------------------------------------------------------
+compose_project_name() {
+    local instance="$1"
+    echo "${instance%%.*}"
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Build the docker compose file list for an instance.
+# Adds the DB port reset override when DB_PORT=0, so host DB publication can be
+# disabled without changing the default compose template for older instances.
+# ------------------------------------------------------------------------------
+compose_files_for_instance() {
+    local env_file="$1"
+    local db_port=""
+
+    printf '%s' "-f docker/docker-compose.instance.yml"
+
+    db_port=$(grep -E "^DB_PORT=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    if [[ "${db_port}" == "0" ]]; then
+        printf ' %s' "-f docker/docker-compose.instance.no-db-port.yml"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Build the base docker compose command for an instance
+# Includes the correct project name, compose file, and env file.
+# Usage: local cmd=$(compose_cmd "serlog.com")
+#        $cmd up -d
+# ------------------------------------------------------------------------------
+compose_cmd() {
+    local instance="$1"
+    local env_file="instances/${instance}/.env"
+    local project=$(compose_project_name "$instance")
+    local compose_files
+    compose_files=$(compose_files_for_instance "$env_file")
+    echo "docker compose -p ${project} ${compose_files} --env-file ${env_file}"
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Export build/runtime overrides for one local Docker instance command.
+# Between the instance env file, the root dev env, and docker compose it keeps
+# local derivative containers aligned with the intended dev/prod auth behavior.
+# Why: local instance refreshes should honor ENVIRONMENT_TYPE for the binary
+# build, and dev instances need LOGIN_OTP_CODE when the root dev env provides it.
+# ------------------------------------------------------------------------------
+prepare_instance_compose_env() {
+    local env_file="$1"
+    local env_type=""
+    local root_env_file="${PROJECT_ROOT}/.env"
+    local root_login_otp=""
+
+    env_type=$(grep -E "^ENVIRONMENT_TYPE=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    env_type="${env_type:-dev}"
+
+    export BUILD_ENV="${BUILD_ENV:-${env_type}}"
+    export EASELECT_APP_VERSION="${EASELECT_APP_VERSION:-$(tr -d '[:space:]' < "${PROJECT_ROOT}/VERSION_EASELECT" 2>/dev/null || printf 'unknown')}"
+    export EASELECT_DB_VERSION="${EASELECT_DB_VERSION:-$(tr -d '[:space:]' < "${PROJECT_ROOT}/VERSION_DB" 2>/dev/null || printf 'unknown')}"
+    export EASELECT_GIT_COMMIT="${EASELECT_GIT_COMMIT:-$(git -C "${PROJECT_ROOT}" rev-parse --short HEAD 2>/dev/null || printf 'unknown')}"
+
+    if [[ "$env_type" == "dev" ]]; then
+        if [[ -z "${LOGIN_OTP_CODE:-}" && -f "$root_env_file" ]]; then
+            root_login_otp=$(grep -E "^LOGIN_OTP_CODE=" "$root_env_file" 2>/dev/null | tail -1 | cut -d'=' -f2-)
+            if [[ -n "$root_login_otp" ]]; then
+                export LOGIN_OTP_CODE="$root_login_otp"
+            fi
+        fi
+    else
+        unset LOGIN_OTP_CODE || true
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Helper: Normalize one instance storage bind mount for container read access.
+# Between the host-side instances/<name>/storage tree and the app container it
+# ensures the non-root container user can traverse directories and read files.
+# Why: legacy copies may preserve 700/600-style perms that break /storage/*
+# requests inside Docker even when the files themselves exist on the host.
+# ------------------------------------------------------------------------------
+normalize_instance_storage_permissions() {
+    local instance="$1"
+    local instance_storage="${PROJECT_ROOT}/instances/${instance}/storage"
+
+    mkdir -p "$instance_storage"
+
+    if [[ ! -e "$instance_storage" ]]; then
+        return 0
+    fi
+
+    chmod -R u+rwX,go+rX "$instance_storage" 2>/dev/null || true
+}

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# human_qa - Prepare acceptance handoffs and AI browser acceptance evidence.
+# Bridges DB-ticket acceptance, exact URLs/files, authenticated Playwright state,
+# concise manual checklists, and machine-readable AI acceptance results.
+# Exists so final browser testing starts from the right place or runs by AI.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/server_tools/ctl/lib/resolve_env.sh"
+
+if [[ "${1:-}" == "ai-test" ]]; then
+    exec node "$PROJECT_ROOT/server_tools/scripts/ai_acceptance_test.mjs" "$@"
+fi
+
+if [[ "${1:-}" == "computer-use-test" ]]; then
+    exec node "$PROJECT_ROOT/server_tools/scripts/computer_use_acceptance_test.mjs" "$@"
+fi
+
+exec node "$PROJECT_ROOT/server_tools/scripts/human_qa.mjs" "$@"
