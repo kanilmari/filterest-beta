@@ -138,9 +138,7 @@ private vulnerability-reporting channel.
 
 ## License
 
-This beta candidate currently carries the GNU General Public License version 2
-text (`GPL-2.0-only`) previously selected for the retired alpha repository.
-Publication remains blocked until the owner or legal reviewer explicitly
-confirms or replaces that license scope for `filterest-beta`. See `LICENSE` and
-`PUBLICATION_CHECKLIST.md`. Any source license does not grant trademark rights
-in the `FILTEREST` name or logo.
+Filterest-beta is licensed under the GNU General Public License version 2
+(`GPL-2.0-only`), the same source license selected for the retired alpha
+repository. See `LICENSE` and `PUBLICATION_CHECKLIST.md`. The source license
+does not grant trademark rights in the `FILTEREST` name or logo.

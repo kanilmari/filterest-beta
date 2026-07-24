@@ -6,7 +6,7 @@ not legal advice and still needs human/project approval before publication.
 
 ## Candidate
 
-- Filterest app version: `8.27.85`
+- Filterest app version: `8.27.86`
 - Database version: `8.0.55`
 - Go metadata source: `go list metadata with go mod download cache`
 - npm metadata source: `package-lock.json with installed package.json license metadata`
@@ -449,7 +449,7 @@ not legal advice and still needs human/project approval before publication.
 | fast-glob | 3.3.3 | MIT | node_modules/fast-glob (package-lock.json) |
 | fast-json-stable-stringify | 2.1.0 | MIT | node_modules/fast-json-stable-stringify (package-lock.json) |
 | fast-levenshtein | 2.0.6 | MIT | node_modules/fast-levenshtein (package.json license) |
-| fast-uri | 3.1.2 | BSD-3-Clause | node_modules/fast-uri (package-lock.json) |
+| fast-uri | 3.1.4 | BSD-3-Clause | node_modules/fast-uri (package-lock.json) |
 | fastest-levenshtein | 1.0.16 | MIT | node_modules/fastest-levenshtein (package-lock.json) |
 | fastq | 1.19.0 | ISC | node_modules/fastq (package-lock.json) |
 | fd-slicer | 1.1.0 | MIT | node_modules/fd-slicer (package-lock.json) |
@@ -547,7 +547,7 @@ not legal advice and still needs human/project approval before publication.
 | jpeg-js | 0.4.4 | BSD-3-Clause | node_modules/jpeg-js (package-lock.json) |
 | js-library-detector | 6.7.0 | MIT | node_modules/js-library-detector (package-lock.json) |
 | js-tokens | 4.0.0 | MIT | node_modules/js-tokens (package-lock.json) |
-| js-yaml | 4.1.1 | MIT | node_modules/js-yaml (package-lock.json) |
+| js-yaml | 4.3.0 | MIT | node_modules/js-yaml (package-lock.json) |
 | jsdom | 29.0.1 | MIT | node_modules/jsdom (package-lock.json) |
 | json-buffer | 3.0.1 | MIT | node_modules/json-buffer (package.json license) |
 | json-parse-even-better-errors | 2.3.1 | MIT | node_modules/json-parse-even-better-errors (package-lock.json) |

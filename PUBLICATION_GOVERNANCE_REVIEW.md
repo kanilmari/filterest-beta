@@ -17,7 +17,7 @@ PASS
 
 ## Human-Owned Decisions Still Required
 
-- LICENSE file present from the alpha GPLv2 decision; beta license applicability still requires owner/legal confirmation.
+- LICENSE contains GPLv2 text approved for Filterest-beta; publication still depends on the remaining P0 gates.
 - Review SECURITY.md final wording even when it already carries the owner-provided private disclosure contact.
 - Approve CONTRIBUTING.md terms for owner-led public feedback and contribution boundaries.
 - Approve NOTICE and TRADEMARKS.md wording, including Filterest ownership and allowed-use boundaries.

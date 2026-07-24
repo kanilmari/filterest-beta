@@ -49,8 +49,8 @@ and generated artifact commit.
 
 | Priority | Gate | Status | Owner | Evidence or decision required |
 | --- | --- | --- | --- | --- |
-| P0 | Final source license chosen | blocked-human | Human release owner or counsel | The 2026-07-05 GPLv2 / `GPL-2.0-only` decision was explicitly scoped to `filterest-alpha`. Confirm or replace the license scope for the fresh `filterest-beta` repository before publication. |
-| P0 | Final `LICENSE` file present | done | Human release owner + release agent | `LICENSE` contains the GNU General Public License version 2 text previously selected for alpha, and package metadata declares `GPL-2.0-only`; file presence is not confirmation that the prior legal scope automatically applies to beta. |
+| P0 | Final source license chosen | done | Human release owner | Owner confirmed on 2026-07-24 that `filterest-beta` uses the same GPLv2 / `GPL-2.0-only` license as `filterest-alpha`; the generated-only public license boundary remains unchanged. |
+| P0 | Final `LICENSE` file present | done | Human release owner + release agent | `LICENSE` contains the GNU General Public License version 2 text and package metadata declares `GPL-2.0-only`; verify both after every candidate regeneration. |
 | P0 | Security disclosure path | blocked-human | Human release owner | Regenerate/review `SECURITY.md` with the owner-provided private disclosure contact. |
 | P0 | Contribution terms | blocked-human | Human/project owner | Confirm the approved owner-led/no-routine-public-PRs `CONTRIBUTING.md` posture, including public-issue scope, private vulnerability reporting, and the rule that unsolicited public pull requests are not the routine operating model. |
 | P0 | Notice and trademark wording | blocked-human | Human/project owner or counsel | Approve `NOTICE` and `TRADEMARKS.md`, including Filterest ownership and allowed use wording. |
