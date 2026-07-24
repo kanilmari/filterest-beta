@@ -94,7 +94,10 @@ Healthy end state after a normal run:
 The `login()` helper from `helpers/auth.ts` handles:
 - Navigating to `/` and waiting for the app to load
 - Fallback login if the session expired (username and password from `dev_env_test_creds.txt`)
-- Reading the explicit OTP from the test process `LOGIN_OTP_CODE` or the ignored native `dev_env.txt`; missing configuration fails before a browser auth timeout, and there is no hardcoded backend default
+- Reading the explicit OTP from the test process `LOGIN_OTP_CODE`, ignored
+  native `dev_env.txt`, or finally the ignored runtime `.env`; missing
+  configuration fails before a browser auth timeout, and there is no hardcoded
+  backend default
 
 Playwright also injects `X-Bypass-Ratelimit: test-mode` in two places:
 

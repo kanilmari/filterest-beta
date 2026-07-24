@@ -176,6 +176,25 @@ func SetTx(ctx context.Context, tx *sql.Tx) context.Context {
 	return context.WithValue(ctx, txKey, tx)
 }
 
+// PeekTx returns an already-open request transaction without starting one.
+// It exists for helpers that may safely reuse a transaction after another
+// request stage opened it, but must not reserve a connection themselves.
+func PeekTx(ctx context.Context) (*sql.Tx, bool) {
+	val := ctx.Value(txKey)
+	if lt, ok := val.(*LazyTx); ok && lt != nil {
+		lt.mu.Lock()
+		defer lt.mu.Unlock()
+		if !lt.started || lt.tx == nil {
+			return nil, false
+		}
+		return lt.tx, true
+	}
+	if tx, ok := val.(*sql.Tx); ok && tx != nil {
+		return tx, true
+	}
+	return nil, false
+}
+
 // GetTx retrieves a transaction from the context.
 // Supports both LazyTx (HTTP requests) and direct *sql.Tx (non-HTTP / legacy callers).
 // Deprecated: Prefer RequireTx for new code — the name makes intent clearer.

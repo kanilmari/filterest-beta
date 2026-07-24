@@ -66,7 +66,11 @@ def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
-    selected_category = config.getoption("--python-category")
+    # A nested conftest is discovered too late to register CLI options when
+    # pytest starts from the repository root. Keep full-suite collection
+    # working there while preserving the explicit category option for
+    # `pytest testing/python ...` invocations.
+    selected_category = config.getoption("--python-category", default=None)
     counts: Counter[str] = Counter()
     deselected: list[pytest.Item] = []
     selected: list[pytest.Item] = []

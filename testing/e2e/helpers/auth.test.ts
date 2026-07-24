@@ -51,6 +51,23 @@ describe('loadOtpCode', () => {
     }
   });
 
+  it('reads the ignored runtime .env after an empty native dev environment', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'easelect-e2e-runtime-otp-'));
+    const devEnvFile = path.join(tempDir, 'dev_env.txt');
+    const runtimeEnvFile = path.join(tempDir, '.env');
+    fs.writeFileSync(devEnvFile, 'DB_PORT=5433\n', 'utf8');
+    fs.writeFileSync(runtimeEnvFile, 'LOGIN_OTP_CODE=234567\n', 'utf8');
+    try {
+      expect(loadOtpCode({
+        environment: {},
+        devEnvFile,
+        runtimeEnvFile,
+      })).toBe('234567');
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
   it('fails clearly when no OTP is configured', () => {
     expect(() => loadOtpCode({
       environment: {},

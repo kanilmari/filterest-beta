@@ -44,6 +44,50 @@ type storageRowReadContext struct {
 	policy  ReadRowPolicy
 }
 
+// storagePermissionQuerier keeps metadata reads on the same request
+// transaction when the permission and role handles share one pool. Without
+// this adapter, concurrent RLS-pilot storage reads can each hold an admin
+// transaction while waiting for a second admin connection, exhausting the
+// pool. Different-role pools remain deliberately separate.
+type storagePermissionQuerier struct {
+	ctx          context.Context
+	permissionDB dbutils.Querier
+}
+
+func newStoragePermissionQuerier(
+	ctx context.Context,
+	permissionDB dbutils.Querier,
+	roleDB *sql.DB,
+) dbutils.Querier {
+	permissionPool, ok := permissionDB.(*sql.DB)
+	if !ok || permissionPool != roleDB {
+		return permissionDB
+	}
+	return &storagePermissionQuerier{
+		ctx:          ctx,
+		permissionDB: permissionDB,
+	}
+}
+
+func (q *storagePermissionQuerier) selected() dbutils.Querier {
+	if tx, ok := dbutils.PeekTx(q.ctx); ok {
+		return tx
+	}
+	return q.permissionDB
+}
+
+func (q *storagePermissionQuerier) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return q.selected().Exec(query, args...)
+}
+
+func (q *storagePermissionQuerier) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return q.selected().Query(query, args...)
+}
+
+func (q *storagePermissionQuerier) QueryRow(query string, args ...interface{}) *sql.Row {
+	return q.selected().QueryRow(query, args...)
+}
+
 type storageCacheTarget struct {
 	Table  string `json:"table"`
 	Column string `json:"column"`
@@ -89,6 +133,8 @@ func AuthorizeStorageRead(
 	if !validStorageReadRequest(request) {
 		return StorageReadNotFound, nil
 	}
+
+	permissionDB = newStoragePermissionQuerier(ctx, permissionDB, roleDB)
 
 	parentTable, found, err := lookupStorageTableName(permissionDB, request.TableUID)
 	if err != nil {

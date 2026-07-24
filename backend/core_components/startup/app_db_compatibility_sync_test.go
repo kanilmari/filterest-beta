@@ -57,7 +57,7 @@ func TestLoadAppDBCompatibilityManifestParsesJSONLRows(t *testing.T) {
 
 	content := strings.Join([]string{
 		`# compatibility history`,
-		`{"app_version":"6.18.23","min_db_version":"7.0.21","target_db_version":"7.0.21","schema_snapshot_path":"server_tools/versioning/schema_snapshots/db-7.0.21.sql","git_commit_sha":"157b0a8","status":"active","notes":"slice 1","recorded_at":"2026-03-30T17:27:24Z"}`,
+		`{"app_version":"6.18.23","min_db_version":"7.0.21","target_db_version":"7.0.21","schema_snapshot_path":"server_tools/versioning/schema_snapshots/db-7.0.21.sql","git_commit_sha":"157b0a8","status":"historical","notes":"slice 1","recorded_at":"2026-03-30T17:27:24Z"}`,
 		`{"app_version":"6.18.24","min_db_version":"8.0.0","target_db_version":"8.0.0","schema_snapshot_path":"server_tools/versioning/schema_snapshots/db-8.0.0.sql","git_commit_sha":"1e1b1f7","status":"active","notes":"slice 2","recorded_at":"2026-03-30T18:40:00Z"}`,
 	}, "\n")
 	if err := os.WriteFile(manifestPath, []byte(content), 0o644); err != nil {
@@ -76,6 +76,23 @@ func TestLoadAppDBCompatibilityManifestParsesJSONLRows(t *testing.T) {
 	}
 	if rows[1].RecordedAt.Format(time.RFC3339) != "2026-03-30T18:40:00Z" {
 		t.Fatalf("unexpected recorded_at parse: %s", rows[1].RecordedAt.Format(time.RFC3339))
+	}
+}
+
+func TestLoadAppDBCompatibilityManifestRejectsMultipleActiveRows(t *testing.T) {
+	projectRoot := t.TempDir()
+	manifestPath := filepath.Join(projectRoot, "app_db_compatibility.jsonl")
+	content := strings.Join([]string{
+		`{"app_version":"6.18.23","status":"active","recorded_at":"2026-03-30T17:27:24Z"}`,
+		`{"app_version":"6.18.24","status":"active","recorded_at":"2026-03-30T18:40:00Z"}`,
+	}, "\n")
+	if err := os.WriteFile(manifestPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if _, err := loadAppDBCompatibilityManifest(manifestPath); err == nil ||
+		!strings.Contains(err.Error(), "exactly one active row") {
+		t.Fatalf("expected multiple-active status error, got %v", err)
 	}
 }
 
@@ -114,6 +131,7 @@ func TestSyncAppDBCompatibilityMirrorUpsertsManifestRows(t *testing.T) {
 	})
 	pushAppDBCompatibilityExec(appDBCompatibilityExec{rowsAffected: 1})
 	pushAppDBCompatibilityExec(appDBCompatibilityExec{rowsAffected: 1})
+	pushAppDBCompatibilityExec(appDBCompatibilityExec{rowsAffected: 1})
 
 	count, err := SyncAppDBCompatibilityMirror(db, projectRoot)
 	if err != nil {
@@ -128,12 +146,20 @@ func TestSyncAppDBCompatibilityMirrorUpsertsManifestRows(t *testing.T) {
 		t.Fatalf("expected at least 3 calls, got %v", calls)
 	}
 
+	normalizationCalls := 0
 	upsertCalls := 0
 	for _, call := range calls {
+		if strings.Contains(call, "UPDATE system_app_db_compatibility") &&
+			strings.Contains(call, "status = 'historical'") {
+			normalizationCalls++
+		}
 		if strings.Contains(call, "INSERT INTO system_app_db_compatibility") &&
 			strings.Contains(call, "ON CONFLICT (app_version)") {
 			upsertCalls++
 		}
+	}
+	if normalizationCalls != 1 {
+		t.Fatalf("expected one status normalization call, got %d from %v", normalizationCalls, calls)
 	}
 	if upsertCalls != 2 {
 		t.Fatalf("expected 2 upsert calls, got %d from %v", upsertCalls, calls)
@@ -149,7 +175,7 @@ func writeAppDBCompatibilityManifestFixture(t *testing.T) string {
 	}
 
 	lines := []string{
-		`{"app_version":"6.18.23","min_db_version":"7.0.21","target_db_version":"7.0.21","schema_snapshot_path":"server_tools/versioning/schema_snapshots/db-7.0.21.sql","git_commit_sha":"157b0a8","status":"active","notes":"slice 1","recorded_at":"2026-03-30T17:27:24Z"}`,
+		`{"app_version":"6.18.23","min_db_version":"7.0.21","target_db_version":"7.0.21","schema_snapshot_path":"server_tools/versioning/schema_snapshots/db-7.0.21.sql","git_commit_sha":"157b0a8","status":"historical","notes":"slice 1","recorded_at":"2026-03-30T17:27:24Z"}`,
 		`{"app_version":"6.18.24","min_db_version":"8.0.0","target_db_version":"8.0.0","schema_snapshot_path":"server_tools/versioning/schema_snapshots/db-8.0.0.sql","git_commit_sha":"1e1b1f7","status":"active","notes":"slice 2","recorded_at":"2026-03-30T18:40:00Z"}`,
 	}
 	if err := os.WriteFile(manifestPath, []byte(strings.Join(lines, "\n")), 0o644); err != nil {

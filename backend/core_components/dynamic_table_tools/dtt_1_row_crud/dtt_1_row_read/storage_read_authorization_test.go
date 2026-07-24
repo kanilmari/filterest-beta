@@ -251,6 +251,39 @@ func TestAuthorizeStorageReadUsesRequestTransactionForRLSPilot(t *testing.T) {
 	assertStorageAuthorizationQueriesDrained(t, roleState)
 }
 
+func TestAuthorizeStorageReadReusesSamePoolTransactionForRLSPilot(t *testing.T) {
+	db, state := openStorageAuthorizationTestDB(t, []storageAuthorizationQueuedQuery{
+		storageTableLookup("app_service_catalog"),
+		storagePermissionLookup("app_service_catalog"),
+		storageRowVisibility(true),
+		storageSelectableQuery("id", "cached_image"),
+		storageMediaColumns("cached_image"),
+		{
+			contains: `SELECT "cached_image"::text FROM "app_service_catalog"`,
+			columns:  []string{"cached_image"},
+			rows:     [][]driver.Value{{"104_7_9.png"}},
+		},
+	})
+	ctx := dbutils.SetLazyTx(context.Background(), dbutils.NewLazyTx(db))
+
+	decision, err := AuthorizeStorageRead(
+		ctx,
+		db,
+		db,
+		dbutils.NewRequestActorContext(42, "admin"),
+		canonicalStorageRequest(),
+	)
+	if err != nil || decision != StorageReadAllowed {
+		t.Fatalf("AuthorizeStorageRead(same-pool RLS pilot) = (%v, %v), want allowed nil", decision, err)
+	}
+	tx, ok := dbutils.PeekTx(ctx)
+	if !ok {
+		t.Fatal("same-pool RLS pilot did not open the request transaction")
+	}
+	t.Cleanup(func() { _ = tx.Rollback() })
+	assertStorageAuthorizationQueriesDrained(t, state)
+}
+
 func TestAuthorizeStorageReadRejectsHiddenParentAndDeniedDataset(t *testing.T) {
 	t.Run("hidden parent", func(t *testing.T) {
 		permissionDB, permissionState := openStorageAuthorizationTestDB(t, []storageAuthorizationQueuedQuery{

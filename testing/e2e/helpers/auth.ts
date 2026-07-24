@@ -187,24 +187,36 @@ export function loadCredentials(): TestCredentials {
 
 /**
  * Loads the explicit development OTP used by browser login flows.
- * Process configuration wins; the ignored native dev env file is the local fallback.
+ * Process configuration wins; ignored native runtime files are local fallbacks.
  * Missing configuration fails loudly instead of silently assuming a backend default.
  */
 export function loadOtpCode({
   environment = process.env,
   devEnvFile = 'dev_env.txt',
+  runtimeEnvFile,
 }: {
   environment?: Record<string, string | undefined>;
   devEnvFile?: string;
+  runtimeEnvFile?: string;
 } = {}): string {
   const processOtp = environment.LOGIN_OTP_CODE?.trim() || '';
   if (processOtp) {
     return processOtp;
   }
 
-  if (fs.existsSync(devEnvFile)) {
+  const candidateFiles = [devEnvFile];
+  if (runtimeEnvFile) {
+    candidateFiles.push(runtimeEnvFile);
+  } else if (devEnvFile === 'dev_env.txt') {
+    candidateFiles.push('.env');
+  }
+
+  for (const candidateFile of candidateFiles) {
+    if (!fs.existsSync(candidateFile)) {
+      continue;
+    }
     const otpLine = fs
-      .readFileSync(devEnvFile, 'utf8')
+      .readFileSync(candidateFile, 'utf8')
       .split('\n')
       .find((line) => line.trimStart().startsWith('LOGIN_OTP_CODE='));
     const fileOtp = otpLine
@@ -216,7 +228,7 @@ export function loadOtpCode({
   }
 
   throw new Error(
-    'Missing LOGIN_OTP_CODE. Set it in the test process or the local dev_env.txt before running browser login tests.',
+    'Missing LOGIN_OTP_CODE. Set it in the test process, dev_env.txt, or the local .env before running browser login tests.',
   );
 }
 

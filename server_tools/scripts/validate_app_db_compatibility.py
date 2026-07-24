@@ -31,6 +31,7 @@ REQUIRED_FIELDS = (
     "recorded_at",
 )
 OPTIONAL_ZIP_ARTIFACT_FIELDS = ("bootstrap_seed_artifact_path",)
+ALLOWED_STATUSES = {"active", "historical"}
 
 
 def parse_semver(version: str) -> tuple[int, int, int]:
@@ -123,6 +124,31 @@ def canonical_bootstrap_seed_artifact_path(db_version: str) -> str:
     )
 
 
+def validate_status_contract(rows: list[dict[str, str]], current_app_version: str) -> list[str]:
+    """Require one current active pairing while retaining older rows as history."""
+    errors: list[str] = []
+    active_versions = [row["app_version"] for row in rows if row["status"] == "active"]
+
+    if active_versions != [current_app_version]:
+        errors.append(
+            "compatibility manifest must contain exactly one active row for "
+            f"current app {current_app_version}; found active rows {active_versions}"
+        )
+
+    non_historical_versions = [
+        row["app_version"]
+        for row in rows
+        if row["app_version"] != current_app_version and row["status"] != "historical"
+    ]
+    if non_historical_versions:
+        errors.append(
+            "all non-current compatibility rows must be historical; "
+            f"found {non_historical_versions}"
+        )
+
+    return errors
+
+
 def validate_manifest() -> int:
     repo_root = Path(__file__).resolve().parents[2]
     manifest_path = repo_root / "server_tools/versioning/app_db_compatibility.jsonl"
@@ -204,6 +230,12 @@ def validate_manifest() -> int:
                 f"got {row['git_commit_sha']!r}"
             )
 
+        if row["status"] not in ALLOWED_STATUSES:
+            row_errors.append(
+                f"{manifest_path}:{line_no}: status must be one of "
+                f"{sorted(ALLOWED_STATUSES)}, got {row['status']!r}"
+            )
+
         row_errors.extend(
             validate_repo_artifact_path(
                 repo_root=repo_root,
@@ -259,6 +291,8 @@ def validate_manifest() -> int:
 
     if not rows:
         errors.append(f"{manifest_path}: no compatibility rows found")
+    else:
+        errors.extend(validate_status_contract(rows, current_app_version))
 
     current_row = next((row for row in rows if row["app_version"] == current_app_version), None)
     if current_row is None:

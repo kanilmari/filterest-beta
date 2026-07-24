@@ -17,6 +17,10 @@ python -m pytest testing/python --python-category agent-workflow
 python -m pytest testing/python --python-category platform-tooling
 ```
 
+Translatorin ulkoisia ja mahdollisesti laskutettavia LLM-kutsuja tekevät
+`apps/translator/manual_*_smoke.py`-skriptit ajetaan vain erikseen. Ne eivät
+kuulu pytest-kokoelmaan.
+
 These are ownership/reporting categories, not claims about process isolation.
 Some automated tests use temporary subprocesses, Git repositories, or files,
 but the collection does not start the real Easelect backend or frontend.

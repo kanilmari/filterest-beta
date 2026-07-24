@@ -61,6 +61,20 @@ func SyncAppDBCompatibilityMirror(db *sql.DB, projectRoot string) (int, error) {
 		return 0, fmt.Errorf("begin mirror sync transaction: %w", err)
 	}
 
+	// The DB table is a cache, so stale rows that no longer exist in the
+	// canonical manifest may remain for diagnostics. They must never remain
+	// active, however. Normalize every cached row before the manifest upserts
+	// restore the one canonical active release in the same transaction.
+	if _, err := tx.Exec(`
+		UPDATE system_app_db_compatibility
+		   SET status = 'historical',
+		       updated = now()
+		 WHERE status IS DISTINCT FROM 'historical'
+	`); err != nil {
+		_ = tx.Rollback()
+		return 0, fmt.Errorf("normalize mirror row statuses: %w", err)
+	}
+
 	for _, row := range rows {
 		if _, err := tx.Exec(`
 			INSERT INTO system_app_db_compatibility (
@@ -136,6 +150,27 @@ func loadAppDBCompatibilityManifest(path string) ([]appDBCompatibilityManifestRo
 
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("scan compatibility manifest: %w", err)
+	}
+
+	activeCount := 0
+	for _, row := range rows {
+		switch row.Status {
+		case "active":
+			activeCount++
+		case "historical":
+		default:
+			return nil, fmt.Errorf(
+				"compatibility manifest app %s has unsupported status %q",
+				row.AppVersion,
+				row.Status,
+			)
+		}
+	}
+	if len(rows) > 0 && activeCount != 1 {
+		return nil, fmt.Errorf(
+			"compatibility manifest must contain exactly one active row, got %d",
+			activeCount,
+		)
 	}
 
 	return rows, nil
