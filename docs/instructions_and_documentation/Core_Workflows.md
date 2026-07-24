@@ -37,7 +37,12 @@ The Refresh Embeddings view updates multi-language embedding tables so that the 
 This section covers specific features and API endpoints of Easelect.
 
 ### Transaction Handling
-Each HTTP request flows through the pipeline's `transaction` stage (`WithLazyTx`), which provides a lazy database transaction — only opened when a handler actually needs one through `dbutils.GetTx()` or `dbutils.RequireTx()`. The separate `audit` stage logs semantic operation outcomes to `system_audit_log`.
+Most HTTP requests flow through the pipeline's `transaction` stage
+(`WithLazyTx`), which provides a lazy database transaction opened only when a
+handler needs one through `dbutils.GetTx()` or `dbutils.RequireTx()`. Explicit
+profiles such as `AccessControlNoTxProfile` may skip the transaction stage for
+long-lived responses. The separate `audit` stage logs semantic operation
+outcomes to `system_audit_log`.
 -   **Audit**: Outcomes stored in `system_audit_log` (not `system_transaction_log`).
 -   **Logging**: Set `transaction_console_logs` in `system_config` to `true` for verbose logs.
 -   **Lang Usage**: Set `lang_last_used_updates` to `true` to track translation key usage.

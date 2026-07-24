@@ -140,13 +140,22 @@ These are commented out in `pipeline_order.go` and can be activated by uncomment
 
 ## 4. Route Profiles
 
-Defined in `route_profiles.go`. Five reusable profile templates exist:
+Defined in `route_profiles.go`. Six reusable profile templates exist:
 
 ### PublicProfile
 
 Skips: `auth`, `csrf`, `fingerprint`, `device_id`, `access_control`, `admin_check`
 
 Used for: static files, auth endpoints (login, register), public data APIs, webhooks with their own auth.
+
+Active stages: `rate_limit` → `request_size_limit` → `logging` → `error_handling` → `transaction` → `audit` → **handler**
+
+### StorageProfile
+
+Uses the same pipeline-stage skips as `PublicProfile`, but is selected
+explicitly for `router.ServeStorage`. Generic route/table inference is skipped;
+the storage handler performs path-aware public-asset allowlisting and
+row-scoped authorization through the storage authorization layer.
 
 Active stages: `rate_limit` → `request_size_limit` → `logging` → `error_handling` → `transaction` → `audit` → **handler**
 
