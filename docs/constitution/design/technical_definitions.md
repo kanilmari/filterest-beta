@@ -78,6 +78,37 @@ Perusyksikkö, navbar-leveys, container-maksimileveys ja border-radius löytyvä
 ### Interaktioalueet (Touch Targets)
 - **Minimikoko**: 44x44px (mobiili).
 
+## 5. Testausauktoriteetti (Testing Authority)
+
+Visual Guardian arvioi kokonaisuutta, hierarkiaa, selkeyttä ja muuta
+laadullista visuaalista eheyttä. Se ei ole numeeristen tai tilallisten sääntöjen
+ainoa julkaisuportti. Kun sääntö voidaan mitata DOMista, CSSOMista tai selaimen
+suorituskykyrajapinnasta, sen on lisäksi saatava deterministinen Playwright-portti
+kiinteällä datalla, tilalla ja viewport-matriisilla.
+
+Seuraavat Design Constitutionin säännöt vaativat Guardianin lisäksi
+deterministisen selainportin:
+
+| Sääntö | Deterministinen todiste |
+|---|---|
+| Lataustilan CLS on `0` | `PerformanceObserver` kerää ei-käyttäjäaloitteiset layout shift -arvot vakioidun latauksen aikana ja portti vaatii summaksi nollan. |
+| Responsiivinen sidebar/content-rakenne | Sovituissa leveysrajoissa bounding box-, computed-style- ja viewport-overflow-tarkistukset todistavat kiinteän/overlay-tilan sekä sisällön käytettävän tilan. |
+| Menu- ja sidebar-toggle pysyvät näkyvinä, ylimpinä ja keskenään yhdenmukaisina | `elementsFromPoint`, bounding box ja computed style todistavat kerrostuksen, koon, kulmaetäisyyden, blur-efektin ja kiertymättömyyden. |
+| Hakupalkki on keskitetty oikeaan sisältöalueeseen, näkyy kokonaan eikä siirry overlay-valikon vuoksi | Ennen/jälkeen mitatut bounding boxit todistavat keskityksen, viewporttiin mahtumisen ja sallitun sivuttaissiirtymän. |
+| Hero/filter-alue ei estä dataa; flat-tilassa ei ole pystyscrollia eikä focus-/shadow-leikkausta | Scroll-, bounding box-, hit-test- ja computed-overflow-tarkistukset kattavat hero-, flat- ja kapean fixed-tilan. |
+| WCAG 2.1 AA -kontrastirajat täyttyvät | Selainpohjainen saavutettavuus-/kontrastiauditointi tarkistaa näkyvät tekstit ja olennaiset kontrollit molemmissa teemoissa. |
+| Mobiilin näkyvät interaktioalueet ovat vähintään 44x44 px | Selain käy läpi näkyvät ja käytettävissä olevat interaktiiviset elementit mobiiliviewporteissa ja mittaa jokaisen bounding boxin. |
+
+Nykyiset komponentti- ja E2E-testit kattavat osia tästä matriisista, kuten
+filterbar/navbar-kerrostusta. Osittainen testi ei kuitenkaan todista koko rivin
+yleistä sopimusta. Laadulliset periaatteet, kuten maksimaalinen yksinkertaisuus,
+harmoninen typografia ja kontekstin selkeä visuaalinen yhteys, jäävät Guardianin
+ja ihmiskatselmuksen vastuulle, ellei niille myöhemmin määritellä mitattavaa
+sopimusta.
+
+`design/implementation_plan.md`:n `80vh`-maininta on esimerkki suunnitelmassa,
+ei tässä tiedostossa vahvistettu yleinen Design Constitution -raja.
+
 ---
 
 ## Lähdetiedostot yhteenveto
