@@ -21,5 +21,5 @@ PASS
 
 ## Human Review Boundary
 
-This deterministic report does not approve the legal sufficiency of the dependency notices.
-A human/project owner still needs to review the generated inventory before public publication.
+This deterministic report does not itself approve the legal sufficiency of the dependency notices.
+Owner approval is recorded separately against the exact notice bytes and must be reopened if the inventory changes.
