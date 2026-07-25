@@ -5,6 +5,7 @@
 // Exists to prevent dataset rerenders from removing the search hero above data.
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { flushObserverFrame, setScrollMetrics } from './filter_bar_test_environment_builder.js';
 
 const mockUiConfig = vi.hoisted(() => ({
     favefoxFilterLayoutMode: 'inline-open',
@@ -154,24 +155,6 @@ vi.mock('./shared_topbar_builder.js', () => ({
     }),
     shouldShowSharedTopBar: vi.fn(() => false),
 }));
-
-function flushObserverFrame() {
-    return new Promise((resolve) => {
-        requestAnimationFrame(() => resolve());
-    });
-}
-
-function setScrollMetrics(element, { scrollTop, scrollHeight, clientHeight }) {
-    Object.defineProperty(element, 'scrollHeight', {
-        configurable: true,
-        value: scrollHeight,
-    });
-    Object.defineProperty(element, 'clientHeight', {
-        configurable: true,
-        value: clientHeight,
-    });
-    element.scrollTop = scrollTop;
-}
 
 describe('create_filter_bar inline hero mounting', () => {
     beforeEach(() => {

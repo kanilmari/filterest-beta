@@ -2,11 +2,12 @@
 # ==============================================================================
 # server_tools/rotate_credentials.py
 # Interactive credential rotation tool for Easelect.
-# Scans all .env files, lets the user update passwords/keys, writes in-place.
-# Prints SQL hints for DB role password changes.
+# Scans all .env files, including approved external-secret symlink targets.
+# Lets the user update passwords/keys without echoing credential material.
 # Run: python3 server_tools/rotate_credentials.py
 # ==============================================================================
 
+import getpass
 import os
 import re
 import secrets
@@ -23,6 +24,24 @@ INSTANCES_ROOT = ROOT / "instances"
 SEED_FILES = [
     ROOT / ".env",
     ROOT / "dev_env.txt",
+]
+
+ADDITIONAL_SECRET_SCOPES = [
+    (
+        "development tool: embedding benchmark",
+        [ROOT / "server_tools" / "devtest_embedding_benchmark" / ".env"],
+    ),
+    (
+        "generated artifact: filterest-beta local runtime",
+        [ROOT.parent / "filterest-beta" / ".env", ROOT.parent / "filterest-beta" / "dev_env.txt"],
+    ),
+    (
+        "generated preview: filterest-clean-preview local runtime",
+        [
+            ROOT.parent / "filterest-clean-preview" / ".env",
+            ROOT.parent / "filterest-clean-preview" / "dev_env.txt",
+        ],
+    ),
 ]
 
 # ── Credential categories ──────────────────────────────────────────────────────
@@ -47,6 +66,7 @@ AUTO_KEYS = {
 # until existing untracked .env files have been renamed in production.
 MANUAL_KEYS = {
     "OPENAI_API_KEY",
+    "GOOGLE_API_KEY",
     "ANTHROPIC_API_KEY",
     "HERE_API_KEY",
     "POSTMARK_API_KEY",
@@ -109,20 +129,17 @@ def generate_for_key(key: str) -> str:
     return generate_session_key()
 
 def mask(value: str) -> str:
-    """Show only first/last 4 chars; hide the middle."""
-    if not value or len(value) < 9:
-        return "***"
-    return value[:4] + "…" + value[-4:]
+    """Describe whether a value exists without exposing any of its characters."""
+    return f"<set:{len(value)} chars>" if value else "<empty>"
 
 # ── File I/O ───────────────────────────────────────────────────────────────────
 
-def is_symlink(path: Path) -> bool:
-    return path.is_symlink()
-
 def read_file(path: Path) -> str:
+    """Read an env file, following a compatibility symlink when present."""
     return path.read_text(encoding="utf-8")
 
 def write_file(path: Path, content: str) -> None:
+    """Write an env file while preserving any symlink at the compatibility path."""
     path.write_text(content, encoding="utf-8")
 
 def requires_strict_permissions(path: Path) -> bool:
@@ -137,21 +154,28 @@ def format_permissions(mode: int) -> str:
     """Render permission bits in three-digit octal form."""
     return format(mode, "03o")
 
+def display_path(path: Path) -> Path:
+    """Use a repo-relative path when possible and retain valid sibling paths."""
+    try:
+        return path.relative_to(ROOT)
+    except ValueError:
+        return path
+
 def warn_insecure_permissions(files: list[Path]) -> None:
     """Print non-destructive warnings for secret-bearing env files that are too open."""
     for path in files:
-        if not path.exists() or is_symlink(path) or not requires_strict_permissions(path):
+        if not path.exists() or not requires_strict_permissions(path):
             continue
         mode = get_file_permissions(path)
         if mode != STRICT_PERMISSION_MODE:
             print(
-                f"  {c('warn', '⚠')} {path.relative_to(ROOT)} permissions are "
+                f"  {c('warn', '⚠')} {display_path(path)} permissions are "
                 f"{format_permissions(mode)} (expected 600)"
             )
 
 def tighten_permissions(path: Path) -> bool:
-    """Set chmod 600 for secret-bearing env files. Returns True when changed."""
-    if not path.exists() or is_symlink(path) or not requires_strict_permissions(path):
+    """Set chmod 600 on a secret file or its symlink target when needed."""
+    if not path.exists() or not requires_strict_permissions(path):
         return False
     current_mode = get_file_permissions(path)
     if current_mode == STRICT_PERMISSION_MODE:
@@ -182,7 +206,7 @@ def discover_keys(files: list) -> dict:
     """
     found = {}
     for path in files:
-        if not path.exists() or is_symlink(path):
+        if not path.exists():
             continue
         content = read_file(path)
         for key in ALL_ROTATABLE:
@@ -208,7 +232,7 @@ def prompt_auto(key: str, locations: list) -> str:
     if raw == "s":
         return "__SKIP__"
     if raw == "m":
-        val = input("    New value: ").strip()
+        val = getpass.getpass("    New value: ").strip()
         return val or "__SKIP__"
     return "__SKIP__"
 
@@ -221,7 +245,7 @@ def prompt_manual(key: str, locations: list) -> str:
     current = mask(locations[0][1])
     print(f"\n  {c('bold', key)}")
     print(f"    Current: {c('dim', current)}   Files: {files_str}")
-    val = input("    New value (blank = skip): ").strip()
+    val = getpass.getpass("    New value (blank = skip): ").strip()
     return val or "__SKIP__"
 
 # ── Apply changes to files ─────────────────────────────────────────────────────
@@ -233,7 +257,7 @@ def apply_changes(files: list, changes: dict) -> list[Path]:
     """
     written: list[Path] = []
     for path in files:
-        if not path.exists() or is_symlink(path):
+        if not path.exists():
             continue
         content = read_file(path)
         file_changed = False
@@ -265,7 +289,7 @@ def rotate_scope(scope_name: str, files: list) -> None:
     manual_found = {k: v for k, v in found.items() if k in MANUAL_KEYS}
 
     changes = {}     # key → new_value
-    sql_hints = []   # SQL ALTER ROLE statements
+    db_roles_to_update: set[str] = set()
 
     # ── Auto-generatable keys ─────────────────────────────────────────────────
     if auto_found:
@@ -279,9 +303,7 @@ def rotate_scope(scope_name: str, files: list) -> None:
             changes[key] = new_val
             print(f"    {c('ok', '→')} {c('dim', mask(new_val))}")
             if key in DB_ROLE_MAP:
-                sql_hints.append(
-                    f"ALTER ROLE {DB_ROLE_MAP[key]} WITH PASSWORD '{new_val}';"
-                )
+                db_roles_to_update.add(DB_ROLE_MAP[key])
 
     # ── External API keys ─────────────────────────────────────────────────────
     if manual_found:
@@ -307,22 +329,22 @@ def rotate_scope(scope_name: str, files: list) -> None:
 
     written = apply_changes(files, changes)
     for path in written:
-        print(f"  {c('ok', '✓')} Written: {path.relative_to(ROOT)}")
+        print(f"  {c('ok', '✓')} Written: {display_path(path)}")
         if tighten_permissions(path):
-            print(f"  {c('ok', '✓')} Tightened permissions: {path.relative_to(ROOT)} → 600")
+            print(f"  {c('ok', '✓')} Tightened permissions: {display_path(path)} → 600")
 
-    # ── PostgreSQL SQL hints ──────────────────────────────────────────────────
-    if sql_hints:
-        print(f"\n  {c('warn', '⚠  DB passwords changed — update PostgreSQL roles:')}")
+    # ── PostgreSQL role follow-up ─────────────────────────────────────────────
+    if db_roles_to_update:
+        print(f"\n  {c('warn', '⚠  DB passwords changed — update PostgreSQL roles safely:')}")
         db_port = _guess_db_port(files)
         print(c("dim", f"  (Connect: psql -U postgres -p {db_port} -d easelect)\n"))
-        for sql in sql_hints:
-            print(f"  {c('bold', sql)}")
+        print(f"  Roles: {', '.join(sorted(db_roles_to_update))}")
+        print("  Use the approved database-admin workflow; no password-bearing SQL is printed.")
 
 def _guess_db_port(files: list) -> str:
     """Best-effort: read DB_PORT from one of the scope files."""
     for path in files:
-        if path.exists() and not is_symlink(path):
+        if path.exists():
             val = get_key_value(read_file(path), "DB_PORT")
             if val:
                 return val
@@ -345,6 +367,7 @@ def discover_instance_env_files(instances_root: Path = INSTANCES_ROOT) -> dict[s
 def build_scope_menu(
     seed_files: Optional[list[Path]] = None,
     instance_dirs: Optional[dict[str, Path]] = None,
+    additional_scopes: Optional[list[tuple[str, list[Path]]]] = None,
 ) -> list:
     """Return ordered list of (display_name, files) tuples."""
     menu = [("seed / native dev  (.env + dev_env.txt)", seed_files or SEED_FILES)]
@@ -354,6 +377,7 @@ def build_scope_menu(
         if not exists:
             label += c("err", "  [file missing]")
         menu.append((label, [path]))
+    menu.extend(ADDITIONAL_SECRET_SCOPES if additional_scopes is None else additional_scopes)
     return menu
 
 # ── Entry point ────────────────────────────────────────────────────────────────

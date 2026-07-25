@@ -5,7 +5,6 @@
 package payment_gateway
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -694,42 +693,4 @@ func verifyWebhookSignature(body []byte, timestamp, signatureHeader, secret stri
 		matched |= subtle.ConstantTimeCompare(decodedSignature, expectedSignature)
 	}
 	return matched == 1
-}
-
-// triggerCallback sends a POST request to the callback URL
-func triggerCallback(url, orderID, status string) error {
-	payload := map[string]string{
-		"revolut_order_id": orderID,
-		"status":           status,
-	}
-	jsonData, _ := json.Marshal(payload)
-	signature, err := SignPaymentCallbackPayload(jsonData)
-	if err != nil {
-		return fmt.Errorf("sign payment callback: %w", err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(jsonData))
-	if err != nil {
-		return fmt.Errorf("create payment callback request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(PaymentCallbackSignatureHeader, signature)
-
-	client := &http.Client{
-		Timeout: 15 * time.Second,
-		CheckRedirect: func(*http.Request, []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("send payment callback to %s: %w", url, err)
-	}
-	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4<<10))
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("payment callback %s returned status %d", url, resp.StatusCode)
-	}
-	log.Printf("[payment-gateway] Triggered callback %s: status=%d", url, resp.StatusCode)
-	return nil
 }

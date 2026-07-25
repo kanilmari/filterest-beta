@@ -432,14 +432,21 @@ update_db_port_setting() {
     local config_file="$1"
     local port="$2"
     local temp_file
+    local write_target="$config_file"
 
-    temp_file="$(mktemp "${config_file}.tmp.XXXXXX")"
-    cp -p "$config_file" "$temp_file"
-    if ! sed "s/^DB_PORT=.*/DB_PORT=$port/" "$config_file" > "$temp_file"; then
+    # Keep repo-local compatibility symlinks intact when the actual environment
+    # file lives in the sibling filterest_keys tree.
+    if [[ -L "$config_file" ]]; then
+        write_target="$(cd "$(dirname "$config_file")" && cd "$(dirname "$(readlink "$config_file")")" && pwd)/$(basename "$(readlink "$config_file")")"
+    fi
+
+    temp_file="$(mktemp "${write_target}.tmp.XXXXXX")"
+    cp -p "$write_target" "$temp_file"
+    if ! sed "s/^DB_PORT=.*/DB_PORT=$port/" "$write_target" > "$temp_file"; then
         rm -f "$temp_file"
         return 1
     fi
-    mv "$temp_file" "$config_file"
+    mv "$temp_file" "$write_target"
 }
 
 # Creates a first-run generated Filterest admin only when the public setup needs one.
