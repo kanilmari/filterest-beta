@@ -24,6 +24,12 @@ from psycopg2.extras import RealDictCursor
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from server_tools.lib.easelect_private_paths import resolve_easelect_private_paths
+
+
 MANIFEST_PATH = PROJECT_ROOT / "server_tools" / "versioning" / "app_db_compatibility.jsonl"
 SHARED_DEV_STORAGE_STATE_DIR = PROJECT_ROOT / "data" / "shared_dev_storage"
 
@@ -46,10 +52,11 @@ def load_env_file(path: Path) -> dict[str, str]:
 def resolve_environment() -> dict[str, str]:
     """
     Mirror backend precedence as closely as possible:
-    process env > dev_env.txt > .env.
+    process env > native development env > native runtime env.
     """
-    merged = load_env_file(PROJECT_ROOT / ".env")
-    merged.update(load_env_file(PROJECT_ROOT / "dev_env.txt"))
+    private_paths = resolve_easelect_private_paths(PROJECT_ROOT)
+    merged = load_env_file(private_paths.runtime_env_file)
+    merged.update(load_env_file(private_paths.development_env_file))
     merged.update(os.environ)
     return merged
 

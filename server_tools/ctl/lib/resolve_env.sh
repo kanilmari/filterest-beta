@@ -59,3 +59,8 @@ unset _p _EXTRA_PATHS
 
 export PATH
 export PROJECT_ROOT
+
+# Resolve native Easelect private files from the one external key-root contract.
+# Generated Filterest checkouts deliberately resolve to their root-local runtime files.
+source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
+easelect_resolve_private_paths "$PROJECT_ROOT"

@@ -74,7 +74,7 @@ _launch_detached() {
 }
 
 # ------------------------------------------------------------------------------
-# Helper: read one env value from the active local env file with .env fallback
+# Helper: read one env value from the active local env with runtime fallback
 # ------------------------------------------------------------------------------
 _read_local_env_value() {
     local key="$1"
@@ -83,7 +83,7 @@ _read_local_env_value() {
     local candidate_file=""
     local value=""
 
-    for candidate_file in "$primary_env_file" "$PROJECT_ROOT/.env"; do
+    for candidate_file in "$primary_env_file" "$EASELECT_RUNTIME_ENV_FILE"; do
         [[ -f "$candidate_file" ]] || continue
         value=$(grep -E "^${key}=" "$candidate_file" 2>/dev/null | tail -1 | cut -d'=' -f2- || true)
         if [[ -n "$value" ]]; then
@@ -142,7 +142,7 @@ _vite_dev_server_is_ready() {
 }
 
 _start_vite_dev() {
-    local db_env_file="${1:-$PROJECT_ROOT/.env}"
+    local db_env_file="${1:-$EASELECT_RUNTIME_ENV_FILE}"
     local vite_port
     local vite_hmr_port
     local vite_backend_url
@@ -221,15 +221,16 @@ start_local() {
     local project_name
     project_name="$(project_display_name)"
     
-    check_env_file
-    if [[ -f "$PROJECT_ROOT/dev_env.txt" ]]; then
-        warn_secret_env_file_permissions "$PROJECT_ROOT/dev_env.txt" "ctl startup"
+    check_env_file "$EASELECT_RUNTIME_ENV_FILE"
+    if [[ -f "$EASELECT_DEV_ENV_FILE" ]]; then
+        warn_secret_env_file_permissions "$EASELECT_DEV_ENV_FILE" "ctl startup"
     fi
 
-    # Native local mode is defined by dev_env.txt; fall back to .env only if needed.
-    local db_env_file="$PROJECT_ROOT/dev_env.txt"
+    # Native local mode is defined by the resolved development env; runtime env
+    # remains the fallback for generated Filterest and incomplete local setups.
+    local db_env_file="$EASELECT_DEV_ENV_FILE"
     if [[ ! -f "$db_env_file" ]]; then
-        db_env_file="$PROJECT_ROOT/.env"
+        db_env_file="$EASELECT_RUNTIME_ENV_FILE"
     fi
     local configured_port
     configured_port="$(_read_local_env_value "APP_PORT" "$db_env_file")"
@@ -289,9 +290,10 @@ start_local() {
     
     # Start server in background
     echo "🚀 Building Go binary..."
-    # Use default dev-cert.crt / dev-cert.key (self-signed OpenSSL)
-    unset TLS_CERT_FILE
-    unset TLS_KEY_FILE
+    # The resolver keeps Easelect TLS outside the repo while generated Filterest
+    # continues to use its own root-local certificate and private key.
+    export TLS_CERT_FILE="${TLS_CERT_FILE:-$EASELECT_TLS_CERT_FILE}"
+    export TLS_KEY_FILE="${TLS_KEY_FILE:-$EASELECT_TLS_KEY_FILE}"
     if ! go build -o ./easelect_dev . 2>&1; then
         echo -e "${RED}❌ Build failed${NC}"
         if [[ "$shared_dev_storage_prepared" == true ]]; then
@@ -336,7 +338,7 @@ start_local() {
         _verify_logging
     elif curl -s -o /dev/null http://localhost:${PORT}/ --max-time 2 2>/dev/null; then
         echo -e "${RED}❌ Server responded on plain HTTP, but native local dev expects HTTPS on port ${PORT}.${NC}"
-        echo "   Check ENVIRONMENT_TYPE loading (dev_env.txt should keep native local in dev/TLS mode)."
+        echo "   Check ENVIRONMENT_TYPE loading (the native development env should keep local dev in TLS mode)."
         if [[ "$shared_dev_storage_prepared" == true ]]; then
             _shared_dev_storage_release || true
         fi

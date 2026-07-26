@@ -9,6 +9,9 @@
 # - Docker health-check waiter
 # ==============================================================================
 
+: "${EASELECT_RUNTIME_ENV_FILE:=${PROJECT_ROOT:-.}/.env}"
+: "${EASELECT_DEV_ENV_FILE:=${PROJECT_ROOT:-.}/dev_env.txt}"
+
 # ------------------------------------------------------------------------------
 # Helper: Normalize an Easelect instance role / bootstrap seed profile.
 # Between instance .env files and bootstrap consumers it keeps one small role
@@ -69,19 +72,19 @@ print_separator() {
 }
 
 # ------------------------------------------------------------------------------
-# Helper: Read seed DB credentials from dev_env.txt
+# Helper: Read seed DB credentials from the resolved development environment.
 # Used by both sync_instance and init_instance to connect to the local dev DB.
 # Returns variables: seed_host, seed_port, seed_user, seed_name, seed_password
 # ------------------------------------------------------------------------------
 read_seed_db_config() {
-    local config_file="$PROJECT_ROOT/dev_env.txt"
+    local config_file="$EASELECT_DEV_ENV_FILE"
 
     if [[ ! -f "$config_file" ]]; then
-        echo -e "${RED}❌ dev_env.txt not found at project root${NC}"
+        echo -e "${RED}❌ Development environment file not found: ${config_file}${NC}"
         exit 1
     fi
 
-    # Read DB_HOST, DB_PORT from dev_env.txt
+    # Read DB_HOST and DB_PORT from the canonical native development config.
     seed_host=$(grep -E "^DB_HOST=" "$config_file" | tail -1 | cut -d'=' -f2)
     seed_port=$(grep -E "^DB_PORT=" "$config_file" | tail -1 | cut -d'=' -f2)
     seed_name=$(grep -E "^DB_NAME=" "$config_file" | tail -1 | cut -d'=' -f2)
@@ -192,7 +195,7 @@ compose_cmd() {
 prepare_instance_compose_env() {
     local env_file="$1"
     local env_type=""
-    local root_env_file="${PROJECT_ROOT}/.env"
+    local root_env_file="$EASELECT_RUNTIME_ENV_FILE"
     local root_login_otp=""
 
     env_type=$(grep -E "^ENVIRONMENT_TYPE=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)

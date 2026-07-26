@@ -7,6 +7,7 @@ package backend
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -47,14 +48,24 @@ func ensureEnvironmentVariablesLoaded() (string, error) {
 }
 
 func loadAndSetEnvironmentVariables() (string, error) {
-	// Native local development is defined by dev_env.txt. Load it first so its
-	// explicit development settings win over .env defaults, while still keeping
-	// already-exported environment variables (for Docker/runtime) authoritative.
-	for _, envFile := range []string{"dev_env.txt", ".env"} {
+	projectRoot, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("resolve project root: %w", err)
+	}
+	envFiles, tlsCertFile, tlsKeyFile, err := resolveProjectPrivatePaths(projectRoot)
+	if err != nil {
+		return "", err
+	}
+
+	// Native development settings win over runtime defaults, while already
+	// exported Docker, deployment, or operator values remain authoritative.
+	for _, envFile := range envFiles {
 		if err := loadEnvironmentFileIfPresent(envFile); err != nil {
 			return "", err
 		}
 	}
+	setEnvironmentDefault("TLS_CERT_FILE", tlsCertFile)
+	setEnvironmentDefault("TLS_KEY_FILE", tlsKeyFile)
 
 	// Get environment type: fail closed to production unless development is explicit.
 	envType := strings.TrimSpace(os.Getenv("ENVIRONMENT_TYPE"))
@@ -66,6 +77,71 @@ func loadAndSetEnvironmentVariables() (string, error) {
 	_ = os.Setenv("ENVIRONMENT_TYPE", envType)
 
 	return envType, nil
+}
+
+// resolveProjectPrivatePaths separates the private Easelect source checkout
+// from generated Filterest and deployed runtimes. Easelect derives all four
+// files from one external key root; other runtimes keep root-local files.
+func resolveProjectPrivatePaths(projectRoot string) ([]string, string, string, error) {
+	isPrivateSource, err := isPrivateEaselectSourceCheckout(projectRoot)
+	if err != nil {
+		return nil, "", "", err
+	}
+	if !isPrivateSource {
+		return []string{
+			filepath.Join(projectRoot, "dev_env.txt"),
+			filepath.Join(projectRoot, ".env"),
+		}, "", "", nil
+	}
+
+	keyRoot := strings.TrimSpace(os.Getenv("EASELECT_KEY_ROOT"))
+	if keyRoot == "" {
+		keyRoot = filepath.Join(projectRoot, "..", "filterest_keys")
+	}
+	if !filepath.IsAbs(keyRoot) {
+		return nil, "", "", fmt.Errorf("invalid EASELECT_KEY_ROOT: path must be absolute")
+	}
+	keyRoot = filepath.Clean(keyRoot)
+	if pathIsInsideProjectRoot(projectRoot, keyRoot) {
+		return nil, "", "", fmt.Errorf("invalid EASELECT_KEY_ROOT: path must stay outside the Easelect repository")
+	}
+
+	developmentRoot := filepath.Join(keyRoot, "easelect_development")
+	return []string{
+			filepath.Join(developmentRoot, "development_environment.env"),
+			filepath.Join(developmentRoot, "runtime_environment.env"),
+		},
+		filepath.Join(developmentRoot, "local_tls_certificate", "localhost_certificate.crt"),
+		filepath.Join(developmentRoot, "local_tls_certificate", "localhost_private_key.key"),
+		nil
+}
+
+func isPrivateEaselectSourceCheckout(projectRoot string) (bool, error) {
+	for _, marker := range []string{".git", "VERSION_EASELECT"} {
+		if _, err := os.Stat(filepath.Join(projectRoot, marker)); err != nil {
+			if os.IsNotExist(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("inspect Easelect source marker %s: %w", marker, err)
+		}
+	}
+	return true, nil
+}
+
+func pathIsInsideProjectRoot(projectRoot string, candidatePath string) bool {
+	relativePath, err := filepath.Rel(filepath.Clean(projectRoot), candidatePath)
+	if err != nil {
+		return true
+	}
+	return relativePath == "." ||
+		(relativePath != ".." && !strings.HasPrefix(relativePath, ".."+string(filepath.Separator)))
+}
+
+func setEnvironmentDefault(key string, value string) {
+	if value == "" || os.Getenv(key) != "" {
+		return
+	}
+	_ = os.Setenv(key, value)
 }
 
 func loadEnvironmentFileIfPresent(envFile string) error {

@@ -11,16 +11,27 @@ import json
 import glob
 import sys
 import argparse
+from pathlib import Path
 from openai import OpenAI
 from anthropic import Anthropic
 from dotenv import load_dotenv
 import re
 
-# Load environment variables from .env file if present
+# Load the native source checkout from its external key root. Generated and
+# deployed runtimes continue to resolve their own root-local environment files.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from server_tools.lib.easelect_private_paths import resolve_easelect_private_paths
+
+
 try:
-    load_dotenv(override=False)
+    private_paths = resolve_easelect_private_paths(PROJECT_ROOT)
+    load_dotenv(private_paths.development_env_file, override=False)
+    load_dotenv(private_paths.runtime_env_file, override=False)
 except Exception as e:
-    print(f"Warning: Could not load .env file: {e}")
+    print(f"Warning: Could not load native Easelect environment files: {e}")
 
 CONFIG_PATH = "docs/constitution/design/technical_definitions.md"
 PRINCIPLES_PATH = "docs/constitution/design/README.md"

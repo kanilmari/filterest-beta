@@ -17,16 +17,28 @@ import https from 'https';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import {
+  isPrivateEaselectSourceCheckout,
+  resolveEaselectPrivatePaths,
+} from '../server_tools/lib/easelect_private_paths.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const projectRoot = resolve(__dirname, '..');
+const privatePaths = resolveEaselectPrivatePaths(projectRoot);
 
 function readProjectEnvValue(key) {
   if (process.env[key]) return process.env[key];
 
-  for (const envFileName of ['.env', 'dev_env.txt', '.env.scaffold', 'dev_env.scaffold']) {
+  const runtimeEnvFiles = isPrivateEaselectSourceCheckout(projectRoot)
+    ? [privatePaths.developmentEnvFile, privatePaths.runtimeEnvFile]
+    : [privatePaths.runtimeEnvFile, privatePaths.developmentEnvFile];
+  for (const envFileName of [
+    ...runtimeEnvFiles,
+    join(projectRoot, '.env.scaffold'),
+    join(projectRoot, 'dev_env.scaffold'),
+  ]) {
     try {
-      const envContent = readFileSync(join(projectRoot, envFileName), 'utf-8');
+      const envContent = readFileSync(envFileName, 'utf-8');
       for (const rawLine of envContent.split(/\r?\n/)) {
         const line = rawLine.trim();
         if (!line || line.startsWith('#')) continue;

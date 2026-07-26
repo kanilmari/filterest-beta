@@ -15,6 +15,10 @@ NC='\033[0m'
 # Default values
 LOG_FILE="server_output.log"
 PORT=${EASELECT_PORT:-8082}
+: "${EASELECT_RUNTIME_ENV_FILE:=${PROJECT_ROOT:-.}/.env}"
+: "${EASELECT_DEV_ENV_FILE:=${PROJECT_ROOT:-.}/dev_env.txt}"
+: "${EASELECT_TLS_CERT_FILE:=${PROJECT_ROOT:-.}/dev-cert.crt}"
+: "${EASELECT_TLS_KEY_FILE:=${PROJECT_ROOT:-.}/dev-cert.key}"
 
 # ------------------------------------------------------------------------------
 # Convert ASCII text to lowercase with POSIX tools.
@@ -87,9 +91,9 @@ _stop_local_dev_docker_stack() {
         return
     fi
 
-    if docker compose -f docker/docker-compose.dev.yml ps -q 2>/dev/null | grep -q .; then
+    if docker compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml ps -q 2>/dev/null | grep -q .; then
         echo "   Stopping local Docker dev stack..."
-        docker compose -f docker/docker-compose.dev.yml down 2>/dev/null || true
+        docker compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml down 2>/dev/null || true
     fi
 }
 
@@ -150,7 +154,7 @@ stop_all() {
 # Check prerequisites
 # ------------------------------------------------------------------------------
 check_env_file() {
-    local env_file="${1:-.env}"
+    local env_file="${1:-$EASELECT_RUNTIME_ENV_FILE}"
 
     if [[ ! -f "$env_file" ]]; then
         echo -e "${RED}❌ ${env_file} file not found${NC}"
@@ -181,9 +185,9 @@ print_success() {
     local mode="${1:-local}"
     local project_name
     project_name="$(project_display_name)"
-    local db_env_file="$PROJECT_ROOT/.env"
-    if [[ -f "$PROJECT_ROOT/dev_env.txt" ]]; then
-        db_env_file="$PROJECT_ROOT/dev_env.txt"
+    local db_env_file="$EASELECT_RUNTIME_ENV_FILE"
+    if [[ -f "$EASELECT_DEV_ENV_FILE" ]]; then
+        db_env_file="$EASELECT_DEV_ENV_FILE"
     fi
     local vite_port
     vite_port="$(_read_local_env_value "VITE_DEV_PORT" "$db_env_file" "5173")"

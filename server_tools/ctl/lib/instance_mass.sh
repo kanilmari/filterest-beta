@@ -212,8 +212,14 @@ sync_all_instances() {
 
     # Pre-check: seed DB must be running (fail fast before touching any instance)
     local seed_host seed_port
-    seed_host=$(grep -E "^DB_HOST=" "$PROJECT_ROOT/.env" | tail -1 | cut -d'=' -f2)
-    seed_port=$(grep -E "^DB_PORT=" "$PROJECT_ROOT/.env" | tail -1 | cut -d'=' -f2)
+    seed_host=$(grep -E "^DB_HOST=" "$EASELECT_DEV_ENV_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    seed_port=$(grep -E "^DB_PORT=" "$EASELECT_DEV_ENV_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    if [[ -z "$seed_host" ]]; then
+        seed_host=$(grep -E "^DB_HOST=" "$EASELECT_RUNTIME_ENV_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    fi
+    if [[ -z "$seed_port" ]]; then
+        seed_port=$(grep -E "^DB_PORT=" "$EASELECT_RUNTIME_ENV_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    fi
     seed_host="${seed_host:-localhost}"
     seed_port="${seed_port:-5432}"
 

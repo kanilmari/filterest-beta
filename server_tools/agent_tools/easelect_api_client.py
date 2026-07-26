@@ -7,7 +7,9 @@
 import http.cookiejar
 import json
 import os
+from pathlib import Path
 import ssl
+import sys
 import uuid
 import urllib.error
 import urllib.parse
@@ -15,9 +17,13 @@ import urllib.request
 
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from server_tools.lib.easelect_private_paths import resolve_easelect_private_paths
+
+
 DEFAULT_BASE_URL = "https://localhost:8082"
-DEFAULT_DEV_USERNAME = "editorial_staff"
-DEFAULT_DEV_PASSWORD = "hannun_salkkukaisananen101"
 
 
 class EaselectAPIError(RuntimeError):
@@ -40,9 +46,10 @@ def load_env_file(filepath):
 
 
 def load_project_env(project_root=PROJECT_ROOT):
+    private_paths = resolve_easelect_private_paths(Path(project_root))
     env = {}
-    env.update(load_env_file(os.path.join(project_root, ".env")))
-    env.update(load_env_file(os.path.join(project_root, "dev_env.txt")))
+    env.update(load_env_file(private_paths.runtime_env_file))
+    env.update(load_env_file(private_paths.development_env_file))
     return env
 
 
@@ -64,8 +71,18 @@ class EaselectAPIClient:
             or os.environ.get("DB_TASK_BASE_URL")
             or DEFAULT_BASE_URL
         ).rstrip("/")
-        self.username = username or os.environ.get("EASELECT_API_USERNAME") or DEFAULT_DEV_USERNAME
-        self.password = password or os.environ.get("EASELECT_API_PASSWORD") or DEFAULT_DEV_PASSWORD
+        self.username = (
+            username
+            or os.environ.get("EASELECT_API_USERNAME")
+            or self.project_env.get("DEV_USERNAME")
+            or ""
+        ).strip()
+        self.password = (
+            password
+            or os.environ.get("EASELECT_API_PASSWORD")
+            or self.project_env.get("DEV_PASSWORD")
+            or ""
+        ).strip()
         self.otp_code = (
             otp_code
             or os.environ.get("EASELECT_API_OTP_CODE")
@@ -189,6 +206,12 @@ class EaselectAPIClient:
     def login(self):
         if self._authenticated:
             return {"authenticated": True, "cached": True}
+        if not self.username or not self.password:
+            raise EaselectAPIError(
+                "login credentials are missing; set DEV_USERNAME/DEV_PASSWORD "
+                "in the resolved environment or EASELECT_API_USERNAME/"
+                "EASELECT_API_PASSWORD in the process environment"
+            )
         csrf_token = self.fetch_csrf_token(force=True)
         first = self.request("POST", "/api/login", data={
             "username": self.username,

@@ -299,7 +299,7 @@ function buildPrompt(options) {
 async function createResponse(payload, options) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-        throw new Error("missing OPENAI_API_KEY in environment/root .env; use --dry-run to verify local wiring without an API call");
+        throw new Error("missing OPENAI_API_KEY in the resolved native environment; use --dry-run to verify local wiring without an API call");
     }
     const controller = new AbortController();
     const timeoutMs = options?.apiTimeoutMs || 120000;

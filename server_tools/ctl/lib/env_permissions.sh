@@ -21,7 +21,7 @@ _secret_env_requires_strict_permissions() {
     file_name="$(basename "$file_path")"
 
     case "$file_name" in
-        .env|dev_env.txt|revolut.env|environment_type.env)
+        .env|dev_env.txt|runtime_environment.env|development_environment.env|revolut.env|environment_type.env)
             return 0
             ;;
         *)

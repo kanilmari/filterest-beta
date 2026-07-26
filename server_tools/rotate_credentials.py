@@ -2,7 +2,7 @@
 # ==============================================================================
 # server_tools/rotate_credentials.py
 # Interactive credential rotation tool for Easelect.
-# Scans all .env files, including approved external-secret symlink targets.
+# Scans the native external key root plus runtime-owned local .env files.
 # Lets the user update passwords/keys without echoing credential material.
 # Run: python3 server_tools/rotate_credentials.py
 # ==============================================================================
@@ -20,11 +20,14 @@ from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 INSTANCES_ROOT = ROOT / "instances"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-SEED_FILES = [
-    ROOT / ".env",
-    ROOT / "dev_env.txt",
-]
+from server_tools.lib.easelect_private_paths import resolve_easelect_private_paths
+
+
+PRIVATE_PATHS = resolve_easelect_private_paths(ROOT)
+SEED_FILES = [PRIVATE_PATHS.runtime_env_file, PRIVATE_PATHS.development_env_file]
 
 ADDITIONAL_SECRET_SCOPES = [
     (
@@ -79,6 +82,8 @@ ALL_ROTATABLE = AUTO_KEYS | MANUAL_KEYS
 STRICT_PERMISSION_FILENAMES = {
     ".env",
     "dev_env.txt",
+    "runtime_environment.env",
+    "development_environment.env",
     "revolut.env",
     "environment_type.env",
 }
@@ -135,11 +140,11 @@ def mask(value: str) -> str:
 # ── File I/O ───────────────────────────────────────────────────────────────────
 
 def read_file(path: Path) -> str:
-    """Read an env file, following a compatibility symlink when present."""
+    """Read one credential-bearing environment file."""
     return path.read_text(encoding="utf-8")
 
 def write_file(path: Path, content: str) -> None:
-    """Write an env file while preserving any symlink at the compatibility path."""
+    """Write one credential-bearing environment file."""
     path.write_text(content, encoding="utf-8")
 
 def requires_strict_permissions(path: Path) -> bool:
@@ -275,7 +280,7 @@ def apply_changes(files: list, changes: dict) -> list[Path]:
 def rotate_scope(scope_name: str, files: list) -> None:
     print(f"\n{c('header', '═' * 60)}")
     print(f"{c('header', f'  Scope: {scope_name}')}")
-    print(c("dim", f"  Files: {', '.join(str(f.relative_to(ROOT)) for f in files if f.exists())}"))
+    print(c("dim", f"  Files: {', '.join(str(display_path(f)) for f in files if f.exists())}"))
     print(c("header", "═" * 60))
 
     found = discover_keys(files)
@@ -370,7 +375,10 @@ def build_scope_menu(
     additional_scopes: Optional[list[tuple[str, list[Path]]]] = None,
 ) -> list:
     """Return ordered list of (display_name, files) tuples."""
-    menu = [("seed / native dev  (.env + dev_env.txt)", seed_files or SEED_FILES)]
+    menu = [(
+        "seed / native dev  (external runtime + development env)",
+        seed_files or SEED_FILES,
+    )]
     for name, path in (instance_dirs or discover_instance_env_files()).items():
         exists = path.exists()
         label = f"instance: {name}"

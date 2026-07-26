@@ -8,6 +8,10 @@
 # ------------------------------------------------------------------------------
 # Docker mode
 # ------------------------------------------------------------------------------
+_local_docker_compose() {
+    docker-compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml "$@"
+}
+
 start_docker() {
     docker_query_public_table_count() {
         docker exec easelect-db-dev psql -U admin_user -d easelect -tAc \
@@ -32,7 +36,7 @@ start_docker() {
 
     echo -e "${BLUE}🐳 Starting Easelect in Docker...${NC}"
     
-    check_env_file
+    check_env_file "$EASELECT_RUNTIME_ENV_FILE"
     
     # Check Docker
     if ! command -v docker &> /dev/null; then
@@ -50,8 +54,8 @@ start_docker() {
     
     # Start containers
     echo "🐳 Starting Docker containers..."
-    docker-compose -f docker/docker-compose.dev.yml down 2>/dev/null || true
-    docker-compose -f docker/docker-compose.dev.yml up -d --build
+    _local_docker_compose down 2>/dev/null || true
+    _local_docker_compose up -d --build
     
     echo "⏳ Waiting for database..."
     sleep 5
@@ -83,7 +87,7 @@ start_docker() {
                 echo -e "${RED}❌ Restore verification failed: system_config has no rows after dump import.${NC}"
                 exit 1
             fi
-            docker-compose -f docker/docker-compose.dev.yml restart app
+            _local_docker_compose restart app
         else
             bootstrap_zip="$(current_bootstrap_seed_zip_path 2>/dev/null || true)"
             if [[ -n "$bootstrap_zip" ]]; then
@@ -117,7 +121,7 @@ start_docker() {
                     echo -e "${RED}❌ Restore verification failed: system_config has no rows after bootstrap import.${NC}"
                     exit 1
                 fi
-                docker-compose -f docker/docker-compose.dev.yml restart app
+                _local_docker_compose restart app
             else
                 echo -e "${RED}❌ No database dump or committed bootstrap zip found for --restore-db${NC}"
                 exit 1

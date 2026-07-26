@@ -13,7 +13,7 @@
 #   - PostgreSQL 16 installed (apt install postgresql-16 postgresql-16-pgvector)
 #   - Go 1.26.5+ installed
 #   - Node.js 24+ installed
-#   - Environment files present: .env and dev_env.txt
+#   - Native environment files present at the resolved runtime/development paths
 #   - Local TLS files present or openssl available for generating them
 #
 # Usage:
@@ -21,12 +21,12 @@
 #
 # What it does:
 #   1. Detects the correct PostgreSQL 16 cluster and port
-#   2. Creates required database roles with passwords from .env
+#   2. Creates required database roles with passwords from the runtime env
 #   3. Creates the configured database
 #   4. Imports the dump/bootstrap source (auto-strips \restrict/\unrestrict lines)
 #   5. Applies schema patches for code-vs-dump mismatches
 #   6. Grants required permissions
-#   7. Updates .env and dev_env.txt with the correct port
+#   7. Updates the runtime and development env files with the correct port
 #   8. Installs npm and Go dependencies
 # ==============================================================================
 
@@ -43,6 +43,8 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 source "$PROJECT_ROOT/server_tools/lib/bootstrap_seed.sh"
 source "$PROJECT_ROOT/server_tools/lib/toolchain_version.sh"
+source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
+easelect_resolve_private_paths "$PROJECT_ROOT"
 
 FORCE_RECREATE=false
 DUMP_SOURCE_KIND=""
@@ -113,7 +115,7 @@ resolve_private_bootstrap_source() {
 }
 
 ensure_local_tls_files() {
-    if [[ -f "dev-cert.crt" && -f "dev-cert.key" ]]; then
+    if [[ -f "$EASELECT_TLS_CERT_FILE" && -f "$EASELECT_TLS_KEY_FILE" ]]; then
         return
     fi
 
@@ -122,14 +124,18 @@ ensure_local_tls_files() {
     fi
 
     echo "  Generating local development TLS certificate..."
+    mkdir -p "$(dirname "$EASELECT_TLS_CERT_FILE")"
+    if easelect_is_private_source_checkout "$PROJECT_ROOT"; then
+        chmod 700 "$(dirname "$EASELECT_TLS_CERT_FILE")"
+    fi
     openssl req -x509 -newkey rsa:2048 -nodes \
-        -keyout dev-cert.key \
-        -out dev-cert.crt \
+        -keyout "$EASELECT_TLS_KEY_FILE" \
+        -out "$EASELECT_TLS_CERT_FILE" \
         -days 365 \
         -subj "/CN=localhost" \
         -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" >/dev/null 2>&1
-    chmod 600 dev-cert.key
-    chmod 644 dev-cert.crt
+    chmod 600 "$EASELECT_TLS_KEY_FILE"
+    chmod 644 "$EASELECT_TLS_CERT_FILE"
 }
 
 show_setup_usage() {
@@ -167,12 +173,12 @@ echo ""
 echo -e "${BLUE}[0/8] Checking prerequisites...${NC}"
 
 MISSING=()
-[[ ! -f ".env" ]] && MISSING+=(".env")
-[[ ! -f "dev_env.txt" ]] && MISSING+=("dev_env.txt")
+[[ ! -f "$EASELECT_RUNTIME_ENV_FILE" ]] && MISSING+=("$EASELECT_RUNTIME_ENV_FILE")
+[[ ! -f "$EASELECT_DEV_ENV_FILE" ]] && MISSING+=("$EASELECT_DEV_ENV_FILE")
 
 ensure_local_tls_files
-[[ ! -f "dev-cert.crt" ]] && MISSING+=("dev-cert.crt")
-[[ ! -f "dev-cert.key" ]] && MISSING+=("dev-cert.key")
+[[ ! -f "$EASELECT_TLS_CERT_FILE" ]] && MISSING+=("$EASELECT_TLS_CERT_FILE")
+[[ ! -f "$EASELECT_TLS_KEY_FILE" ]] && MISSING+=("$EASELECT_TLS_KEY_FILE")
 
 # Generated public Filterest checkouts must bootstrap from their own public
 # seed path. Private Easelect can still use private full dumps/bootstrap zips.
@@ -261,14 +267,14 @@ fi
 echo -e "${GREEN}  ✓ PostgreSQL 16 found on port ${PG16_PORT}${NC}"
 
 # --------------------------------------------------------------------------
-# Step 2: Load credentials from .env
+# Step 2: Load credentials from the runtime environment
 # --------------------------------------------------------------------------
 echo ""
-echo -e "${BLUE}[2/8] Loading credentials from .env...${NC}"
+echo -e "${BLUE}[2/8] Loading credentials from the runtime environment...${NC}"
 
 get_env_value() {
     local key="$1"
-    grep "^${key}=" .env 2>/dev/null | tail -1 | cut -d'=' -f2- || true
+    grep "^${key}=" "$EASELECT_RUNTIME_ENV_FILE" 2>/dev/null | tail -1 | cut -d'=' -f2- || true
 }
 
 require_env_value() {
@@ -277,8 +283,8 @@ require_env_value() {
     if [[ -n "$value" ]]; then
         return 0
     fi
-    echo -e "${RED}❌ Required .env value missing: ${key}${NC}"
-    echo "   Fill ${key}=... in .env before running setup on a fresh clone."
+    echo -e "${RED}❌ Required runtime environment value missing: ${key}${NC}"
+    echo "   Fill ${key}=... in $EASELECT_RUNTIME_ENV_FILE before running setup on a fresh clone."
     exit 1
 }
 
@@ -301,7 +307,7 @@ LOGIN_OTP_CODE=$(get_env_value "LOGIN_OTP_CODE")
 FILTEREST_INITIAL_ADMIN_EMAIL=$(get_env_value "FILTEREST_INITIAL_ADMIN_EMAIL")
 FILTEREST_INITIAL_ADMIN_HANDOFF_FILE=$(get_env_value "FILTEREST_INITIAL_ADMIN_HANDOFF_FILE")
 
-# Default DB name if not in .env
+# Default DB name if not in the runtime environment
 DB_NAME="${DB_NAME:-$(project_default_db_name)}"
 
 require_env_value "DB_ADMIN_USER" "$DB_ADMIN_USER"
@@ -434,12 +440,6 @@ update_db_port_setting() {
     local temp_file
     local write_target="$config_file"
 
-    # Keep repo-local compatibility symlinks intact when the actual environment
-    # file lives in the sibling filterest_keys tree.
-    if [[ -L "$config_file" ]]; then
-        write_target="$(cd "$(dirname "$config_file")" && cd "$(dirname "$(readlink "$config_file")")" && pwd)/$(basename "$(readlink "$config_file")")"
-    fi
-
     temp_file="$(mktemp "${write_target}.tmp.XXXXXX")"
     cp -p "$write_target" "$temp_file"
     if ! sed "s/^DB_PORT=.*/DB_PORT=$port/" "$write_target" > "$temp_file"; then
@@ -490,7 +490,7 @@ create_role "${DB_GUEST_USER:-guest_user}" "${DB_GUEST_PASSWORD:-guest_pass}"
 create_role "readonly_user" "${DB_READONLY_PASSWORD:-readonly_pass}"
 create_role "confidential_user" "${DB_CONFIDENTIAL_PASSWORD:-limited_pass}"
 
-echo -e "${GREEN}  ✓ Roles created/updated with passwords from .env${NC}"
+echo -e "${GREEN}  ✓ Roles created/updated with passwords from the runtime environment${NC}"
 
 public_user_relation_count_sql() {
     cat <<'SQL'
@@ -930,30 +930,30 @@ SQL
 echo -e "${GREEN}  ✓ Permissions granted${NC}"
 
 # --------------------------------------------------------------------------
-# Step 8: Update .env and dev_env.txt with correct port
+# Step 8: Update runtime and development env files with correct port
 # --------------------------------------------------------------------------
 echo ""
 echo -e "${BLUE}[8/8] Updating configuration files...${NC}"
 
-# Update .env
-if grep -q "^DB_PORT=" .env; then
-    CURRENT_PORT=$(grep "^DB_PORT=" .env | cut -d'=' -f2)
+# Update runtime environment
+if grep -q "^DB_PORT=" "$EASELECT_RUNTIME_ENV_FILE"; then
+    CURRENT_PORT=$(grep "^DB_PORT=" "$EASELECT_RUNTIME_ENV_FILE" | cut -d'=' -f2)
     if [[ "$CURRENT_PORT" != "$PG16_PORT" ]]; then
-        update_db_port_setting .env "$PG16_PORT"
-        echo -e "${GREEN}  ✓ .env: DB_PORT updated from $CURRENT_PORT to $PG16_PORT${NC}"
+        update_db_port_setting "$EASELECT_RUNTIME_ENV_FILE" "$PG16_PORT"
+        echo -e "${GREEN}  ✓ Runtime env: DB_PORT updated from $CURRENT_PORT to $PG16_PORT${NC}"
     else
-        echo -e "${GREEN}  ✓ .env: DB_PORT already correct ($PG16_PORT)${NC}"
+        echo -e "${GREEN}  ✓ Runtime env: DB_PORT already correct ($PG16_PORT)${NC}"
     fi
 fi
 
-# Update dev_env.txt
-if grep -q "^DB_PORT=" dev_env.txt; then
-    CURRENT_PORT=$(grep "^DB_PORT=" dev_env.txt | cut -d'=' -f2)
+# Update development environment
+if grep -q "^DB_PORT=" "$EASELECT_DEV_ENV_FILE"; then
+    CURRENT_PORT=$(grep "^DB_PORT=" "$EASELECT_DEV_ENV_FILE" | cut -d'=' -f2)
     if [[ "$CURRENT_PORT" != "$PG16_PORT" ]]; then
-        update_db_port_setting dev_env.txt "$PG16_PORT"
-        echo -e "${GREEN}  ✓ dev_env.txt: DB_PORT updated from $CURRENT_PORT to $PG16_PORT${NC}"
+        update_db_port_setting "$EASELECT_DEV_ENV_FILE" "$PG16_PORT"
+        echo -e "${GREEN}  ✓ Development env: DB_PORT updated from $CURRENT_PORT to $PG16_PORT${NC}"
     else
-        echo -e "${GREEN}  ✓ dev_env.txt: DB_PORT already correct ($PG16_PORT)${NC}"
+        echo -e "${GREEN}  ✓ Development env: DB_PORT already correct ($PG16_PORT)${NC}"
     fi
 fi
 

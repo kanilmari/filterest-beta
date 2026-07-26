@@ -17,6 +17,13 @@ import psycopg2
 import json
 import argparse
 import re
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from server_tools.lib.easelect_private_paths import resolve_easelect_private_paths
 
 # ============================================================================
 # SECURITY: Read-only SQL validation
@@ -93,8 +100,8 @@ def load_env_chain(filepaths):
     Merge env files left-to-right so later files override earlier ones.
 
     For native dev targets we mirror the backend's intent closely enough for
-    tooling: .env provides fallback secrets, then dev_env.txt overrides the
-    canonical local/shared-dev DB target when present.
+    tooling: the runtime env provides fallback secrets, then the development
+    env overrides the canonical local/shared-dev DB target when present.
     """
     merged = {}
     for filepath in filepaths:
@@ -159,13 +166,14 @@ Examples:
     )
     parser.add_argument('query', nargs='?', help='SQL query to execute')
     parser.add_argument('--instance', '-i', help='Specify instance name (e.g., serlog.com)')
-    parser.add_argument('--local', '-L', action='store_true', help='Use the canonical dev DB target from dev_env.txt/.env')
+    parser.add_argument('--local', '-L', action='store_true', help='Use the canonical native development DB target')
     parser.add_argument('--list', '-l', action='store_true', help='List running database instances')
     
     args = parser.parse_args()
     
     # Get project root (2 levels up from this script: server_tools/agent_tools/)
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    project_root = str(PROJECT_ROOT)
+    private_paths = resolve_easelect_private_paths(PROJECT_ROOT)
     
     # Get running instances
     running_instances = get_running_db_instances()
@@ -196,10 +204,10 @@ Examples:
     # Determine which instance to use
     if args.local:
         # Use the canonical dev DB target from the local env chain.
-        print("# Using canonical dev DB target from dev_env.txt/.env", file=sys.stderr)
+        print("# Using canonical native development DB target", file=sys.stderr)
         instance_env = load_env_chain([
-            os.path.join(project_root, '.env'),
-            os.path.join(project_root, 'dev_env.txt'),
+            private_paths.runtime_env_file,
+            private_paths.development_env_file,
         ])
         db_host = instance_env.get('DB_HOST', 'localhost')
         db_port = instance_env.get('DB_PORT', '5432')
@@ -222,10 +230,10 @@ Examples:
         print(f"# Using instance: {instance_name} (port {db_port})", file=sys.stderr)
     elif len(running_instances) == 0:
         # No Docker instances running - fall back to the canonical dev target.
-        print("# No Docker instances running, using canonical dev DB target from dev_env.txt/.env", file=sys.stderr)
+        print("# No Docker instances running, using canonical native development DB target", file=sys.stderr)
         instance_env = load_env_chain([
-            os.path.join(project_root, '.env'),
-            os.path.join(project_root, 'dev_env.txt'),
+            private_paths.runtime_env_file,
+            private_paths.development_env_file,
         ])
         db_host = instance_env.get('DB_HOST', 'localhost')
         db_port = instance_env.get('DB_PORT', '5432')

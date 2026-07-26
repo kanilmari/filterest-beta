@@ -6,12 +6,12 @@ not legal advice and still needs human/project approval before publication.
 
 ## Candidate
 
-- Filterest app version: `8.27.97`
+- Filterest app version: `8.27.98`
 - Database version: `8.0.55`
 - Go metadata source: `go list metadata with go mod download cache`
 - npm metadata source: `package-lock.json with installed package.json license metadata`
 - Go modules listed: `96`
-- npm packages listed: `453`
+- npm packages listed: `441`
 - bundled asset files listed: `60`
 - dependency rows still requiring license review: `0`
 
@@ -39,13 +39,13 @@ not legal advice and still needs human/project approval before publication.
 
 - `(MIT OR CC0-1.0)`: 1
 - `0BSD`: 1
-- `Apache-2.0`: 43
+- `Apache-2.0`: 41
 - `BSD-2-Clause`: 9
 - `BSD-3-Clause`: 12
 - `BlueOak-1.0.0`: 5
 - `CC0-1.0`: 1
-- `ISC`: 23
-- `MIT`: 351
+- `ISC`: 22
+- `MIT`: 342
 - `MIT-0`: 3
 - `MPL-2.0`: 3
 - `Python-2.0`: 1
@@ -213,7 +213,6 @@ not legal advice and still needs human/project approval before publication.
 | @esbuild/win32-x64 | 0.25.4 | MIT | node_modules/@esbuild/win32-x64 (package-lock.json) |
 | @eslint-community/eslint-utils | 4.9.1 | MIT | node_modules/@eslint-community/eslint-utils (package-lock.json) |
 | @eslint-community/regexpp | 4.12.2 | MIT | node_modules/@eslint-community/regexpp (package-lock.json) |
-| @eslint/compat | 2.1.0 | Apache-2.0 | node_modules/@eslint/compat (package-lock.json) |
 | @eslint/config-array | 0.23.5 | Apache-2.0 | node_modules/@eslint/config-array (package-lock.json) |
 | @eslint/config-helpers | 0.7.0 | Apache-2.0 | node_modules/@eslint/config-helpers (package-lock.json) |
 | @eslint/core | 1.2.1 | Apache-2.0 | node_modules/@eslint/core (package-lock.json) |
@@ -226,7 +225,6 @@ not legal advice and still needs human/project approval before publication.
 | @formatjs/icu-messageformat-parser | 2.11.4 | MIT | node_modules/@formatjs/icu-messageformat-parser (package-lock.json) |
 | @formatjs/icu-skeleton-parser | 1.8.16 | MIT | node_modules/@formatjs/icu-skeleton-parser (package-lock.json) |
 | @formatjs/intl-localematcher | 0.6.2 | MIT | node_modules/@formatjs/intl-localematcher (package-lock.json) |
-| @html-validate/stylish | 4.3.0 | MIT | node_modules/@html-validate/stylish (package-lock.json) |
 | @humanfs/core | 0.19.1 | Apache-2.0 | node_modules/@humanfs/core (package.json license) |
 | @humanfs/node | 0.16.6 | Apache-2.0 | node_modules/@humanfs/node (package.json license) |
 | @humanwhocodes/module-importer | 1.0.1 | Apache-2.0 | node_modules/@humanwhocodes/module-importer (package.json license) |
@@ -280,7 +278,6 @@ not legal advice and still needs human/project approval before publication.
 | @sentry/node-core | 10.68.0 | MIT | node_modules/@sentry/node-core (package-lock.json) |
 | @sentry/opentelemetry | 10.68.0 | MIT | node_modules/@sentry/opentelemetry (package-lock.json) |
 | @sentry/server-utils | 10.68.0 | MIT | node_modules/@sentry/server-utils (package-lock.json) |
-| @sidvind/better-ajv-errors | 4.0.1 | Apache-2.0 | node_modules/html-validate/node_modules/@sidvind/better-ajv-errors (package-lock.json) |
 | @standard-schema/spec | 1.1.0 | MIT | node_modules/@standard-schema/spec (package-lock.json) |
 | @tybys/wasm-util | 0.10.3 | MIT | node_modules/@tybys/wasm-util (package-lock.json) |
 | @types/chai | 5.2.3 | MIT | node_modules/@types/chai (package-lock.json) |
@@ -322,7 +319,6 @@ not legal advice and still needs human/project approval before publication.
 | acorn | 8.17.0 | MIT | node_modules/acorn (package-lock.json) |
 | acorn-jsx | 5.3.2 | MIT | node_modules/acorn-jsx (package-lock.json) |
 | ajv | 6.15.0 | MIT | node_modules/ajv (package-lock.json) |
-| ajv | 8.18.0 | MIT | node_modules/html-validate/node_modules/ajv (package-lock.json) |
 | ajv | 8.20.0 | MIT | node_modules/table/node_modules/ajv (package-lock.json) |
 | ansi-colors | 4.1.3 | MIT | node_modules/ansi-colors (package-lock.json) |
 | ansi-regex | 5.0.1 | MIT | node_modules/ansi-regex (package-lock.json) |
@@ -384,7 +380,6 @@ not legal advice and still needs human/project approval before publication.
 | escalade | 3.2.0 | MIT | node_modules/escalade (package-lock.json) |
 | escape-string-regexp | 4.0.0 | MIT | node_modules/escape-string-regexp (package.json license) |
 | eslint | 10.8.0 | MIT | node_modules/eslint (package-lock.json) |
-| eslint-define-config | 2.1.0 | MIT | node_modules/eslint-define-config (package-lock.json) |
 | eslint-import-context | 0.1.9 | MIT | node_modules/eslint-import-context (package-lock.json) |
 | eslint-plugin-import-x | 4.17.1 | MIT | node_modules/eslint-plugin-import-x (package-lock.json) |
 | eslint-scope | 9.1.2 | BSD-2-Clause | node_modules/eslint-scope (package-lock.json) |
@@ -431,7 +426,6 @@ not legal advice and still needs human/project approval before publication.
 | hookified | 1.7.1 | MIT | node_modules/hookified (package-lock.json) |
 | html-encoding-sniffer | 6.0.0 | MIT | node_modules/html-encoding-sniffer (package-lock.json) |
 | html-tags | 3.3.1 | MIT | node_modules/html-tags (package-lock.json) |
-| html-validate | 10.9.0 | MIT | node_modules/html-validate (package-lock.json) |
 | http-link-header | 1.1.3 | MIT | node_modules/http-link-header (package-lock.json) |
 | ieee754 | 1.2.1 | BSD-3-Clause | node_modules/ieee754 (package-lock.json) |
 | ignore | 5.3.2 | MIT | node_modules/ignore (package.json license) |
@@ -465,8 +459,6 @@ not legal advice and still needs human/project approval before publication.
 | keyv | 4.5.4 | MIT | node_modules/keyv (package.json license) |
 | keyv | 5.2.3 | MIT | node_modules/cacheable/node_modules/keyv (package-lock.json) |
 | kind-of | 6.0.3 | MIT | node_modules/kind-of (package-lock.json) |
-| kleur | 3.0.3 | MIT | node_modules/prompts/node_modules/kleur (package-lock.json) |
-| kleur | 4.1.5 | MIT | node_modules/kleur (package-lock.json) |
 | known-css-properties | 0.35.0 | MIT | node_modules/known-css-properties (package-lock.json) |
 | legacy-javascript | 0.0.1 | Apache-2.0 | node_modules/legacy-javascript (package-lock.json) |
 | levn | 0.4.1 | MIT | node_modules/levn (package.json license) |
@@ -488,7 +480,6 @@ not legal advice and still needs human/project approval before publication.
 | meriyah | 6.1.4 | ISC | node_modules/meriyah (package-lock.json) |
 | micromatch | 4.0.8 | MIT | node_modules/micromatch (package-lock.json) |
 | minimatch | 10.2.5 | BlueOak-1.0.0 | node_modules/glob/node_modules/minimatch (package-lock.json) |
-| minimist | 1.2.8 | MIT | node_modules/minimist (package.json license) |
 | minipass | 7.1.3 | BlueOak-1.0.0 | node_modules/minipass (package-lock.json) |
 | mitt | 3.0.1 | MIT | node_modules/mitt (package-lock.json) |
 | modern-tar | 0.7.7 | MIT | node_modules/modern-tar (package-lock.json) |
@@ -522,7 +513,6 @@ not legal advice and still needs human/project approval before publication.
 | postcss-selector-parser | 7.1.0 | MIT | node_modules/postcss-selector-parser (package-lock.json) |
 | postcss-value-parser | 4.2.0 | MIT | node_modules/postcss-value-parser (package-lock.json) |
 | prelude-ls | 1.2.1 | MIT | node_modules/prelude-ls (package.json license) |
-| prompts | 2.4.2 | MIT | node_modules/prompts (package-lock.json) |
 | punycode | 2.3.1 | MIT | node_modules/punycode (package.json license) |
 | puppeteer-core | 25.3.0 | Apache-2.0 | node_modules/puppeteer-core (package-lock.json) |
 | queue-microtask | 1.2.3 | MIT | node_modules/queue-microtask (package-lock.json) |
@@ -538,13 +528,11 @@ not legal advice and still needs human/project approval before publication.
 | run-parallel | 1.2.0 | MIT | node_modules/run-parallel (package-lock.json) |
 | saxes | 6.0.0 | ISC | node_modules/saxes (package-lock.json) |
 | semifies | 1.0.0 | Apache-2.0 | node_modules/semifies (package-lock.json) |
-| semver | 7.7.4 | ISC | node_modules/html-validate/node_modules/semver (package-lock.json) |
 | semver | 7.8.5 | ISC | node_modules/eslint-plugin-import-x/node_modules/semver (package-lock.json) |
 | shebang-command | 2.0.0 | MIT | node_modules/shebang-command (package.json license) |
 | shebang-regex | 3.0.0 | MIT | node_modules/shebang-regex (package.json license) |
 | siginfo | 2.0.0 | ISC | node_modules/siginfo (package-lock.json) |
 | signal-exit | 4.1.0 | ISC | node_modules/signal-exit (package-lock.json) |
-| sisteransi | 1.0.5 | MIT | node_modules/sisteransi (package-lock.json) |
 | slash | 3.0.0 | MIT | node_modules/slash (package-lock.json) |
 | slice-ansi | 4.0.0 | MIT | node_modules/slice-ansi (package-lock.json) |
 | source-map | 0.6.1 | BSD-3-Clause | node_modules/source-map (package-lock.json) |

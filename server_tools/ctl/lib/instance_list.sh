@@ -19,13 +19,16 @@ list_instances() {
 
     # ── Collect local dev data ────────────────────────────────────────────────
     local local_app_port="8082"
-    if [[ -f "dev_env.txt" ]]; then
-        local env_port=$(grep -E "^APP_PORT=" dev_env.txt 2>/dev/null | cut -d'=' -f2)
+    if [[ -f "$EASELECT_DEV_ENV_FILE" ]]; then
+        local env_port=$(grep -E "^APP_PORT=" "$EASELECT_DEV_ENV_FILE" 2>/dev/null | cut -d'=' -f2)
         [[ -n "$env_port" ]] && local_app_port="$env_port"
     fi
 
     local local_db_port
-    local_db_port=$(grep "^DB_PORT=" "$PROJECT_ROOT/.env" 2>/dev/null | cut -d'=' -f2)
+    local_db_port=$(grep "^DB_PORT=" "$EASELECT_DEV_ENV_FILE" 2>/dev/null | cut -d'=' -f2 || true)
+    if [[ -z "$local_db_port" ]]; then
+        local_db_port=$(grep "^DB_PORT=" "$EASELECT_RUNTIME_ENV_FILE" 2>/dev/null | cut -d'=' -f2 || true)
+    fi
     local_db_port="${local_db_port:-5432}"
     local local_status="stopped"
     local local_env="DEV"

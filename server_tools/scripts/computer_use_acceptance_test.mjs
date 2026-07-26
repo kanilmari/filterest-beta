@@ -1,5 +1,5 @@
 // computer_use_acceptance_test.mjs - Computer Use acceptance CLI.
-// Bridges ticket ids, prompt profiles, target parsing, root .env API keys, and runner output.
+// Bridges ticket ids, prompt profiles, target parsing, resolved provider config, and runner output.
 // Starts the sandboxed OpenAI Computer Use browser tester or dry-run wiring check.
 // Exists as the live visual-AI alternative to structured ai-test and human QA.
 
@@ -10,6 +10,7 @@ import { execFileSync } from "child_process";
 import { fileURLToPath, pathToFileURL } from "url";
 import { runComputerUseAcceptance } from "./computer_use_acceptance_runner.mjs";
 import { addTargetHostToAllowedHosts, authStatePathForTarget } from "./local_easelect_target.mjs";
+import { resolveEaselectPrivatePaths } from "../lib/easelect_private_paths.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,9 +60,9 @@ Examples:
   ./human_qa computer-use-test 834 --file ../filterest-beta/PUBLICATION_CHECKLIST.md --dry-run`;
 }
 
-// Reads root .env values into process.env without logging secrets.
+// Reads the resolved runtime env into process.env without logging secrets.
 function loadRootEnv() {
-    const envPath = path.join(repoRoot, ".env");
+    const envPath = resolveEaselectPrivatePaths(repoRoot).runtimeEnvFile;
     if (!fs.existsSync(envPath)) {
         return;
     }

@@ -12,6 +12,7 @@ export default defineConfig({
     environment: 'jsdom',
     include: [
       'frontend/**/*.test.js',
+      'server_tools/lib/**/*.test.mjs',
       'server_tools/scripts/vitest_process_runner.test.mjs',
       'testing/e2e/helpers/**/*.test.ts',
     ],

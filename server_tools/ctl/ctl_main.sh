@@ -63,7 +63,7 @@ QUICK START
 ───────────────────────────────────────────────────────────────────────────────
   ./ctl                     Käynnistä paikallisesti (kehitys)
                             → Go-backend portissa 8082
-                            → Käyttää dev_env.txt -ympäristömuuttujia
+                            → Käyttää ratkaistua native development env -tiedostoa
                             → Hot reload: muutokset näkyvät heti
 
   ./ctl -p 8090             Käynnistä paikallisesti custom-portissa
@@ -79,7 +79,7 @@ QUICK START
 
   ./ctl --docker            Käynnistä Docker-kontissa
                             → Rakentaa Go-binäärin ja frontend-buildin
-                            → Käyttää .env-tiedostoa
+                            → Käyttää ratkaistua native runtime env -tiedostoa
                             → PostgreSQL + PostGIS + pgvector
 
   ./ctl --stop              Pysäytä kaikki käynnissä olevat instanssit

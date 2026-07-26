@@ -7,6 +7,38 @@
 
 import { expect, type Page } from '@playwright/test';
 import * as fs from 'fs';
+import * as path from 'path';
+
+const projectRoot = path.resolve(__dirname, '../../..');
+
+function resolveNativeEnvironmentFiles(
+  environment: Record<string, string | undefined>,
+): { developmentEnvFile: string; runtimeEnvFile: string } {
+  const configuredKeyRoot = String(environment.EASELECT_KEY_ROOT || '').trim();
+  const keyRoot = path.resolve(
+    configuredKeyRoot || path.resolve(projectRoot, '..', 'filterest_keys'),
+  );
+  if (configuredKeyRoot && !path.isAbsolute(configuredKeyRoot)) {
+    throw new Error('invalid EASELECT_KEY_ROOT: path must be absolute');
+  }
+  const relativePath = path.relative(projectRoot, keyRoot);
+  if (
+    relativePath === ''
+    || (relativePath !== '..' && !relativePath.startsWith(`..${path.sep}`))
+  ) {
+    throw new Error(
+      'invalid EASELECT_KEY_ROOT: path must stay outside the Easelect repository',
+    );
+  }
+  const developmentRoot = path.join(keyRoot, 'easelect_development');
+  return {
+    developmentEnvFile: path.join(
+      developmentRoot,
+      'development_environment.env',
+    ),
+    runtimeEnvFile: path.join(developmentRoot, 'runtime_environment.env'),
+  };
+}
 
 export type TestCredentials = {
   username: string;
@@ -192,7 +224,7 @@ export function loadCredentials(): TestCredentials {
  */
 export function loadOtpCode({
   environment = process.env,
-  devEnvFile = 'dev_env.txt',
+  devEnvFile,
   runtimeEnvFile,
 }: {
   environment?: Record<string, string | undefined>;
@@ -204,11 +236,10 @@ export function loadOtpCode({
     return processOtp;
   }
 
-  const candidateFiles = [devEnvFile];
-  if (runtimeEnvFile) {
-    candidateFiles.push(runtimeEnvFile);
-  } else if (devEnvFile === 'dev_env.txt') {
-    candidateFiles.push('.env');
+  const resolvedPaths = resolveNativeEnvironmentFiles(environment);
+  const candidateFiles = [devEnvFile || resolvedPaths.developmentEnvFile];
+  if (runtimeEnvFile || !devEnvFile) {
+    candidateFiles.push(runtimeEnvFile || resolvedPaths.runtimeEnvFile);
   }
 
   for (const candidateFile of candidateFiles) {
@@ -228,7 +259,7 @@ export function loadOtpCode({
   }
 
   throw new Error(
-    'Missing LOGIN_OTP_CODE. Set it in the test process, dev_env.txt, or the local .env before running browser login tests.',
+    'Missing LOGIN_OTP_CODE. Set it in the process or the resolved development/runtime environment before running browser login tests.',
   );
 }
 

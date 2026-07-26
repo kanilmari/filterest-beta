@@ -465,7 +465,7 @@ sync_instance() {
     echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
     echo ""
 
-    # ── Read seed DB config from dev_env.txt ──────────────────────────────────
+    # ── Read seed DB config from the resolved native development env ──────────
     local seed_host seed_port seed_user seed_name seed_password
     read_seed_db_config
 

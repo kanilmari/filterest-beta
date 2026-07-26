@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scaffold.sh
-# Creates .env.scaffold templates and prepares runtime directories for a clone.
+# Creates env scaffold templates and prepares runtime directories for a clone.
 # Bridges repository env templates, instance folders, and local setup placeholders.
 # Exists to keep scaffold-only setup separate from DB bootstrap and machine handover.
 
@@ -26,14 +26,22 @@ info() { echo -e "${CYAN}→${RESET} $*"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$PROJECT_ROOT/server_tools/ctl/lib/env_permissions.sh"
+source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
+easelect_resolve_private_paths "$PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
 # ---------------------------------------------------------------------------
-# .env-tiedostot joita käsitellään
+# Ympäristötiedostot ja niiden versionhallittavat scaffold-kohteet
 # ---------------------------------------------------------------------------
-ENV_FILES=(
-  ".env"
-  "instances/serlog.com/.env"
+ENV_SOURCE_FILES=(
+  "$EASELECT_RUNTIME_ENV_FILE"
+  "$EASELECT_DEV_ENV_FILE"
+  "$PROJECT_ROOT/instances/serlog.com/.env"
+)
+ENV_SCAFFOLD_FILES=(
+  "$PROJECT_ROOT/.env.scaffold"
+  "$PROJECT_ROOT/dev_env.scaffold"
+  "$PROJECT_ROOT/instances/serlog.com/.env.scaffold"
 )
 
 # ---------------------------------------------------------------------------
@@ -42,7 +50,7 @@ ENV_FILES=(
 # ---------------------------------------------------------------------------
 generate_scaffold_for_file() {
   local src="$1"
-  local dst="${src%.env}.env.scaffold"
+  local dst="$2"
   # Varmista, että lähdetiedosto on olemassa
   if [[ ! -f "$src" ]]; then
     skip "$src ei löydy — ohitetaan"
@@ -100,8 +108,11 @@ cmd_generate() {
   echo ""
   info "Generoidaan .env.scaffold-tiedostot..."
   echo ""
-  for env_file in "${ENV_FILES[@]}"; do
-    generate_scaffold_for_file "$env_file"
+  local index
+  for index in "${!ENV_SOURCE_FILES[@]}"; do
+    generate_scaffold_for_file \
+      "${ENV_SOURCE_FILES[$index]}" \
+      "${ENV_SCAFFOLD_FILES[$index]}"
   done
   echo ""
   ok "Valmis. Lisää .env.scaffold-tiedostot versionhallintaan (jos ei vielä lisätty)."
@@ -158,15 +169,17 @@ cmd_setup() {
 
   echo ""
 
-  # --- 2. Kopioi .env.scaffold → .env jos .env puuttuu ---
-  info "Tarkistetaan .env-tiedostot..."
+  # --- 2. Kopioi scaffoldit oikeisiin runtime-kohteisiin jos ne puuttuvat ---
+  info "Tarkistetaan ympäristötiedostot..."
 
   local env_created=0
   local env_skipped=0
   local env_missing=0
 
-  for env_file in "${ENV_FILES[@]}"; do
-    local scaffold="${env_file%.env}.env.scaffold"
+  local index
+  for index in "${!ENV_SOURCE_FILES[@]}"; do
+    local env_file="${ENV_SOURCE_FILES[$index]}"
+    local scaffold="${ENV_SCAFFOLD_FILES[$index]}"
 
     if [[ ! -f "$scaffold" ]]; then
       skip "Scaffold puuttuu: $scaffold (ohitetaan)"
@@ -175,10 +188,14 @@ cmd_setup() {
     fi
 
     if [[ -f "$env_file" ]]; then
-      skip ".env jo olemassa — ei ylikirjoiteta: $env_file"
+      skip "Ympäristötiedosto jo olemassa — ei ylikirjoiteta: $env_file"
       warn_secret_env_file_permissions "$env_file" "scaffold setup"
       (( env_skipped++ )) || true
     else
+      mkdir -p "$(dirname "$env_file")"
+      if [[ "$env_file" == "$EASELECT_RUNTIME_ENV_FILE" || "$env_file" == "$EASELECT_DEV_ENV_FILE" ]]; then
+        chmod 700 "$(dirname "$env_file")"
+      fi
       cp "$scaffold" "$env_file"
       set_secret_env_file_permissions "$env_file"
       ok "Kopioitu scaffold → $env_file"
@@ -186,30 +203,17 @@ cmd_setup() {
     fi
   done
 
-  if [[ -f "dev_env.scaffold" ]]; then
-    if [[ -f "dev_env.txt" ]]; then
-      skip "dev_env.txt jo olemassa — ei ylikirjoiteta"
-      warn_secret_env_file_permissions "dev_env.txt" "scaffold setup"
-      (( env_skipped++ )) || true
-    else
-      cp "dev_env.scaffold" "dev_env.txt"
-      set_secret_env_file_permissions "dev_env.txt"
-      ok "Kopioitu dev_env.scaffold → dev_env.txt"
-      (( env_created++ )) || true
-    fi
-  fi
-
   # --- 3. Yhteenveto ---
   echo ""
   echo -e "${CYAN}========================================${RESET}"
   echo -e "${CYAN} Yhteenveto${RESET}"
   echo -e "${CYAN}========================================${RESET}"
-  echo "  .env-tiedostot luotu:      $env_created"
-  echo "  .env-tiedostot ohitettu:   $env_skipped"
+  echo "  Ympäristötiedostot luotu:    $env_created"
+  echo "  Ympäristötiedostot ohitettu: $env_skipped"
   echo "  Scaffold puuttui:          $env_missing"
   echo ""
   if [[ $env_created -gt 0 ]]; then
-    echo -e "${YELLOW}Muista täyttää arvot .env-tiedostoihin ennen palvelimen käynnistystä!${RESET}"
+    echo -e "${YELLOW}Muista täyttää arvot ympäristötiedostoihin ennen palvelimen käynnistystä!${RESET}"
     echo ""
   fi
   ok "Alustus valmis."
@@ -246,8 +250,9 @@ ${CYAN}Työnkulku:${RESET}
 
   2. Uudella koneella kloonin jälkeen: ${GREEN}./server_tools/scaffold.sh setup${RESET}
      → Luo tarvittavat hakemistot
-     → Kopioi .env.scaffold → .env (vain jos .env ei vielä ole)
-     → Täytä sitten arvot .env-tiedostoihin käsin
+     → Native Easelect: kopioi scaffoldit EASELECT_KEY_ROOT-juureen
+     → Filterest/instanssit: säilyttää niiden omat paikalliset runtime-polut
+     → Täytä sitten arvot ympäristötiedostoihin käsin
 
   Koneen siirto dumppeineen ja sertifikaatteineen: ${GREEN}./server_tools/migrate_to_new_machine.sh --export${RESET}
 

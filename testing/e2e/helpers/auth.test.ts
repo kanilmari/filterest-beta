@@ -51,6 +51,22 @@ describe('loadOtpCode', () => {
     }
   });
 
+  it('reads the external Easelect development environment without root compatibility files', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'easelect-e2e-key-root-'));
+    const keyRoot = path.join(tempDir, 'filterest_keys');
+    const developmentRoot = path.join(keyRoot, 'easelect_development');
+    const devEnvFile = path.join(developmentRoot, 'development_environment.env');
+    fs.mkdirSync(developmentRoot, { recursive: true });
+    fs.writeFileSync(devEnvFile, 'LOGIN_OTP_CODE=345678\n', 'utf8');
+    try {
+      expect(loadOtpCode({
+        environment: { EASELECT_KEY_ROOT: keyRoot },
+      })).toBe('345678');
+    } finally {
+      fs.rmSync(tempDir, { force: true, recursive: true });
+    }
+  });
+
   it('reads the ignored runtime .env after an empty native dev environment', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'easelect-e2e-runtime-otp-'));
     const devEnvFile = path.join(tempDir, 'dev_env.txt');
