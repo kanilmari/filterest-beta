@@ -105,6 +105,7 @@ func RegisterRoutes(frontendDir string, storagePath string) {
 	functionRegisterHandler("/system/ready", systemReadyHandler, "router.systemReadyHandler")
 	functionRegisterHandler("/system/instance-status", systemInstanceStatusHandler, "router.systemInstanceStatusHandler")
 	functionRegisterHandler("/system/drain", systemDrainHandler, "router.systemDrainHandler")
+	functionRegisterHandler("/api/admin/version-info", adminVersionInfoHandler, "router.adminVersionInfoHandler")
 	functionRegisterHandler("/sitemap.xml", sitemapHandler, "router.sitemapHandler")
 	functionRegisterHandler("/datasets/", datasetsRedirectHandler, "router.datasetsRedirectHandler")
 	functionRegisterHandler("/admin/", adminHandler, "router.adminHandler")

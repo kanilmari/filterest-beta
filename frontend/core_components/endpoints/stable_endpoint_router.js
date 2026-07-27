@@ -127,6 +127,22 @@ export async function fetchUserPermissions() {
 }
 
 /**
+ * fetchAdminVersionInfo returns the protected running product/database versions.
+ *
+ * @param {object} [options]
+ * @returns {Promise<{
+ *   product_name: string,
+ *   app_version: string,
+ *   db_version: string,
+ *   required_db_version: string,
+ *   db_compatible: boolean
+ * }>}
+ */
+export async function fetchAdminVersionInfo(options = {}) {
+    return stable_candidate_endpoint_router('adminVersionInfo', options);
+}
+
+/**
  * fetchFKCacheTriggers returns the admin maintenance snapshot for FK cache triggers.
  *
  * @returns {Promise<FKCacheTriggersResponse>}

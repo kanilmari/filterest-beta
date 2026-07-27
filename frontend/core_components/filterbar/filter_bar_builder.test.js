@@ -16,6 +16,14 @@ vi.mock('../admin_tools/admin_button_builder.js', () => ({
     appendChatUIIfAllowed: vi.fn(),
 }));
 
+vi.mock('../admin_tools/admin_version_info_indicator.js', () => ({
+    buildAdminVersionInfoIndicator: vi.fn(() => {
+        const indicator = document.createElement('span');
+        indicator.dataset.testid = 'filterbar-admin-version-info';
+        return indicator;
+    }),
+}));
+
 vi.mock('./text_search/create_text_search_panel.js', () => ({
     DEFAULT_TITLE_LANG_KEY_MODE: 'dataset',
     tableMetaCache: new Map(),
@@ -505,6 +513,7 @@ describe('create_filter_bar inline hero mounting', () => {
         expect(chatDock?.parentElement).toBe(panel);
         expect(panelBody?.contains(chatDock)).toBe(false);
         expect(chatDock?.nextElementSibling).toBe(clockBar);
+        expect(clockBar?.querySelector('[data-testid="filterbar-admin-version-info"]')).toBeTruthy();
 
         chatDock?.dispatchEvent(new CustomEvent('filterbar-chat-maximize-toggle', {
             bubbles: true,

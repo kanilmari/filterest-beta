@@ -14,10 +14,13 @@ Generated deterministic evidence is summarized in
 [`PUBLICATION_EVIDENCE.md`](PUBLICATION_EVIDENCE.md), and current runtime and
 Computer Use artifacts are attached to non-public maintainer ticket #834.
 
-The earlier #834 Computer Use failure has been superseded by a fresh PASS
-against the generated Filterest-owned runtime. This does not perform or approve
-the remote push: the local evidence review and remote push remain
-`manual-final`.
+The earlier #834 Computer Use failure is historical. The human release owner
+has separately accepted the current generated Filterest-owned runtime in the
+browser. The latest stored automated Computer Use artifact must not be
+described as a fresh PASS for a newer commit; create a new artifact only when
+the publication policy requires exact-commit automated evidence. This does not
+perform or approve the remote push: the local evidence review and remote push
+remain `manual-final`.
 
 This checklist governs the active `filterest-beta` channel only. The alpha
 channel is retired from the active workflow, and its history is not copied into
@@ -49,14 +52,14 @@ and generated artifact commit.
 | P0 | Security disclosure path | done | Human release owner + release agent | Owner approved `support@filterest.fi` as the private vulnerability channel and prohibited public vulnerability reports; verify generated `SECURITY.md` after regeneration. |
 | P0 | Contribution terms | done | Human/project owner + release agent | Owner approved the owner-led posture: unsolicited public pull requests are not the routine operating model; normal feedback scope and private vulnerability reporting remain available. Verify generated `CONTRIBUTING.md` and README after regeneration. |
 | P0 | Notice and trademark wording | done | Human/project owner | Owner accepted the current `NOTICE` and `TRADEMARKS.md` wording, including the Filterest Oy ownership, distinct-name, and allowed-use boundaries; reopen after material wording changes. |
-| P0 | Third-party notices | done | Release agent + human/project owner | Owner accepted the current `THIRD_PARTY_NOTICES.md`; deterministic review covers 96 Go modules, 453 npm packages, 60 assets, 0 review-required rows, and 0 findings. Reopen if the notice bytes or inventory changes. |
+| P0 | Third-party notices | done | Release agent + human/project owner | Owner accepted the current `THIRD_PARTY_NOTICES.md`; the generated `THIRD_PARTY_NOTICE_REVIEW.md` is authoritative for current Go, npm, and asset totals plus review-required rows and findings. Reopen if the notice bytes or inventory changes. |
 | P0 | First-ever admin credential path | done | Release agent + Human/project owner | Current disposable-runtime proof confirms setup creates `admin_<site_slug>` / default `admin_filterest`, writes the one-time password only to setup stdout plus `data/bootstrap/initial_admin_credentials.txt` with `0600` permissions, requires `FILTEREST_INITIAL_ADMIN_EMAIL` unless an explicit local dev `LOGIN_OTP_CODE` is configured, and keeps generated-public docs honest that the full starter panel is follow-up onboarding scope. |
 | P0 | Public bootstrap content review | done | Release agent + Human/project owner | [`server_tools/public_bootstrap/REVIEW.md`](server_tools/public_bootstrap/REVIEW.md) passes for 37 schema tables, 22 seed tables, and 766 fixture rows; owner accepted the current bootstrap with the full starter panel as follow-up onboarding. |
 | P0 | Private source boundary | done | Release agent | The clean candidate and tracked-tree audit pass; [`PUBLICATION_EVIDENCE.md`](PUBLICATION_EVIDENCE.md) records the exact current release-source commit. |
 | P0 | Secret/private-material scan | done | Release agent | Current tracked-file and candidate scans pass with no private app/tool rows, secrets, or non-public release-source runtime files in the generated repository. |
 | P0 | Fresh-clone public build/test | done | Release agent | Current clean generation and verification pass Go builds, route manifest checks, `npm ci`, frontend build, public audits, and the candidate contract; exact source/generated commits are in `PUBLICATION_EVIDENCE.md` and ticket #834. |
 | P0 | Browser review uses Filterest runtime | done | Release agent + Computer Use | The disposable runtime on port 8100 passes 36 structured checks against its own `filterest_local_preview` database, with private/dev table count 0 and no HTTP 5xx, failed requests, page errors, or console errors. |
-| P0 | Fresh Computer Use release-readiness pass | done | Release agent + Computer Use | Fresh Computer Use against the generated Filterest-owned runtime returned PASS with no visible launch blocker; the report and screenshot are attached to ticket #834. |
+| P0 | Current browser release-readiness acceptance | done | Human release owner | The human release owner accepted the current generated Filterest-owned runtime in the browser. Any automated Computer Use report remains scoped to its recorded source/generated commits and must not be carried forward as fresh evidence for a newer candidate. |
 | P1 | Draft/private-maintainer wording cleanup | done | Release agent | The current 9-file public docs wording audit passes with no draft/private-maintainer launch blockers. |
 | P1 | Recovery and rollback wording | done | Release agent | Public docs do not claim supported row, table, or full-database rollback. Whole-table or whole-database recovery is manual from backups, and single-row rollback is unsupported until row history exists. |
 | P1 | Public screenshots/demo data | done | Release agent | [`server_tools/public_bootstrap/DEMO_ASSET_REVIEW.md`](server_tools/public_bootstrap/DEMO_ASSET_REVIEW.md) passes for 5 auth-tour JPEGs and 9 fixture storage assets; the current runtime also renders reviewed fixture images. |
@@ -71,7 +74,7 @@ Add one dated line per publication-candidate attempt:
 
 | Date | Release source commit | Generated Filterest commit | Evidence summary |
 | --- | --- | --- | --- |
-| 2026-07-25 | See `PUBLICATION_EVIDENCE.md` | This repository commit | Clean generation/verify, owner P0 decisions, structured runtime proof, and Computer Use PASS are recorded in #834. No remote push was performed. |
+| 2026-07-25 | See `PUBLICATION_EVIDENCE.md` | This repository commit | Clean generation/verify, owner P0 decisions, and structured runtime proof are recorded in #834. Browser and Computer Use evidence remain scoped to the commits recorded with each observation. No remote push was performed. |
 
 ## Local Generation Command
 

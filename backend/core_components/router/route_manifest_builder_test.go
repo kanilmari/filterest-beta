@@ -173,6 +173,16 @@ func TestBuildDefaultRouteManifestCoversScenarioMatrix(t *testing.T) {
 		t.Fatalf("expected router.systemDrainHandler production profile to be public")
 	}
 
+	adminVersionInfo := mustFindManifestRoute(t, manifest, "router.adminVersionInfoHandler")
+	assertScenarioNames(t, adminVersionInfo, []string{"production", "development", "api_language"})
+	assertRouteMethods(t, adminVersionInfo, []string{"GET"}, router.RouteMethodSourceExplicitStableContract)
+	if adminVersionInfo.PathPattern != "/api/admin/version-info" {
+		t.Fatalf("expected router.adminVersionInfoHandler path to be /api/admin/version-info, got %q", adminVersionInfo.PathPattern)
+	}
+	if mustFindScenarioProfile(t, adminVersionInfo, "production").ProfileName != "admin" {
+		t.Fatalf("expected router.adminVersionInfoHandler production profile to be admin")
+	}
+
 	userPermissions := mustFindManifestRoute(t, manifest, "auth.UserPermissionsHandler")
 	assertRouteMethods(t, userPermissions, []string{"GET"}, router.RouteMethodSourceExplicitStableContract)
 

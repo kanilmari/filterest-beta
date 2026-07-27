@@ -40,6 +40,7 @@ export const MANIFEST_BACKED_ENDPOINT_ROUTE_HANDLERS = Object.freeze({
     fetchCommentCounts: 'dtt_1_row_read.CommentCountHandler',
     fetchAuthModes: 'auth.GetAuthModesHandler',
     productIdentity: 'product_identity.Handler',
+    adminVersionInfo: 'router.adminVersionInfoHandler',
     fetchUserPermissions: 'auth.UserPermissionsHandler',
     fetchCsrfToken: 'auth.CSRFTokenHandler',
     fetchSessionInfo: 'devtools.SessionHandler',

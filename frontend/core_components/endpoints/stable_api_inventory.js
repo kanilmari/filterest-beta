@@ -79,6 +79,7 @@ const STABLE_CANDIDATE_ROUTE_SPECS = Object.freeze({
         { routeName: 'setCurrentProjectFolder', handlerName: 'dtt_system_table_folders.HandleSetCurrentProjectFolder' },
     ]),
     adminMaintenance: Object.freeze([
+        { routeName: 'adminVersionInfo', handlerName: 'router.adminVersionInfoHandler' },
         { routeName: 'checkDbConsistency', handlerName: 'system_table_tools.CheckDatabaseConsistencyHandler' },
         { routeName: 'fixDbConsistency', handlerName: 'system_table_tools.FixDatabaseConsistencyHandler' },
         { routeName: 'checkJsonColumns', handlerName: 'devtools.CheckJsonInTextColumnsHandler' },

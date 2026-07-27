@@ -58,6 +58,7 @@ import {
 } from "./shared_topbar_builder.js";
 import { buildFilterbarDisclosureSection } from "./filterbar_section_heading_builder.js";
 import { setupFilterbarSectionOrdering } from "./filterbar_section_order_handler.js";
+import { buildAdminVersionInfoIndicator } from "../admin_tools/admin_version_info_indicator.js";
 
 /* ===========================================================
  *  Yleiset muuttujat ja apurit
@@ -168,6 +169,10 @@ function buildClockBar() {
     contentEl.appendChild(dateEl);
     contentEl.appendChild(timeEl);
     bar.appendChild(contentEl);
+    const versionInfoIndicator = buildAdminVersionInfoIndicator();
+    if (versionInfoIndicator) {
+        bar.appendChild(versionInfoIndicator);
+    }
 
     // ── Calendar popup ───────────────────────────────────────────────
     // Appended to body so it is never clipped by filterbar overflow.

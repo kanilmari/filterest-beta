@@ -64,6 +64,7 @@ describe('stable_api_inventory', () => {
 
     test('returns manifest-backed descriptors for stable candidate routes', () => {
         expect(STABLE_CANDIDATE_ROUTE_NAMES).toEqual(expect.arrayContaining([
+            'adminVersionInfo',
             'getDatasetAliasManagement',
             'saveDatasetAliasManagement',
             'getDatasetHeaderConfig',
@@ -79,6 +80,14 @@ describe('stable_api_inventory', () => {
             methods: ['POST'],
             methodSource: 'explicit_stable_contract',
             availableScenarios: ['production', 'development', 'api_language'],
+        });
+
+        expect(getStableCandidateRouteDescriptor('adminVersionInfo')).toMatchObject({
+            handlerName: 'router.adminVersionInfoHandler',
+            backendPath: '/api/admin/version-info',
+            accessProfile: 'admin',
+            methods: ['GET'],
+            methodSource: 'explicit_stable_contract',
         });
 
         expect(getStableCandidateRouteDescriptor('saveDatasetHeaderConfig')).toMatchObject({

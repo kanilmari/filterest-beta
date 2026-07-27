@@ -97,6 +97,25 @@ describe('stable_endpoint_router', () => {
         expect(endpointRouterMock).toHaveBeenCalledWith('fetchUserPermissions', { method: 'GET' });
     });
 
+    test('fetchAdminVersionInfo uses the protected candidate GET route', async () => {
+        endpointRouterMock.mockResolvedValue({
+            product_name: 'Filterest',
+            app_version: '8.27.99',
+            db_version: '8.0.55',
+        });
+        const mod = await loadModule();
+
+        await expect(mod.fetchAdminVersionInfo({ suppressAuthRedirect: true })).resolves.toEqual({
+            product_name: 'Filterest',
+            app_version: '8.27.99',
+            db_version: '8.0.55',
+        });
+        expect(endpointRouterMock).toHaveBeenCalledWith('adminVersionInfo', {
+            method: 'GET',
+            suppressAuthRedirect: true,
+        });
+    });
+
     test('refreshFKCacheTrigger posts the typed request body using the manifest-backed default method', async () => {
         endpointRouterMock.mockResolvedValue({ updated: 7, errors: [] });
         const mod = await loadModule();

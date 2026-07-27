@@ -21,6 +21,7 @@ var explicitRouteMethodContracts = map[string]RouteMethodContract{
 	"router.systemReadyHandler":                {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"router.systemInstanceStatusHandler":       {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"router.systemDrainHandler":                {Methods: []string{http.MethodPost}, Source: RouteMethodSourceExplicitStableContract},
+	"router.adminVersionInfoHandler":           {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"router.GetDatasetAliasesHandler":          {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"router.GetDatasetAliasManagementHandler":  {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"router.SaveDatasetAliasManagementHandler": {Methods: []string{http.MethodPost}, Source: RouteMethodSourceExplicitStableContract},
