@@ -268,6 +268,7 @@ const KNOWN_DEFAULTS = {
   LangCode: 'fi',
   PageTitle: DEV_PAGE_TITLE,
   SiteName: DEV_SITE_NAME,
+  ProductName: DEV_SITE_NAME,
   MetaDescription: '',
   CanonicalURL: DEV_CANONICAL_URL,
   OGType: 'website',

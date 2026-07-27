@@ -186,8 +186,9 @@ func setupRootHandlerFrontend(t *testing.T) {
 
 	origFrontendDir := localFrontendDir
 	frontendDir := t.TempDir()
+	t.Setenv("SITE_NAME", "Test Product")
 
-	indexHTML := `<!DOCTYPE html><html><head><title>{{.PageTitle}}</title></head><body>root-shell {{.SiteName}}</body></html>`
+	indexHTML := `<!DOCTYPE html><html><head><title>{{.PageTitle}}</title></head><body>root-shell {{.SiteName}} product {{.ProductName}}</body></html>`
 	if err := os.WriteFile(filepath.Join(frontendDir, "index.html"), []byte(indexHTML), 0o644); err != nil {
 		t.Fatalf("WriteFile(index.html) error = %v", err)
 	}
@@ -273,6 +274,9 @@ func TestRootHandlerAllowsLoginEntryShellWhenLoginRequired(t *testing.T) {
 	assertAuthShellNoStoreHeaders(t, rr)
 	if !strings.Contains(rr.Body.String(), "root-shell") {
 		t.Fatalf("expected root shell HTML, got %q", rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "product Test Product") {
+		t.Fatalf("expected configured product identity in root shell, got %q", rr.Body.String())
 	}
 }
 

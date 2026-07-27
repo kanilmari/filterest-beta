@@ -7,6 +7,7 @@ package router
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -45,6 +46,18 @@ func TestResolvePageSiteNameFallsBackToEnvWithoutRequestHost(t *testing.T) {
 
 	if got := resolvePageSiteName(nil); got != "Serlog.com" {
 		t.Fatalf("resolvePageSiteName(nil) = %q, want %q", got, "Serlog.com")
+	}
+}
+
+func TestGetSiteNameFallsBackToCheckoutProductIdentity(t *testing.T) {
+	t.Setenv("SITE_NAME", "")
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile("VERSION_APP", []byte("8.27.99\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile(VERSION_APP) error = %v", err)
+	}
+
+	if got := getSiteName(); got != "Filterest" {
+		t.Fatalf("getSiteName() = %q, want %q", got, "Filterest")
 	}
 }
 

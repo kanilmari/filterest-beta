@@ -21,6 +21,7 @@ import (
 	"easelect/backend/core_components/httpresponse"
 	"easelect/backend/core_components/middlewares"
 	"easelect/backend/core_components/permissions"
+	productidentity "easelect/backend/core_components/product_identity"
 	e_sessions "easelect/backend/core_components/sessions"
 	"easelect/backend/pipeline"
 
@@ -32,6 +33,7 @@ type indexTemplateData struct {
 	UseMinifiedAssets bool
 	IsDev             bool
 	SiteName          string
+	ProductName       string
 	ProjectLogoPath   string
 	// SEO / Open Graph fields (populated by resolvePageMeta)
 	PageTitle       string
@@ -49,11 +51,17 @@ type indexTemplateData struct {
 	MainBundlePath  string
 }
 
-// getSiteName returns the SITE_NAME env var, defaulting to "Easelect"
+// getSiteName returns the configured site name, then the checkout product identity.
 func getSiteName() string {
-	if s := os.Getenv("SITE_NAME"); s != "" {
+	if s := strings.TrimSpace(os.Getenv("SITE_NAME")); s != "" {
 		return s
 	}
+
+	identity := productidentity.DetectFromWorkingDirectory()
+	if identity.Kind != productidentity.KindUnknown && strings.TrimSpace(identity.Name) != "" {
+		return identity.Name
+	}
+
 	return "Easelect"
 }
 
@@ -104,6 +112,7 @@ func tablesHandler(w http.ResponseWriter, r *http.Request, loginToBrowse bool) {
 	assetPaths := frontendassets.Resolve(localFrontendDir, useMinified)
 	data := indexTemplateData{
 		CSPNonce: nonce, UseMinifiedAssets: useMinified, IsDev: isDev, SiteName: siteName,
+		ProductName:     getSiteName(),
 		ProjectLogoPath: getProjectLogoPath(),
 		PageTitle:       meta.PageTitle, MetaDescription: meta.MetaDescription,
 		CanonicalURL: meta.CanonicalURL, OGTitle: meta.OGTitle,
@@ -143,6 +152,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	assetPaths := frontendassets.Resolve(localFrontendDir, useMinified)
 	data := indexTemplateData{
 		CSPNonce: nonce, UseMinifiedAssets: useMinified, SiteName: meta.SiteName,
+		ProductName:     getSiteName(),
 		ProjectLogoPath: getProjectLogoPath(),
 		PageTitle:       meta.PageTitle, MetaDescription: meta.MetaDescription,
 		CanonicalURL: meta.CanonicalURL, OGTitle: meta.OGTitle,
@@ -405,6 +415,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		assetPaths := frontendassets.Resolve(localFrontendDir, useMinified)
 		data := indexTemplateData{
 			CSPNonce: nonce, UseMinifiedAssets: useMinified, SiteName: meta.SiteName,
+			ProductName:     getSiteName(),
 			ProjectLogoPath: getProjectLogoPath(),
 			PageTitle:       meta.PageTitle, MetaDescription: meta.MetaDescription,
 			CanonicalURL: meta.CanonicalURL, OGTitle: meta.OGTitle,

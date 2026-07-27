@@ -454,6 +454,16 @@ body.light-mode #nav_tree .tree-current-project-badge {
     overflow: visible;
 }
 
+.navbar-site-identity {
+    margin: 0 16px 16px;
+    color: var(--text_color);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
 .navtabs {
     right: 0;
     position: relative;
