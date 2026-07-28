@@ -19,6 +19,14 @@ function readPathsFile(filePath) {
   if (!fs.existsSync(filePath)) {
     return {};
   }
+  if (
+    path.basename(filePath) === 'filterest.paths.local'
+    && (fs.statSync(filePath).mode & 0o022) !== 0
+  ) {
+    throw new Error(
+      `${filePath}: local path locator must not be writable by group or others`,
+    );
+  }
   const values = {};
   fs.readFileSync(filePath, 'utf8').split(/\r?\n/).forEach((rawLine, index) => {
     const line = rawLine.trim();
@@ -57,6 +65,17 @@ function resolveHome(projectRoot, rawValue, label) {
   const value = String(rawValue || '').trim();
   if (!value) {
     throw new Error(`${label} must not be empty`);
+  }
+  if (Array.from(value).some((character) => {
+    const codePoint = character.codePointAt(0);
+    return codePoint < 32 || codePoint === 127;
+  })) {
+    throw new Error(`${label} must not contain control characters`);
+  }
+  if (['*', '?', '[', ']', '\\'].some((character) => value.includes(character))) {
+    throw new Error(
+      `${label} must not contain pattern characters (*, ?, [, ], or backslash)`,
+    );
   }
   const resolved = fs.realpathSync.native(
     closestExistingPath(path.isAbsolute(value) ? value : path.join(projectRoot, value)),

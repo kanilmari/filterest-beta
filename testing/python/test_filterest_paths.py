@@ -30,7 +30,8 @@ def _checkout(tmp_path: Path, *, private: bool = False) -> Path:
 def test_relative_and_absolute_homes_are_resolved_dynamically(tmp_path: Path) -> None:
     root = _checkout(tmp_path)
     absolute_keys = tmp_path / "operator data" / "keys"
-    (root / "filterest.paths.local").write_text(
+    locator = root / "filterest.paths.local"
+    locator.write_text(
         "\n".join(
             (
                 "schema_version=1",
@@ -41,6 +42,7 @@ def test_relative_and_absolute_homes_are_resolved_dynamically(tmp_path: Path) ->
         ),
         encoding="utf-8",
     )
+    locator.chmod(0o600)
 
     homes = resolve_filterest_homes(root, {})
 
@@ -79,6 +81,19 @@ def test_environment_overrides_config_and_legacy_conflicts_fail(tmp_path: Path) 
         )
 
 
+def test_local_locator_rejects_group_or_other_write_access(tmp_path: Path) -> None:
+    root = _checkout(tmp_path)
+    locator = root / "filterest.paths.local"
+    locator.write_text(
+        "projects_home=projects\nkeys_home=keys\n",
+        encoding="utf-8",
+    )
+    locator.chmod(0o666)
+
+    with pytest.raises(ValueError, match="writable by group or others"):
+        resolve_filterest_homes(root, {})
+
+
 @pytest.mark.parametrize(
     ("projects_home", "keys_home"),
     (
@@ -90,6 +105,10 @@ def test_environment_overrides_config_and_legacy_conflicts_fail(tmp_path: Path) 
         ("../shared", "../shared/keys"),
         ("../shared/projects", "../shared"),
         ("/", "../keys"),
+        ("projects[prod]", "../keys"),
+        ("../projects", "keys*"),
+        ("projects\\prod", "../keys"),
+        ("projects\nprod", "../keys"),
     ),
 )
 def test_dangerous_or_overlapping_homes_are_rejected(

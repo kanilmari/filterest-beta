@@ -88,10 +88,12 @@ describe('resolveEaselectPrivatePaths', () => {
     const keysHome = path.join(root, 'operator data', 'keys');
     fs.mkdirSync(projectRoot);
     fs.writeFileSync(path.join(projectRoot, 'VERSION_APP'), 'test\n');
+    const locator = path.join(projectRoot, 'filterest.paths.local');
     fs.writeFileSync(
-      path.join(projectRoot, 'filterest.paths.local'),
+      locator,
       `schema_version=1\nprojects_home=../customer projects\nkeys_home=${keysHome}\n`,
     );
+    fs.chmodSync(locator, 0o600);
 
     expect(resolveFilterestHomes(projectRoot, {})).toEqual({
       projectRoot,
@@ -135,6 +137,27 @@ describe('resolveEaselectPrivatePaths', () => {
       FILTEREST_PROJECTS_HOME: '../shared/projects',
       FILTEREST_KEYS_HOME: '../shared',
     })).toThrow(/equal or nested/);
+    expect(() => resolveFilterestHomes(projectRoot, {
+      FILTEREST_PROJECTS_HOME: 'projects[prod]',
+      FILTEREST_KEYS_HOME: '../keys',
+    })).toThrow(/pattern characters/);
+    expect(() => resolveFilterestHomes(projectRoot, {
+      FILTEREST_PROJECTS_HOME: 'projects\nprod',
+      FILTEREST_KEYS_HOME: '../keys',
+    })).toThrow(/control characters/);
+  });
+
+  test('rejects a local path locator writable by group or others', () => {
+    const projectRoot = path.join(temporaryRoot(), 'filterest');
+    const locator = path.join(projectRoot, 'filterest.paths.local');
+    fs.mkdirSync(projectRoot);
+    fs.writeFileSync(path.join(projectRoot, 'VERSION_APP'), 'test\n');
+    fs.writeFileSync(locator, 'projects_home=projects\nkeys_home=keys\n');
+    fs.chmodSync(locator, 0o666);
+
+    expect(() => resolveFilterestHomes(projectRoot, {})).toThrow(
+      /writable by group or others/,
+    );
   });
 
   test('rejects relative and repo-internal overrides', () => {

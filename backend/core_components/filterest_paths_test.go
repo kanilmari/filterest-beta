@@ -51,6 +51,8 @@ func TestResolveFilterestHomesRejectsDangerousAndNestedPaths(t *testing.T) {
 		{name: "git", projects: ".git/projects", keys: "../keys"},
 		{name: "same", projects: "../shared", keys: "../shared"},
 		{name: "nested", projects: "../shared/projects", keys: "../shared"},
+		{name: "pattern characters", projects: "projects[prod]", keys: "../keys"},
+		{name: "control characters", projects: "projects\nprod", keys: "../keys"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -80,5 +82,24 @@ func TestResolveFilterestHomesFollowsExistingSymlinkBoundary(t *testing.T) {
 	want := filepath.Join(externalRoot, "keys")
 	if homes.KeysHome != want {
 		t.Fatalf("KeysHome = %q, want symlink-resolved %q", homes.KeysHome, want)
+	}
+}
+
+func TestResolveFilterestHomesRejectsWritableLocalLocator(t *testing.T) {
+	projectRoot := t.TempDir()
+	locator := filepath.Join(projectRoot, filterestLocalPathsFile)
+	if err := os.WriteFile(
+		locator,
+		[]byte("projects_home=projects\nkeys_home=keys\n"),
+		0o666,
+	); err != nil {
+		t.Fatalf("write locator: %v", err)
+	}
+	if err := os.Chmod(locator, 0o666); err != nil {
+		t.Fatalf("chmod locator: %v", err)
+	}
+
+	if _, err := resolveFilterestHomes(projectRoot, false); err == nil {
+		t.Fatal("resolveFilterestHomes() error = nil, want writable-locator rejection")
 	}
 }

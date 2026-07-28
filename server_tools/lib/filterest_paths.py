@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import stat
 import subprocess
 import sys
 from typing import Mapping
@@ -43,6 +44,13 @@ def is_private_easelect_source_checkout(project_root: Path) -> bool:
 def _read_paths_file(path: Path) -> dict[str, str]:
     if not path.is_file():
         return {}
+    if (
+        path.name == LOCAL_CONFIG_FILE_NAME
+        and stat.S_IMODE(path.stat().st_mode) & 0o022
+    ):
+        raise ValueError(
+            f"{path}: local path locator must not be writable by group or others"
+        )
 
     values: dict[str, str] = {}
     for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -72,6 +80,12 @@ def _resolved_home(project_root: Path, raw_value: str, label: str) -> Path:
     value = raw_value.strip()
     if not value:
         raise ValueError(f"{label} must not be empty")
+    if any(ord(character) < 32 or ord(character) == 127 for character in value):
+        raise ValueError(f"{label} must not contain control characters")
+    if any(character in value for character in ("*", "?", "[", "]", "\\")):
+        raise ValueError(
+            f"{label} must not contain pattern characters (*, ?, [, ], or backslash)"
+        )
     candidate = Path(value)
     if not candidate.is_absolute():
         candidate = project_root / candidate

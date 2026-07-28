@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -34,6 +35,18 @@ func readFilterestPathsFile(path string) (map[string]string, error) {
 		return nil, err
 	}
 	defer file.Close()
+	if filepath.Base(path) == filterestLocalPathsFile {
+		info, err := file.Stat()
+		if err != nil {
+			return nil, err
+		}
+		if info.Mode().Perm()&0o022 != 0 {
+			return nil, fmt.Errorf(
+				"%s: local path locator must not be writable by group or others",
+				path,
+			)
+		}
+	}
 
 	supported := map[string]bool{
 		"schema_version": true,
@@ -102,6 +115,15 @@ func resolveFilterestHome(projectRoot string, rawValue string, label string) (st
 	value := strings.TrimSpace(rawValue)
 	if value == "" {
 		return "", fmt.Errorf("%s must not be empty", label)
+	}
+	if strings.IndexFunc(value, unicode.IsControl) >= 0 {
+		return "", fmt.Errorf("%s must not contain control characters", label)
+	}
+	if strings.ContainsAny(value, "*?[]\\") {
+		return "", fmt.Errorf(
+			"%s must not contain pattern characters (*, ?, [, ], or backslash)",
+			label,
+		)
 	}
 	candidate := value
 	if !filepath.IsAbs(candidate) {
