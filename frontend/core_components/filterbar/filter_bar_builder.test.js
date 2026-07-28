@@ -662,7 +662,6 @@ describe('create_filter_bar inline hero mounting', () => {
         const { create_filter_bar } = await import('./filter_bar_builder.js');
         const panel = create_filter_bar('demo', 'demo_uid', ['id'], { id: 'INTEGER' }, 1, false, 'card');
         const panelBody = document.getElementById('demo_filterBar_panelBody');
-
         panel.classList.remove('filterbar-panel--wide');
         panel.classList.add('filterbar-panel--compact');
         panelBody.classList.remove('filterbar-panel-body--hidden');
@@ -671,9 +670,7 @@ describe('create_filter_bar inline hero mounting', () => {
             scrollHeight: 620,
             clientHeight: 560,
         });
-
         panelBody.dispatchEvent(new Event('scroll'));
-
         expect(panel.classList.contains('filterbar-panel--body-scrolled')).toBe(false);
     });
 
@@ -682,7 +679,6 @@ describe('create_filter_bar inline hero mounting', () => {
         const { create_filter_bar } = await import('./filter_bar_builder.js');
         const panel = create_filter_bar('demo', 'demo_uid', ['id'], { id: 'INTEGER' }, 1, false, 'card');
         const panelBody = document.getElementById('demo_filterBar_panelBody');
-
         panel.classList.remove('filterbar-panel--wide');
         panel.classList.add('filterbar-panel--compact');
         panelBody.classList.remove('filterbar-panel-body--hidden');
@@ -691,17 +687,14 @@ describe('create_filter_bar inline hero mounting', () => {
             scrollHeight: 980,
             clientHeight: 560,
         });
-
         panelBody.dispatchEvent(new Event('scroll'));
         expect(panel.classList.contains('filterbar-panel--body-scrolled')).toBe(true);
-
         setScrollMetrics(panelBody, {
             scrollTop: 4,
             scrollHeight: 980,
             clientHeight: 560,
         });
         panelBody.dispatchEvent(new Event('scroll'));
-
         expect(panel.classList.contains('filterbar-panel--body-scrolled')).toBe(false);
     });
 });
