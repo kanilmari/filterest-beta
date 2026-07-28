@@ -11,6 +11,19 @@ const requestedWorkerCount = Number.parseInt(process.env.PLAYWRIGHT_WORKERS || '
 const localWorkerCount = Number.isInteger(requestedWorkerCount) && requestedWorkerCount > 0
   ? requestedWorkerCount
   : 2;
+const requestedBaseURL = String(process.env.EASELECT_E2E_BASE_URL || '').trim();
+const baseURL = requestedBaseURL || 'https://localhost:8082';
+const parsedBaseURL = new URL(baseURL);
+if (
+  parsedBaseURL.protocol !== 'https:'
+  || parsedBaseURL.username
+  || parsedBaseURL.password
+  || !['localhost', '127.0.0.1'].includes(parsedBaseURL.hostname)
+) {
+  throw new Error(
+    'EASELECT_E2E_BASE_URL must be a credential-free local HTTPS origin.',
+  );
+}
 
 /**
  * Easelect GUI Test Matrix
@@ -48,7 +61,7 @@ export default defineConfig({
   globalTeardown: './testing/e2e/global-teardown.ts',
 
   use: {
-    baseURL: 'https://localhost:8082',
+    baseURL,
     trace: 'on-first-retry',
     ignoreHTTPSErrors: true,
     /* Re-use the authenticated session from global-setup */

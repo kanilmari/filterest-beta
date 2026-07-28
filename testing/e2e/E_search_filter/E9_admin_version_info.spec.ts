@@ -29,27 +29,43 @@ test.describe('E9 — Admin version info', () => {
     );
 
     await page.setViewportSize({ width: 1024, height: 768 });
-    await navigateToDataset(page, 'app_service_catalog');
+    const identityResponse = await page.request.get('/api/product-identity');
+    expect(identityResponse.status()).toBe(200);
+    const identity = await identityResponse.json();
+    const expectedProductName = String(identity.name || '');
+    expect(expectedProductName).toMatch(/^(Easelect|Filterest)$/);
+    await navigateToDataset(
+      page,
+      expectedProductName === 'Filterest' ? 'riskienhallinta' : 'app_service_catalog',
+    );
     await openActiveFilterbarIfCollapsed(page);
 
-    const indicator = page.locator('[data-testid="filterbar-admin-version-info"]').first();
+    const indicator = page
+      .locator('.tab_parts_container:visible')
+      .first()
+      .locator('[data-testid="filterbar-admin-version-info"]')
+      .first();
     await expect(indicator).toBeVisible({ timeout: 10000 });
 
     const response = await page.request.get('/api/admin/version-info');
     expect(response.status()).toBe(200);
     const versionInfo = await response.json();
     expect(versionInfo).toMatchObject({
-      product_name: 'Easelect',
+      product_name: expectedProductName,
       db_compatible: true,
     });
     expect(versionInfo.app_version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(versionInfo.db_version).toMatch(/^\d+\.\d+\.\d+$/);
 
     await indicator.hover();
+    const escapedProductName = expectedProductName.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&',
+    );
     await expect(indicator).toHaveAttribute(
       'title',
       new RegExp(
-        `Easelect: ${versionInfo.app_version}.*Database: ${versionInfo.db_version}`,
+        `${escapedProductName}: ${versionInfo.app_version}.*Database: ${versionInfo.db_version}`,
         's',
       ),
     );
