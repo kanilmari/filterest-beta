@@ -7,7 +7,10 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, test } from 'vitest';
-import { resolveEaselectPrivatePaths } from './easelect_private_paths.mjs';
+import {
+  resolveEaselectPrivatePaths,
+  resolveFilterestHomes,
+} from './easelect_private_paths.mjs';
 
 const temporaryRoots = [];
 
@@ -77,6 +80,61 @@ describe('resolveEaselectPrivatePaths', () => {
         tlsPrivateKeyFile: path.join(projectRoot, 'dev-cert.key'),
       });
     }
+  });
+
+  test('accepts dynamic relative and absolute homes', () => {
+    const root = temporaryRoot();
+    const projectRoot = path.join(root, 'filterest');
+    const keysHome = path.join(root, 'operator data', 'keys');
+    fs.mkdirSync(projectRoot);
+    fs.writeFileSync(path.join(projectRoot, 'VERSION_APP'), 'test\n');
+    fs.writeFileSync(
+      path.join(projectRoot, 'filterest.paths.local'),
+      `schema_version=1\nprojects_home=../customer projects\nkeys_home=${keysHome}\n`,
+    );
+
+    expect(resolveFilterestHomes(projectRoot, {})).toEqual({
+      projectRoot,
+      projectsHome: path.join(root, 'customer projects'),
+      keysHome,
+      projectsHomeConfigured: true,
+      keysHomeConfigured: true,
+    });
+    expect(resolveEaselectPrivatePaths(projectRoot, {})).toEqual({
+      runtimeEnvFile: path.join(keysHome, 'filterest_runtime', 'runtime_environment.env'),
+      developmentEnvFile: path.join(
+        keysHome,
+        'filterest_runtime',
+        'development_environment.env',
+      ),
+      tlsCertificateFile: path.join(
+        keysHome,
+        'filterest_runtime',
+        'local_tls_certificate',
+        'localhost_certificate.crt',
+      ),
+      tlsPrivateKeyFile: path.join(
+        keysHome,
+        'filterest_runtime',
+        'local_tls_certificate',
+        'localhost_private_key.key',
+      ),
+    });
+  });
+
+  test('rejects dangerous and overlapping dynamic homes', () => {
+    const projectRoot = path.join(temporaryRoot(), 'filterest');
+    fs.mkdirSync(projectRoot);
+    fs.writeFileSync(path.join(projectRoot, 'VERSION_APP'), 'test\n');
+
+    expect(() => resolveFilterestHomes(projectRoot, {
+      FILTEREST_PROJECTS_HOME: '.',
+      FILTEREST_KEYS_HOME: '../keys',
+    })).toThrow(/checkout root/);
+    expect(() => resolveFilterestHomes(projectRoot, {
+      FILTEREST_PROJECTS_HOME: '../shared/projects',
+      FILTEREST_KEYS_HOME: '../shared',
+    })).toThrow(/equal or nested/);
   });
 
   test('rejects relative and repo-internal overrides', () => {

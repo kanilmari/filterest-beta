@@ -130,6 +130,18 @@ cmd_setup() {
   # --- 1. Luo tarvittavat hakemistot ---
   info "Luodaan hakemistot..."
 
+  easelect_prepare_local_path_boundaries "$PROJECT_ROOT"
+  if [[ -e "$FILTEREST_PROJECTS_HOME" && ! -d "$FILTEREST_PROJECTS_HOME" ]]; then
+    err "Projektijuuri on olemassa mutta ei ole hakemisto: $FILTEREST_PROJECTS_HOME"
+    return 1
+  elif [[ -d "$FILTEREST_PROJECTS_HOME" ]]; then
+    skip "Projektijuuri jo olemassa: $FILTEREST_PROJECTS_HOME"
+  else
+    mkdir -p "$FILTEREST_PROJECTS_HOME"
+    chmod 700 "$FILTEREST_PROJECTS_HOME"
+    ok "Luotu projektijuuri: $FILTEREST_PROJECTS_HOME"
+  fi
+
   local dirs=(
     "storage"
     "storage_deleted"
@@ -250,8 +262,8 @@ ${CYAN}Työnkulku:${RESET}
 
   2. Uudella koneella kloonin jälkeen: ${GREEN}./server_tools/scaffold.sh setup${RESET}
      → Luo tarvittavat hakemistot
-     → Native Easelect: kopioi scaffoldit EASELECT_KEY_ROOT-juureen
-     → Filterest/instanssit: säilyttää niiden omat paikalliset runtime-polut
+     → Luo dynaamisen projects_home-juuren ja suojaa checkoutin sisäiset juuret
+     → Kopioi scaffoldit ratkaistuun keys_home-profiiliin tai legacy-runtimepolkuun
      → Täytä sitten arvot ympäristötiedostoihin käsin
 
   Koneen siirto dumppeineen ja sertifikaatteineen: ${GREEN}./server_tools/migrate_to_new_machine.sh --export${RESET}

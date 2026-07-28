@@ -64,6 +64,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 .codex
+/filterest.paths.local
+/docker/Dockerfile*.dockerignore
 
 # Playwright
 testing/e2e/.auth/

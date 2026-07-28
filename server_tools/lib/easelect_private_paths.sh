@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # easelect_private_paths.sh
-# Resolves native Easelect env and TLS files from one protected external key root.
-# Bridges repo-local tooling with ../filterest_keys while keeping generated Filterest local.
+# Resolves Easelect/Filterest env and TLS files from a dynamic protected key home.
+# Bridges repo-local tooling with the shared path locator while keeping legacy runtimes local.
 # Exists so Easelect does not need secret-bearing compatibility files or symlinks in repo root.
 
 easelect_is_private_source_checkout() {
@@ -9,47 +9,73 @@ easelect_is_private_source_checkout() {
     [[ -e "$project_root/.git" && -f "$project_root/VERSION_EASELECT" ]]
 }
 
-_easelect_validate_external_key_root() {
+_easelect_resolve_filterest_homes() {
     local project_root="$1"
-    local key_root="$2"
+    local resolver="$project_root/server_tools/lib/filterest_paths.py"
+    local resolver_dir=""
+    local output=""
 
-    case "$key_root" in
-        /*) ;;
-        *)
-            printf 'error: EASELECT_KEY_ROOT must be an absolute path outside the Easelect repository\n' >&2
-            return 1
-            ;;
-    esac
+    if [[ ! -f "$resolver" ]]; then
+        resolver_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+        resolver="$resolver_dir/filterest_paths.py"
+    fi
+    [[ -f "$resolver" ]] || {
+        printf 'error: dynamic Filterest path resolver is missing: %s\n' "$resolver" >&2
+        return 1
+    }
+    command -v python3 >/dev/null 2>&1 || {
+        printf 'error: python3 is required to resolve dynamic Filterest homes\n' >&2
+        return 1
+    }
+    output="$(python3 "$resolver" --project-root "$project_root" --format lines)" || return 1
+    FILTEREST_PROJECTS_HOME="$(printf '%s\n' "$output" | sed -n '1p')"
+    FILTEREST_KEYS_HOME="$(printf '%s\n' "$output" | sed -n '2p')"
+    FILTEREST_PROJECTS_HOME_CONFIGURED="$(printf '%s\n' "$output" | sed -n '3p')"
+    FILTEREST_KEYS_HOME_CONFIGURED="$(printf '%s\n' "$output" | sed -n '4p')"
+}
 
-    case "$key_root" in
-        *"/../"*|*/..|*"/./"*|*/.)
-            printf 'error: EASELECT_KEY_ROOT must be normalized without . or .. path segments\n' >&2
-            return 1
-            ;;
-    esac
+# Audits tracked-file boundaries and keeps dynamic child homes ignored locally.
+easelect_prepare_local_path_boundaries() {
+    local project_root="$1"
+    local resolver="$project_root/server_tools/lib/filterest_paths.py"
 
-    key_root="${key_root%/}"
-    case "$key_root/" in
-        "$project_root/"*)
-            printf 'error: EASELECT_KEY_ROOT must stay outside the Easelect repository\n' >&2
-            return 1
-            ;;
-    esac
+    [[ -f "$resolver" ]] || {
+        printf 'error: dynamic Filterest path resolver is missing: %s\n' "$resolver" >&2
+        return 1
+    }
+    python3 "$resolver" \
+        --project-root "$project_root" \
+        --audit \
+        --render-git-exclude >/dev/null
+}
+
+# Adds Dockerfile-specific protection on top of the local Git boundary.
+easelect_prepare_docker_context_boundaries() {
+    local project_root="$1"
+    local resolver="$project_root/server_tools/lib/filterest_paths.py"
+
+    easelect_prepare_local_path_boundaries "$project_root" || return 1
+    python3 "$resolver" \
+        --project-root "$project_root" \
+        --audit \
+        --render-dockerignore >/dev/null
 }
 
 # Resolves the four derived private paths without reading secret-bearing files.
-# Generated Filterest checkouts deliberately keep their own root-local runtime files.
+# Generated runtimes remain root-local until a dynamic keys_home is configured.
 easelect_resolve_private_paths() {
     local project_root="$1"
-    local key_root=""
     local development_root=""
 
+    _easelect_resolve_filterest_homes "$project_root" || return 1
     if easelect_is_private_source_checkout "$project_root"; then
-        key_root="${EASELECT_KEY_ROOT:-$(cd "$project_root/.." && pwd -P)/filterest_keys}"
-        _easelect_validate_external_key_root "$project_root" "$key_root" || return 1
-        key_root="${key_root%/}"
-        development_root="$key_root/easelect_development"
-
+        development_root="$FILTEREST_KEYS_HOME/easelect_development"
+        EASELECT_RUNTIME_ENV_FILE="$development_root/runtime_environment.env"
+        EASELECT_DEV_ENV_FILE="$development_root/development_environment.env"
+        EASELECT_TLS_CERT_FILE="$development_root/local_tls_certificate/localhost_certificate.crt"
+        EASELECT_TLS_KEY_FILE="$development_root/local_tls_certificate/localhost_private_key.key"
+    elif [[ "$FILTEREST_KEYS_HOME_CONFIGURED" == "1" ]]; then
+        development_root="$FILTEREST_KEYS_HOME/filterest_runtime"
         EASELECT_RUNTIME_ENV_FILE="$development_root/runtime_environment.env"
         EASELECT_DEV_ENV_FILE="$development_root/development_environment.env"
         EASELECT_TLS_CERT_FILE="$development_root/local_tls_certificate/localhost_certificate.crt"
@@ -65,4 +91,8 @@ easelect_resolve_private_paths() {
     export EASELECT_DEV_ENV_FILE
     export EASELECT_TLS_CERT_FILE
     export EASELECT_TLS_KEY_FILE
+    export FILTEREST_PROJECTS_HOME
+    export FILTEREST_KEYS_HOME
+    export FILTEREST_PROJECTS_HOME_CONFIGURED
+    export FILTEREST_KEYS_HOME_CONFIGURED
 }

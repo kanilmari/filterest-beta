@@ -8,35 +8,17 @@
 import { expect, type Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveEaselectPrivatePaths } from '../../../server_tools/lib/easelect_private_paths.mjs';
 
 const projectRoot = path.resolve(__dirname, '../../..');
 
 function resolveNativeEnvironmentFiles(
   environment: Record<string, string | undefined>,
 ): { developmentEnvFile: string; runtimeEnvFile: string } {
-  const configuredKeyRoot = String(environment.EASELECT_KEY_ROOT || '').trim();
-  const keyRoot = path.resolve(
-    configuredKeyRoot || path.resolve(projectRoot, '..', 'filterest_keys'),
-  );
-  if (configuredKeyRoot && !path.isAbsolute(configuredKeyRoot)) {
-    throw new Error('invalid EASELECT_KEY_ROOT: path must be absolute');
-  }
-  const relativePath = path.relative(projectRoot, keyRoot);
-  if (
-    relativePath === ''
-    || (relativePath !== '..' && !relativePath.startsWith(`..${path.sep}`))
-  ) {
-    throw new Error(
-      'invalid EASELECT_KEY_ROOT: path must stay outside the Easelect repository',
-    );
-  }
-  const developmentRoot = path.join(keyRoot, 'easelect_development');
+  const resolved = resolveEaselectPrivatePaths(projectRoot, environment);
   return {
-    developmentEnvFile: path.join(
-      developmentRoot,
-      'development_environment.env',
-    ),
-    runtimeEnvFile: path.join(developmentRoot, 'runtime_environment.env'),
+    developmentEnvFile: resolved.developmentEnvFile,
+    runtimeEnvFile: resolved.runtimeEnvFile,
   };
 }
 

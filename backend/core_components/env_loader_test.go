@@ -244,6 +244,39 @@ func TestResolveProjectPrivatePathsKeepsDeployedEaselectRuntimeLocal(t *testing.
 	}
 }
 
+func TestResolveProjectPrivatePathsUsesConfiguredGeneratedKeyHome(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectRoot, "VERSION_APP"), []byte("test\n"), 0o644); err != nil {
+		t.Fatalf("write generated marker: %v", err)
+	}
+	keyRoot := filepath.Join(t.TempDir(), "runtime keys")
+	config := "projects_home=../project packages\nkeys_home=" + keyRoot + "\n"
+	if err := os.WriteFile(
+		filepath.Join(projectRoot, filterestLocalPathsFile),
+		[]byte(config),
+		0o600,
+	); err != nil {
+		t.Fatalf("write locator: %v", err)
+	}
+
+	envFiles, tlsCertFile, tlsKeyFile, err := resolveProjectPrivatePaths(projectRoot)
+	if err != nil {
+		t.Fatalf("resolveProjectPrivatePaths() error = %v", err)
+	}
+	profileRoot := filepath.Join(keyRoot, "filterest_runtime")
+	if len(envFiles) != 2 ||
+		envFiles[0] != filepath.Join(profileRoot, "development_environment.env") ||
+		envFiles[1] != filepath.Join(profileRoot, "runtime_environment.env") {
+		t.Fatalf("envFiles = %#v, want configured Filterest profile", envFiles)
+	}
+	if tlsCertFile != filepath.Join(profileRoot, "local_tls_certificate", "localhost_certificate.crt") {
+		t.Fatalf("tlsCertFile = %q", tlsCertFile)
+	}
+	if tlsKeyFile != filepath.Join(profileRoot, "local_tls_certificate", "localhost_private_key.key") {
+		t.Fatalf("tlsKeyFile = %q", tlsKeyFile)
+	}
+}
+
 func TestResolveProjectPrivatePathsRejectsInvalidKeyRootOverride(t *testing.T) {
 	projectRoot := t.TempDir()
 	if err := os.Mkdir(filepath.Join(projectRoot, ".git"), 0o755); err != nil {

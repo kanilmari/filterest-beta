@@ -87,26 +87,22 @@ func resolveProjectPrivatePaths(projectRoot string) ([]string, string, string, e
 	if err != nil {
 		return nil, "", "", err
 	}
-	if !isPrivateSource {
+	homes, err := resolveFilterestHomes(projectRoot, isPrivateSource)
+	if err != nil {
+		return nil, "", "", err
+	}
+	if !isPrivateSource && !homes.KeysHomeConfigured {
 		return []string{
 			filepath.Join(projectRoot, "dev_env.txt"),
 			filepath.Join(projectRoot, ".env"),
 		}, "", "", nil
 	}
 
-	keyRoot := strings.TrimSpace(os.Getenv("EASELECT_KEY_ROOT"))
-	if keyRoot == "" {
-		keyRoot = filepath.Join(projectRoot, "..", "filterest_keys")
+	profileName := "filterest_runtime"
+	if isPrivateSource {
+		profileName = "easelect_development"
 	}
-	if !filepath.IsAbs(keyRoot) {
-		return nil, "", "", fmt.Errorf("invalid EASELECT_KEY_ROOT: path must be absolute")
-	}
-	keyRoot = filepath.Clean(keyRoot)
-	if pathIsInsideProjectRoot(projectRoot, keyRoot) {
-		return nil, "", "", fmt.Errorf("invalid EASELECT_KEY_ROOT: path must stay outside the Easelect repository")
-	}
-
-	developmentRoot := filepath.Join(keyRoot, "easelect_development")
+	developmentRoot := filepath.Join(homes.KeysHome, profileName)
 	return []string{
 			filepath.Join(developmentRoot, "development_environment.env"),
 			filepath.Join(developmentRoot, "runtime_environment.env"),
@@ -126,15 +122,6 @@ func isPrivateEaselectSourceCheckout(projectRoot string) (bool, error) {
 		}
 	}
 	return true, nil
-}
-
-func pathIsInsideProjectRoot(projectRoot string, candidatePath string) bool {
-	relativePath, err := filepath.Rel(filepath.Clean(projectRoot), candidatePath)
-	if err != nil {
-		return true
-	}
-	return relativePath == "." ||
-		(relativePath != ".." && !strings.HasPrefix(relativePath, ".."+string(filepath.Separator)))
 }
 
 func setEnvironmentDefault(key string, value string) {

@@ -9,6 +9,7 @@
 # Docker mode
 # ------------------------------------------------------------------------------
 _local_docker_compose() {
+    easelect_prepare_docker_context_boundaries "$PROJECT_ROOT"
     docker-compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml "$@"
 }
 

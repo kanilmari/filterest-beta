@@ -18,22 +18,20 @@ These views share the same search, filters, permissions, relations, and
 multilingual data. Changing the presentation does not create another copy of
 the data or another administration system.
 
-When a workflow needs more than the built-in views, build a custom application
-under `apps/`. Custom applications can use Filterest's authentication,
-permissions, routing, dataset APIs, translations, and file handling while
-providing their own backend logic and frontend experience. They are compiled
-modules rather than runtime plug-ins, so each app must register its hooks and
-routes through the app registry and be included in the build.
+When a workflow needs more than the built-in views, Filterest can be extended
+with compiled custom application modules that use its authentication,
+permissions, routing, dataset APIs, translations, and file handling. The
+public beta does not yet provide a drop-in runtime plug-in loader.
 
 ```text
-apps/
-└── my_app/
-    ├── backend/
-    └── frontend/
+filterest_projects/
+└── my_project/
+    └── project-owned files
 ```
 
-The public beta does not bundle customer-specific applications, but the
-platform boundary for building them is part of the repository.
+The configurable `projects_home` is the portable gathering point for those
+project-owned files. Directory presence does not register a project or grant
+access; the database folder hierarchy remains authoritative.
 
 ## Core Capabilities
 
@@ -77,11 +75,15 @@ database setup.
 git clone https://github.com/kanilmari/filterest-beta.git
 cd filterest-beta
 
+# Optional but recommended: keep projects and keys below this one checkout.
+cp filterest.paths.example filterest.paths.local
+
 # Create runtime directories and local environment files.
 ./server_tools/scaffold.sh setup
 
 # Fill in the required database, session, URL, and initial-admin values.
-$EDITOR .env dev_env.txt
+$EDITOR filterest_keys/filterest_runtime/runtime_environment.env \
+  filterest_keys/filterest_runtime/development_environment.env
 
 # Create the local database from the public synthetic seed and install dependencies.
 ./server_tools/setup_local_dev_environment.sh
@@ -101,6 +103,11 @@ permissions. Delete that file after signing in and changing the password.
 The bundled public seed contains synthetic multilingual example datasets and
 media only. See `server_tools/public_bootstrap/README.md` for the seed and
 initial-admin boundaries.
+
+The Git-ignored `filterest.paths.local` accepts arbitrary safe relative or
+absolute `projects_home` and `keys_home` values. Relative values start at the
+checkout root. Existing installations without an explicit `keys_home` retain
+their root-local `.env`, `dev_env.txt`, and TLS paths for compatibility.
 
 ## Development
 

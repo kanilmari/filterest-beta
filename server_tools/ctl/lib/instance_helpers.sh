@@ -198,6 +198,7 @@ prepare_instance_compose_env() {
     local root_env_file="$EASELECT_RUNTIME_ENV_FILE"
     local root_login_otp=""
 
+    easelect_prepare_docker_context_boundaries "$PROJECT_ROOT"
     env_type=$(grep -E "^ENVIRONMENT_TYPE=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
     env_type="${env_type:-dev}"
 
