@@ -7,6 +7,28 @@ import (
 	"testing"
 )
 
+func TestResolveFilterestHomesKeepsPrivateAndPublicDefaultsDistinct(t *testing.T) {
+	projectRoot := t.TempDir()
+
+	privateHomes, err := resolveFilterestHomes(projectRoot, true)
+	if err != nil {
+		t.Fatalf("resolve private homes: %v", err)
+	}
+	wantPrivate := filepath.Clean(filepath.Join(projectRoot, "..", "filterest-projects"))
+	if privateHomes.ProjectsHome != wantPrivate {
+		t.Fatalf("private ProjectsHome = %q, want %q", privateHomes.ProjectsHome, wantPrivate)
+	}
+
+	publicHomes, err := resolveFilterestHomes(projectRoot, false)
+	if err != nil {
+		t.Fatalf("resolve public homes: %v", err)
+	}
+	wantPublic := filepath.Join(projectRoot, "filterest_projects")
+	if publicHomes.ProjectsHome != wantPublic {
+		t.Fatalf("public ProjectsHome = %q, want %q", publicHomes.ProjectsHome, wantPublic)
+	}
+}
+
 func TestResolveFilterestHomesAcceptsDynamicRelativeAndAbsolutePaths(t *testing.T) {
 	projectRoot := t.TempDir()
 	absoluteKeys := filepath.Join(t.TempDir(), "operator keys")

@@ -171,6 +171,11 @@ func CheckMediaRowFoldersHandler(w http.ResponseWriter, r *http.Request) {
 
 // CheckMediaSubfoldersHandler verifies that each row folder has required subfolders.
 func CheckMediaSubfoldersHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		httpresponse.RespondWithError(w, http.StatusMethodNotAllowed, "only GET allowed")
+		return
+	}
+
 	table := r.URL.Query().Get("dataset")
 	if table == "" {
 		httpresponse.RespondWithError(w, http.StatusBadRequest, "table parameter missing")
@@ -229,6 +234,11 @@ func CheckMediaSubfoldersHandler(w http.ResponseWriter, r *http.Request) {
 
 // FixMediaSubfoldersHandler ensures required subfolders and thumbnails exist for each media row.
 func FixMediaSubfoldersHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		httpresponse.RespondWithError(w, http.StatusMethodNotAllowed, "only POST allowed")
+		return
+	}
+
 	table := r.URL.Query().Get("dataset")
 	if table == "" {
 		httpresponse.RespondWithError(w, http.StatusBadRequest, "table parameter missing")

@@ -95,7 +95,7 @@ PASS
 - `public.system_db_version`: 1
 - `public.system_functions`: 15
 - `public.system_group_table_func_rights`: 16
-- `public.system_lang_keys`: 412
+- `public.system_lang_keys`: 414
 - `public.system_table_folders`: 14
 - `public.system_user_group_memberships`: 3
 - `public.system_user_groups`: 3

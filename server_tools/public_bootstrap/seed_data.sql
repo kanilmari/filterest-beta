@@ -199,7 +199,7 @@ VALUES (
 );
 
 INSERT INTO public.system_db_version (version, description)
-VALUES ('8.0.55', 'Filterest generated public bootstrap');
+VALUES ('8.0.56', 'Filterest generated public bootstrap');
 -- Filterest public bootstrap: metadata and multilingual content for the
 -- established mock services, risks, documentation, and tickets workspace.
 
@@ -905,6 +905,8 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('database_consistency', 'Tietokannan eheys', 'Database consistency', '数据库一致性', '資料庫一致性', 'public fixture seed'),
   ('empty_rows', 'Tyhjät rivit', 'Empty rows', '空行', '空白資料列', 'public fixture seed'),
   ('fix_media_subfolders', 'Korjaa median alikansiot', 'Fix media subfolders', '修复媒体子文件夹', '修正媒體子資料夾', 'public fixture seed'),
+  ('check_and_fix_all_datasets', 'Tarkista ja korjaa kaikki aineistot', 'Check & fix all datasets', '检查并修复所有数据集', '檢查並修正所有資料集', 'public fixture seed'),
+  ('check_all_media_subfolders', 'Tarkista kaikki aineistot', 'Check all datasets', '检查所有数据集', '檢查所有資料集', 'public fixture seed'),
   ('fk_cache_triggers', 'Vierasavainvälimuistin laukaisimet', 'Foreign-key cache triggers', '外键缓存触发器', '外鍵快取觸發器', 'public fixture seed'),
   ('translation_helper', 'Käännösavustaja', 'Translation helper', '翻译助手', '翻譯助手', 'public fixture seed'),
   ('text_index_maintenance', 'Teksti-indeksien ylläpito', 'Text index maintenance', '文本索引维护', '文字索引維護', 'public fixture seed'),

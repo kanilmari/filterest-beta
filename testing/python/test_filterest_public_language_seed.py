@@ -29,7 +29,8 @@ REQUIRED_ARTICLE_RUNTIME_KEYS = frozenset(
     card_visibility service_catalog_moderation child_tab_config
     dataset_alias_management dataset_header_config maintenance
     add_notification_trigger refresh_embeddings check_json_columns
-    database_consistency empty_rows fix_media_subfolders fk_cache_triggers
+    database_consistency empty_rows fix_media_subfolders
+    check_and_fix_all_datasets check_all_media_subfolders fk_cache_triggers
     translation_helper text_index_maintenance user_tools create user register
     database other_tables ai_chat_conversations dokumentaatio_tiketit_relation
     palvelukatalogi_dokumentaatio_relation palvelukatalogi_riskienhallinta_relation
@@ -130,7 +131,7 @@ def test_public_article_runtime_keys_have_complete_four_language_seed_rows() -> 
     rows = _seed_rows()
     rows_by_key = {row[0]: row for row in rows}
 
-    assert len(REQUIRED_ARTICLE_RUNTIME_KEYS) == 102
+    assert len(REQUIRED_ARTICLE_RUNTIME_KEYS) == 104
     assert REQUIRED_ARTICLE_RUNTIME_KEYS <= rows_by_key.keys()
     for lang_key in REQUIRED_ARTICLE_RUNTIME_KEYS:
         _, fi, en, ch, yue, creation_spec = rows_by_key[lang_key]

@@ -27,6 +27,18 @@ def _checkout(tmp_path: Path, *, private: bool = False) -> Path:
     return root
 
 
+def test_private_and_public_project_defaults_remain_distinct(tmp_path: Path) -> None:
+    private_root = _checkout(tmp_path, private=True)
+    private_homes = resolve_filterest_homes(private_root, {})
+    assert private_homes.projects_home == tmp_path / "filterest-projects"
+
+    public_root = tmp_path / "public-checkout"
+    public_root.mkdir()
+    (public_root / "VERSION_APP").write_text("test\n", encoding="utf-8")
+    public_homes = resolve_filterest_homes(public_root, {})
+    assert public_homes.projects_home == public_root / "filterest_projects"
+
+
 def test_relative_and_absolute_homes_are_resolved_dynamically(tmp_path: Path) -> None:
     root = _checkout(tmp_path)
     absolute_keys = tmp_path / "operator data" / "keys"

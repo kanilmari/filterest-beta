@@ -82,6 +82,24 @@ describe('resolveEaselectPrivatePaths', () => {
     }
   });
 
+  test('keeps the Easelect sibling and portable Filterest subfolder defaults distinct', () => {
+    const root = temporaryRoot();
+    const privateRoot = path.join(root, 'easelect');
+    fs.mkdirSync(path.join(privateRoot, '.git'), { recursive: true });
+    fs.writeFileSync(path.join(privateRoot, 'VERSION_EASELECT'), 'test\n');
+
+    expect(resolveFilterestHomes(privateRoot, {}).projectsHome).toBe(
+      path.join(root, 'filterest-projects'),
+    );
+
+    const publicRoot = path.join(root, 'filterest-beta');
+    fs.mkdirSync(publicRoot);
+    fs.writeFileSync(path.join(publicRoot, 'VERSION_APP'), 'test\n');
+    expect(resolveFilterestHomes(publicRoot, {}).projectsHome).toBe(
+      path.join(publicRoot, 'filterest_projects'),
+    );
+  });
+
   test('accepts dynamic relative and absolute homes', () => {
     const root = temporaryRoot();
     const projectRoot = path.join(root, 'filterest');

@@ -134,7 +134,7 @@ def resolve_filterest_homes(
     private_source = is_private_easelect_source_checkout(root)
 
     defaults = {
-        "projects_home": str(root.parent / "filterest_projects") if private_source else "filterest_projects",
+        "projects_home": str(root.parent / "filterest-projects") if private_source else "filterest_projects",
         "keys_home": str(root.parent / "filterest_keys") if private_source else "filterest_keys",
     }
     values = dict(defaults)

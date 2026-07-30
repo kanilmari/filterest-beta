@@ -168,7 +168,7 @@ func resolveFilterestHomes(projectRoot string, privateSource bool) (filterestHom
 	defaultProjectsHome := filepath.Join(normalizedRoot, "filterest_projects")
 	defaultKeysHome := filepath.Join(normalizedRoot, "filterest_keys")
 	if privateSource {
-		defaultProjectsHome = filepath.Join(normalizedRoot, "..", "filterest_projects")
+		defaultProjectsHome = filepath.Join(normalizedRoot, "..", "filterest-projects")
 		defaultKeysHome = filepath.Join(normalizedRoot, "..", "filterest_keys")
 	}
 	values := map[string]string{

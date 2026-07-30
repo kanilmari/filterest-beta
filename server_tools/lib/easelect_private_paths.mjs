@@ -114,7 +114,7 @@ export function resolveFilterestHomes(projectRoot, environment = process.env) {
   const privateSource = isPrivateEaselectSourceCheckout(normalizedProjectRoot);
   const values = {
     projects_home: privateSource
-      ? path.resolve(normalizedProjectRoot, '..', 'filterest_projects')
+      ? path.resolve(normalizedProjectRoot, '..', 'filterest-projects')
       : 'filterest_projects',
     keys_home: privateSource
       ? path.resolve(normalizedProjectRoot, '..', 'filterest_keys')

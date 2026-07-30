@@ -78,25 +78,46 @@ export async function generate_fix_media_subfolders_view(container) {
 
     frame.appendChild(singleSection);
 
-    // --- Fix All -osio ---
+    // --- Kaikki datasetit -osio ---
     const allSection = document.createElement('div');
     allSection.style.borderTop = '2px solid var(--border-color, #ccc)';
     allSection.style.paddingTop = '16px';
 
     const allTitle = document.createElement('h3');
-    allTitle.dataset.langKey = 'fix_all_datasets';
-    allTitle.textContent = 'Fix All Datasets';
+    allTitle.dataset.langKey = 'check_and_fix_all_datasets';
+    allTitle.textContent = 'Check & Fix All Datasets';
     allSection.appendChild(allTitle);
 
+    const allActions = document.createElement('div');
+    allActions.style.display = 'flex';
+    allActions.style.gap = '8px';
+    allActions.style.flexWrap = 'wrap';
+
+    const checkAllBtn = document.createElement('button');
+    checkAllBtn.type = 'button';
+    checkAllBtn.className = 'button';
+    checkAllBtn.dataset.langKey = 'check_all_media_subfolders';
+    checkAllBtn.dataset.testid = 'check-all-media-subfolders';
+    checkAllBtn.textContent = 'Check All Datasets';
+    checkAllBtn.style.minWidth = '160px';
+
     const fixAllBtn = document.createElement('button');
+    fixAllBtn.type = 'button';
     fixAllBtn.className = 'button';
     fixAllBtn.dataset.langKey = 'fix_all_media_subfolders';
+    fixAllBtn.dataset.testid = 'fix-all-media-subfolders';
     fixAllBtn.textContent = 'Fix All Datasets';
     fixAllBtn.style.minWidth = '160px';
-    allSection.appendChild(fixAllBtn);
+
+    allActions.appendChild(checkAllBtn);
+    allActions.appendChild(fixAllBtn);
+    allSection.appendChild(allActions);
 
     const allResults = document.createElement('div');
     allResults.style.marginTop = '12px';
+    allResults.setAttribute('role', 'status');
+    allResults.setAttribute('aria-live', 'polite');
+    allResults.setAttribute('aria-busy', 'false');
     allSection.appendChild(allResults);
 
     frame.appendChild(allSection);
@@ -128,6 +149,7 @@ export async function generate_fix_media_subfolders_view(container) {
     checkOneBtn.addEventListener('click', async () => {
         const ds = datasetSelect.value;
         if (!ds) return;
+        const idleLabel = checkOneBtn.textContent;
         checkOneBtn.disabled = true;
         checkOneBtn.textContent = 'Checking...';
         singleResults.replaceChildren();
@@ -140,7 +162,7 @@ export async function generate_fix_media_subfolders_view(container) {
             renderError(singleResults, err);
         } finally {
             checkOneBtn.disabled = false;
-            checkOneBtn.textContent = 'Check';
+            checkOneBtn.textContent = idleLabel;
         }
     });
 
@@ -148,11 +170,13 @@ export async function generate_fix_media_subfolders_view(container) {
     fixOneBtn.addEventListener('click', async () => {
         const ds = datasetSelect.value;
         if (!ds) return;
+        const idleLabel = fixOneBtn.textContent;
         fixOneBtn.disabled = true;
         fixOneBtn.textContent = 'Fixing...';
         singleResults.replaceChildren();
         try {
             const data = await endpoint_router('fixMediaSubfolders', {
+                method: 'POST',
                 url_params: `?dataset=${encodeURIComponent(ds)}`
             });
             renderFixResults(singleResults, ds, data);
@@ -160,20 +184,105 @@ export async function generate_fix_media_subfolders_view(container) {
             renderError(singleResults, err);
         } finally {
             fixOneBtn.disabled = false;
-            fixOneBtn.textContent = 'Fix';
+            fixOneBtn.textContent = idleLabel;
+        }
+    });
+
+    // Check all (read-only)
+    checkAllBtn.addEventListener('click', async () => {
+        const idleLabel = checkAllBtn.textContent;
+        checkAllBtn.disabled = true;
+        fixAllBtn.disabled = true;
+        checkAllBtn.textContent = 'Checking all...';
+        allResults.setAttribute('aria-busy', 'true');
+        allResults.replaceChildren();
+
+        try {
+            const names = await endpoint_router('datasetNames');
+            const list = Array.isArray(names) ? names : (names.names || []);
+            let affectedRows = 0;
+            let affectedDatasets = 0;
+            let errorCount = 0;
+
+            for (const ds of list) {
+                const statusLine = document.createElement('div');
+                statusLine.style.padding = '4px 0';
+                statusLine.textContent = `${ds}: checking...`;
+                statusLine.style.color = 'var(--text_color_secondary, #888)';
+                allResults.appendChild(statusLine);
+
+                try {
+                    const data = await endpoint_router('checkMediaSubfolders', {
+                        url_params: `?dataset=${encodeURIComponent(ds)}`
+                    });
+                    const rows = data.rows || [];
+                    if (rows.length === 0) {
+                        statusLine.textContent = `${ds}: OK ✓`;
+                        statusLine.style.color = 'green';
+                        continue;
+                    }
+
+                    affectedDatasets += 1;
+                    affectedRows += rows.length;
+                    statusLine.textContent = `${ds}: ${rows.length} row(s) need attention`;
+                    statusLine.style.color = 'orange';
+                    statusLine.style.fontWeight = '500';
+
+                    for (const row of rows) {
+                        const detail = document.createElement('div');
+                        detail.style.marginLeft = '16px';
+                        detail.style.fontSize = '0.85em';
+                        detail.style.color = 'var(--text_color_secondary, #888)';
+                        detail.textContent = `id=${row.id}: missing [${(row.missing || []).join(', ')}]`;
+                        allResults.appendChild(detail);
+                    }
+                } catch (err) {
+                    errorCount += 1;
+                    statusLine.textContent = `${ds}: error — ${err.message || err}`;
+                    statusLine.style.color = 'red';
+                }
+            }
+
+            const summary = document.createElement('p');
+            summary.style.fontWeight = 'bold';
+            summary.style.marginTop = '16px';
+            summary.style.borderTop = '1px solid var(--border-color, #ccc)';
+            summary.style.paddingTop = '8px';
+            if (errorCount > 0) {
+                summary.textContent = `Found ${affectedRows} row(s) needing attention across ${affectedDatasets} dataset(s), with ${errorCount} error(s). No files were changed.`;
+                summary.style.color = 'red';
+            } else if (affectedRows === 0) {
+                summary.textContent = 'All datasets OK. No files were changed.';
+                summary.style.color = 'green';
+            } else {
+                summary.textContent = `Found ${affectedRows} row(s) needing attention across ${affectedDatasets} dataset(s). No files were changed.`;
+                summary.style.color = 'orange';
+            }
+            allResults.appendChild(summary);
+        } catch (err) {
+            renderError(allResults, err);
+        } finally {
+            checkAllBtn.disabled = false;
+            fixAllBtn.disabled = false;
+            checkAllBtn.textContent = idleLabel;
+            allResults.setAttribute('aria-busy', 'false');
         }
     });
 
     // Fix all
     fixAllBtn.addEventListener('click', async () => {
+        const idleLabel = fixAllBtn.textContent;
+        checkAllBtn.disabled = true;
         fixAllBtn.disabled = true;
         fixAllBtn.textContent = 'Fixing all...';
+        allResults.setAttribute('aria-busy', 'true');
         allResults.replaceChildren();
 
         try {
             const names = await endpoint_router('datasetNames');
             const list = Array.isArray(names) ? names : (names.names || []);
             let totalFixed = 0;
+            let errorCount = 0;
 
             for (const ds of list) {
                 const statusLine = document.createElement('div');
@@ -184,6 +293,7 @@ export async function generate_fix_media_subfolders_view(container) {
 
                 try {
                     const data = await endpoint_router('fixMediaSubfolders', {
+                        method: 'POST',
                         url_params: `?dataset=${encodeURIComponent(ds)}`
                     });
                     const rows = data.rows || [];
@@ -210,7 +320,8 @@ export async function generate_fix_media_subfolders_view(container) {
                         statusLine.style.color = 'green';
                     }
                 } catch (err) {
-                    statusLine.textContent = `${ds}: error — ${err.message}`;
+                    errorCount += 1;
+                    statusLine.textContent = `${ds}: error — ${err.message || err}`;
                     statusLine.style.color = 'red';
                 }
             }
@@ -221,7 +332,10 @@ export async function generate_fix_media_subfolders_view(container) {
             summary.style.marginTop = '16px';
             summary.style.borderTop = '1px solid var(--border-color, #ccc)';
             summary.style.paddingTop = '8px';
-            if (totalFixed === 0) {
+            if (errorCount > 0) {
+                summary.textContent = `Fix completed with ${errorCount} error(s). Fixed ${totalFixed} total item(s).`;
+                summary.style.color = 'red';
+            } else if (totalFixed === 0) {
                 summary.textContent = 'All datasets OK — no fixes needed.';
                 summary.style.color = 'green';
             } else {
@@ -232,8 +346,10 @@ export async function generate_fix_media_subfolders_view(container) {
         } catch (err) {
             renderError(allResults, err);
         } finally {
+            checkAllBtn.disabled = false;
             fixAllBtn.disabled = false;
-            fixAllBtn.textContent = 'Fix All Datasets';
+            fixAllBtn.textContent = idleLabel;
+            allResults.setAttribute('aria-busy', 'false');
         }
     });
 }
