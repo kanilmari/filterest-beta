@@ -166,7 +166,7 @@ func archiveStoragePathContents(srcDir, dstDir string) error {
 		dstPath := filepath.Join(dstDir, entry.Name())
 
 		if _, err := os.Stat(dstPath); os.IsNotExist(err) {
-			if err := os.Rename(srcPath, dstPath); err != nil {
+			if err := MovePathToDeletedStorage(srcPath, dstPath); err != nil {
 				return fmt.Errorf("move %s -> %s: %w", srcPath, dstPath, err)
 			}
 			continue
@@ -183,7 +183,7 @@ func archiveStoragePathContents(srcDir, dstDir string) error {
 		}
 
 		renamedDstPath := dstPath + ".archived"
-		if err := os.Rename(srcPath, renamedDstPath); err != nil {
+		if err := MovePathToDeletedStorage(srcPath, renamedDstPath); err != nil {
 			return fmt.Errorf("move %s -> %s: %w", srcPath, renamedDstPath, err)
 		}
 	}

@@ -118,11 +118,14 @@ write_instance_database_backup() {
     fi
 
     (
+        umask 077
         set -o pipefail
         docker exec "$container_name" \
             pg_dump -U "$db_user" --no-owner --no-privileges "${dump_policy_flags[@]}" "$db_name" \
             | gzip -9 > "$backup_file"
-    )
+    ) || return
+
+    chmod 600 "$backup_file"
 }
 
 # ------------------------------------------------------------------------------
@@ -130,6 +133,7 @@ write_instance_database_backup() {
 # ------------------------------------------------------------------------------
 backup_instance() {
     local instance="$1"
+    local requested_backup_file="${2:-}"
     
     if [[ -z "$instance" ]]; then
         echo -e "${RED}❌ Instance name required${NC}"
@@ -137,9 +141,10 @@ backup_instance() {
     fi
     
     local env_file="instances/${instance}/.env"
-    local backup_dir="instances/${instance}/backups"
     local timestamp=$(date +%Y%m%d_%H%M%S)
-    local backup_file="${backup_dir}/backup_${timestamp}.sql.gz"
+    local backup_file="${requested_backup_file:-instances/${instance}/backups/backup_${timestamp}.sql.gz}"
+    local backup_dir
+    backup_dir="$(dirname "$backup_file")"
     
     if [[ ! -f "$env_file" ]]; then
         echo -e "${RED}❌ Instance '${instance}' not found${NC}"
@@ -157,6 +162,7 @@ backup_instance() {
     fi
     
     mkdir -p "$backup_dir"
+    chmod 700 "$backup_dir"
 
     if ! write_instance_database_backup "$instance" "$backup_file" "${DB_ADMIN_USER:-admin_user}" "${DB_NAME:-filterest}"; then
         rm -f "$backup_file"

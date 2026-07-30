@@ -45,4 +45,21 @@ describe('shared topbar layout CSS', () => {
 
         expect(closeOffsetRule).toContain('margin-right: 52px');
     });
+
+    test('uses the shared SVG info control with a click disclosure panel', () => {
+        const css = readSiblingCss('../admin_tools/admin_version_info_indicator.css');
+        const shellRule = extractRule(css, '.filterbar-clock-bar__version-info-shell');
+        const indicatorRule = extractRule(css, '.filterbar-clock-bar__version-info');
+        const iconRule = extractRule(css, '.filterbar-clock-bar__version-info-icon');
+        const panelRule = extractRule(css, '.filterbar-clock-bar__version-info-panel');
+
+        expect(shellRule).toContain('right: 8px');
+        expect(shellRule).toContain('transform: translateY(-50%)');
+        expect(indicatorRule).toContain('width: 18px');
+        expect(indicatorRule).toContain('height: 18px');
+        expect(indicatorRule).toContain('border: 0');
+        expect(iconRule).toContain('pointer-events: none');
+        expect(panelRule).toContain('bottom: calc(100% + 8px)');
+        expect(panelRule).toContain('white-space: pre-line');
+    });
 });

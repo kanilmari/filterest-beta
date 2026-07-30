@@ -50,6 +50,8 @@ ARG BUILD_ENV=prod
 ARG EASELECT_APP_VERSION=unknown
 ARG EASELECT_DB_VERSION=unknown
 ARG EASELECT_GIT_COMMIT=unknown
+ARG EASELECT_RUNTIME_UID=1000
+ARG EASELECT_RUNTIME_GID=1000
 
 RUN apk add --no-cache \
     ca-certificates=20260611-r0 \
@@ -65,8 +67,13 @@ LABEL easelect.version_contract="1" \
       org.opencontainers.image.revision="${EASELECT_GIT_COMMIT}"
 
 # Create non-root user
-RUN addgroup -g 1001 -S easelect && \
-    adduser -u 1001 -S easelect -G easelect
+RUN case "${EASELECT_RUNTIME_UID}:${EASELECT_RUNTIME_GID}" in \
+        *[!0-9:]*|:*|*:) printf 'runtime UID/GID must be numeric\n' >&2; exit 1 ;; \
+    esac && \
+    [ "${EASELECT_RUNTIME_UID}" -ge 1000 ] && \
+    [ "${EASELECT_RUNTIME_GID}" -ge 1000 ] && \
+    addgroup -g "${EASELECT_RUNTIME_GID}" -S easelect && \
+    adduser -u "${EASELECT_RUNTIME_UID}" -S easelect -G easelect
 
 # Copy binary
 COPY --from=builder /app/easelect .
@@ -104,11 +111,14 @@ RUN if [ "${BUILD_ENV}" = "dev" ]; then \
             -out /app/dev-cert.crt \
             -subj "/CN=localhost"; \
     fi && \
-    mkdir -p storage db_backups && \
+    mkdir -p storage storage_deleted db_backups && \
     chown -R easelect:easelect /app
 
 USER easelect
 
 EXPOSE 8082
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8082/health || exit 1
 
 CMD ["./easelect"]

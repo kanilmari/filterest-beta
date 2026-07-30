@@ -1,13 +1,16 @@
 // admin_version_info_indicator.js
-// Builds the administrator-only product/database version indicator for the filterbar footer.
-// Bridges cached route rights, the protected version endpoint, and an accessible hover label.
-// Exists to keep version details convenient for admins without rendering the control to other users.
+// Builds the administrator-only product/database version control for the filterbar footer.
+// Bridges route rights, the protected endpoint, the shared Material icon, and a click disclosure.
+// Exists so admins can inspect versions by hover or click without exposing them to other users.
 
 import { hasRoutePermission } from "../route_permission_checker.js";
 import { fetchAdminVersionInfo } from "../endpoints/stable_endpoint_router.js";
 import { getLanguageWithBrowserFallback } from "../state_stores/lang_preference_reader.js";
+import { getCardDetailIconSvgMarkup } from "../table_views/card_view/card_detail_icon_builder.js";
 
 export const ADMIN_VERSION_INFO_ROUTE = "/api/admin/version-info";
+
+let versionInfoPanelSequence = 0;
 
 const VERSION_LABELS = Object.freeze({
     fi: {
@@ -62,20 +65,70 @@ export function buildAdminVersionInfoIndicator() {
         return null;
     }
 
-    const indicator = document.createElement("span");
+    const lifetimeController = new AbortController();
+    const { signal } = lifetimeController;
+    const shell = document.createElement("div");
+    shell.classList.add("filterbar-clock-bar__version-info-shell");
+    shell.hidden = true;
+
+    const indicator = document.createElement("button");
+    indicator.type = "button";
     indicator.classList.add("filterbar-clock-bar__version-info");
     indicator.dataset.testid = "filterbar-admin-version-info";
-    indicator.setAttribute("role", "img");
-    indicator.setAttribute("aria-hidden", "true");
-    indicator.tabIndex = -1;
-    indicator.hidden = true;
-    indicator.textContent = "i";
+    indicator.setAttribute("aria-expanded", "false");
 
-    void hydrateAdminVersionInfoIndicator(indicator);
-    return indicator;
+    const panelId = `filterbar-admin-version-info-panel-${++versionInfoPanelSequence}`;
+    const panel = document.createElement("div");
+    panel.id = panelId;
+    panel.classList.add("filterbar-clock-bar__version-info-panel");
+    panel.dataset.testid = "filterbar-admin-version-info-panel";
+    panel.setAttribute("role", "status");
+    panel.hidden = true;
+    indicator.setAttribute("aria-controls", panelId);
+
+    const icon = document.createElement("span");
+    icon.classList.add("filterbar-clock-bar__version-info-icon");
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = getCardDetailIconSvgMarkup("info");
+    indicator.appendChild(icon);
+    shell.append(indicator, panel);
+
+    const closePanel = () => {
+        panel.hidden = true;
+        indicator.setAttribute("aria-expanded", "false");
+    };
+    const togglePanel = () => {
+        const shouldOpen = panel.hidden;
+        panel.hidden = !shouldOpen;
+        indicator.setAttribute("aria-expanded", String(shouldOpen));
+    };
+
+    indicator.addEventListener("click", (event) => {
+        event.stopPropagation();
+        togglePanel();
+    }, { signal });
+    document.addEventListener("click", (event) => {
+        if (!panel.hidden && !shell.contains(event.target)) {
+            closePanel();
+        }
+    }, { signal, capture: true });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !panel.hidden) {
+            closePanel();
+            indicator.focus();
+        }
+    }, { signal });
+
+    shell.destroy = () => {
+        lifetimeController.abort();
+        closePanel();
+    };
+
+    void hydrateAdminVersionInfoIndicator(shell, indicator, panel);
+    return shell;
 }
 
-async function hydrateAdminVersionInfoIndicator(indicator) {
+async function hydrateAdminVersionInfoIndicator(shell, indicator, panel) {
     try {
         const versionInfo = await fetchAdminVersionInfo({ suppressAuthRedirect: true });
         const label = formatAdminVersionInfoLabel(
@@ -84,10 +137,10 @@ async function hydrateAdminVersionInfoIndicator(indicator) {
         );
         indicator.title = label;
         indicator.setAttribute("aria-label", label.replaceAll("\n", ". "));
-        indicator.setAttribute("aria-hidden", "false");
-        indicator.tabIndex = 0;
-        indicator.hidden = false;
+        panel.textContent = label;
+        shell.hidden = false;
     } catch {
-        indicator.remove();
+        shell.destroy();
+        shell.remove();
     }
 }

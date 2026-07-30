@@ -186,6 +186,26 @@ compose_cmd() {
 }
 
 # ------------------------------------------------------------------------------
+# Helper: Validate the numeric non-root identity used by Docker bind mounts.
+# Between instance env values and image creation it rejects malformed or
+# privileged IDs before Docker can create an unusable runtime user.
+# Why: Linux and WSL storage ownership must match a real non-root host account.
+# ------------------------------------------------------------------------------
+validate_docker_runtime_identity() {
+    local runtime_uid="$1"
+    local runtime_gid="$2"
+
+    if [[ ! "$runtime_uid" =~ ^[0-9]+$ ]] || [[ ! "$runtime_gid" =~ ^[0-9]+$ ]]; then
+        echo "error: Docker runtime UID and GID must be numeric" >&2
+        return 1
+    fi
+    if (( runtime_uid < 1000 || runtime_gid < 1000 )); then
+        echo "error: Docker runtime UID and GID must be non-root IDs (1000 or greater)" >&2
+        return 1
+    fi
+}
+
+# ------------------------------------------------------------------------------
 # Helper: Export build/runtime overrides for one local Docker instance command.
 # Between the instance env file, the root dev env, and docker compose it keeps
 # local derivative containers aligned with the intended dev/prod auth behavior.
@@ -197,6 +217,8 @@ prepare_instance_compose_env() {
     local env_type=""
     local root_env_file="$EASELECT_RUNTIME_ENV_FILE"
     local root_login_otp=""
+    local configured_runtime_uid=""
+    local configured_runtime_gid=""
 
     easelect_prepare_docker_context_boundaries "$PROJECT_ROOT"
     env_type=$(grep -E "^ENVIRONMENT_TYPE=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
@@ -206,6 +228,11 @@ prepare_instance_compose_env() {
     export EASELECT_APP_VERSION="${EASELECT_APP_VERSION:-$(tr -d '[:space:]' < "${PROJECT_ROOT}/VERSION_EASELECT" 2>/dev/null || printf 'unknown')}"
     export EASELECT_DB_VERSION="${EASELECT_DB_VERSION:-$(tr -d '[:space:]' < "${PROJECT_ROOT}/VERSION_DB" 2>/dev/null || printf 'unknown')}"
     export EASELECT_GIT_COMMIT="${EASELECT_GIT_COMMIT:-$(git -C "${PROJECT_ROOT}" rev-parse --short HEAD 2>/dev/null || printf 'unknown')}"
+    configured_runtime_uid=$(grep -E "^EASELECT_RUNTIME_UID=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    configured_runtime_gid=$(grep -E "^EASELECT_RUNTIME_GID=" "$env_file" 2>/dev/null | tail -1 | cut -d'=' -f2)
+    export EASELECT_RUNTIME_UID="${EASELECT_RUNTIME_UID:-${configured_runtime_uid:-$(id -u)}}"
+    export EASELECT_RUNTIME_GID="${EASELECT_RUNTIME_GID:-${configured_runtime_gid:-$(id -g)}}"
+    validate_docker_runtime_identity "$EASELECT_RUNTIME_UID" "$EASELECT_RUNTIME_GID"
 
     if [[ "$env_type" == "dev" ]]; then
         if [[ -z "${LOGIN_OTP_CODE:-}" && -f "$root_env_file" ]]; then
@@ -220,21 +247,29 @@ prepare_instance_compose_env() {
 }
 
 # ------------------------------------------------------------------------------
-# Helper: Normalize one instance storage bind mount for container read access.
-# Between the host-side instances/<name>/storage tree and the app container it
-# ensures the non-root container user can traverse directories and read files.
-# Why: legacy copies may preserve 700/600-style perms that break /storage/*
-# requests inside Docker even when the files themselves exist on the host.
+# Helper: Normalize one instance's active and recoverable media bind mounts.
+# Between the host-side storage trees and the app container it ensures the
+# non-root container user can traverse, read, and archive media files.
+# Why: both storage roots must remain writable across Docker rebuilds.
 # ------------------------------------------------------------------------------
 normalize_instance_storage_permissions() {
     local instance="$1"
-    local instance_storage="${PROJECT_ROOT}/instances/${instance}/storage"
+    local storage_name
+    local instance_storage
+    local write_probe
 
-    mkdir -p "$instance_storage"
+    for storage_name in storage storage_deleted; do
+        instance_storage="${PROJECT_ROOT}/instances/${instance}/${storage_name}"
+        mkdir -p "$instance_storage"
 
-    if [[ ! -e "$instance_storage" ]]; then
-        return 0
-    fi
-
-    chmod -R u+rwX,go+rX "$instance_storage" 2>/dev/null || true
+        if ! chmod -R u+rwX,g+rwX,o-rwx "$instance_storage"; then
+            echo "error: cannot normalize Docker storage permissions: ${instance_storage}" >&2
+            return 1
+        fi
+        if ! write_probe="$(mktemp "${instance_storage}/.easelect-write-probe.XXXXXX")"; then
+            echo "error: Docker storage is not writable by the current user: ${instance_storage}" >&2
+            return 1
+        fi
+        rm -f "$write_probe"
+    done
 }

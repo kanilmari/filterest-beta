@@ -632,34 +632,3 @@
   cursor: default;
   user-select: none;
 }
-
-.filterbar-clock-bar__version-info {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  width: 18px;
-  height: 18px;
-  border: 1px solid currentcolor;
-  border-radius: 50%;
-  color: var(--text_color);
-  font-family: serif;
-  font-size: 13px;
-  font-style: italic;
-  font-weight: 700;
-  line-height: 1;
-  cursor: help;
-  opacity: 0.72;
-  transform: translateY(-50%);
-  transition: opacity 120ms ease;
-}
-
-.filterbar-clock-bar__version-info[hidden] {
-  display: none;
-}
-
-.filterbar-clock-bar__version-info:hover,
-.filterbar-clock-bar__version-info:focus-visible {
-  opacity: 1;
-  outline: 2px solid var(--fw-color-primary, currentcolor);
-  outline-offset: 2px;
-}

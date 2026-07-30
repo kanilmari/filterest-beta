@@ -302,6 +302,7 @@ function buildClockBar() {
         clearInterval(intervalId);
         clearDeferredWidthSync();
         closeCalendar();
+        versionInfoIndicator?.destroy?.();
         calendar.el.remove();
     };
 

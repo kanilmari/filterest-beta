@@ -181,6 +181,100 @@ class InstanceCtlBash32CompatibilityTests(unittest.TestCase):
             1,
         )
 
+    def test_instance_database_backup_is_owner_readable_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            backup_file = temp_root / "instances" / "example" / "backups" / "backup.sql.gz"
+            backup_file.parent.mkdir(parents=True)
+            backup_file.write_bytes(b"stale")
+            backup_file.chmod(0o664)
+
+            run_system_bash(
+                'BLUE=""; YELLOW=""; NC=""\n'
+                f'source "{PROJECT_ROOT}/server_tools/ctl/lib/instance_backup.sh"\n'
+                'load_instance_backup_policy_flags() { eval "$4=()"; }\n'
+                'append_default_instance_backup_exclusions() { :; }\n'
+                'docker() { printf "private backup"; }\n'
+                'gzip() { cat; }\n'
+                f'write_instance_database_backup example "{backup_file}" admin easelect',
+                cwd=temp_root,
+            )
+
+            self.assertEqual(backup_file.read_bytes(), b"private backup")
+            self.assertEqual(backup_file.stat().st_mode & 0o777, 0o600)
+
+    def test_instance_retirement_uses_protected_trash_and_keeps_named_volumes(self) -> None:
+        crud_source = (
+            PROJECT_ROOT / "server_tools" / "ctl" / "lib" / "instance_crud.sh"
+        ).read_text(encoding="utf-8")
+        backup_source = (
+            PROJECT_ROOT / "server_tools" / "ctl" / "lib" / "instance_backup.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            "data/instance_trash/deleted_instances/${instance}_${retirement_timestamp}",
+            crud_source,
+        )
+        self.assertIn(
+            'backup_instance "$instance" "$retirement_db_file"',
+            crud_source,
+        )
+        self.assertIn('mv "$instance_dir" "$retired_instance_dir"', crud_source)
+        self.assertNotIn('$(compose_cmd "$instance") down -v', crud_source)
+        self.assertNotIn('rm -rf "$instance_dir"', crud_source)
+        self.assertIn('local requested_backup_file="${2:-}"', backup_source)
+        self.assertIn("chmod 700 \"$backup_dir\"", backup_source)
+
+    def test_instance_retirement_preserves_active_and_deleted_media(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            instance_root = temp_root / "instances" / "example"
+            (instance_root / "storage").mkdir(parents=True)
+            (instance_root / "storage_deleted").mkdir()
+            (instance_root / ".env").write_text("INSTANCE=example\n", encoding="utf-8")
+            (instance_root / "storage" / "active.txt").write_text(
+                "active", encoding="utf-8"
+            )
+            (instance_root / "storage_deleted" / "archived.txt").write_text(
+                "archived", encoding="utf-8"
+            )
+
+            result = run_system_bash(
+                'RED=""; GREEN=""; BLUE=""; YELLOW=""; NC=""\n'
+                f'source "{PROJECT_ROOT}/server_tools/ctl/lib/instance_crud.sh"\n'
+                'docker() { return 0; }\n'
+                'compose_cmd() { printf "fake_compose"; }\n'
+                'fake_compose() { printf "%s\\n" "$*" >> compose_calls.txt; }\n'
+                'printf "example\\n" | delete_instance example',
+                cwd=temp_root,
+            )
+
+            retirement_roots = list(
+                (temp_root / "data" / "instance_trash" / "deleted_instances").glob(
+                    "example_*"
+                )
+            )
+            self.assertEqual(len(retirement_roots), 1)
+            retired_instance = retirement_roots[0] / "instance"
+            self.assertFalse(instance_root.exists())
+            self.assertEqual(
+                (retired_instance / "storage" / "active.txt").read_text(
+                    encoding="utf-8"
+                ),
+                "active",
+            )
+            self.assertEqual(
+                (
+                    retired_instance / "storage_deleted" / "archived.txt"
+                ).read_text(encoding="utf-8"),
+                "archived",
+            )
+            self.assertEqual(
+                (temp_root / "compose_calls.txt").read_text(encoding="utf-8"),
+                "down\n",
+            )
+            self.assertIn("Docker named volumes were retained", result.stdout)
+
     def test_management_instance_config_needs_no_in_place_sed(self) -> None:
         instance_crud = (
             PROJECT_ROOT / "server_tools" / "ctl" / "lib" / "instance_crud.sh"

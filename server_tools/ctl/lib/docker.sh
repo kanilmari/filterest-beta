@@ -10,7 +10,45 @@
 # ------------------------------------------------------------------------------
 _local_docker_compose() {
     easelect_prepare_docker_context_boundaries "$PROJECT_ROOT"
-    docker-compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml "$@"
+    docker compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml "$@"
+}
+
+# Prepare host-owned bind mounts for the non-root development container.
+# Between Linux/WSL user IDs and Docker Compose it prevents root-owned source or
+# media artifacts while failing early on storage left behind by another user.
+prepare_local_docker_storage() {
+    local storage_name
+    local storage_path
+    local mismatched_path
+    local write_probe
+
+    export EASELECT_RUNTIME_UID="${EASELECT_RUNTIME_UID:-$(id -u)}"
+    export EASELECT_RUNTIME_GID="${EASELECT_RUNTIME_GID:-$(id -g)}"
+    export APP_PORT="${APP_PORT:-$PORT}"
+    if [[ ! "$EASELECT_RUNTIME_UID" =~ ^[0-9]+$ ]] ||
+       [[ ! "$EASELECT_RUNTIME_GID" =~ ^[0-9]+$ ]] ||
+       (( EASELECT_RUNTIME_UID < 1000 || EASELECT_RUNTIME_GID < 1000 )); then
+        echo "error: Docker runtime UID/GID must be numeric non-root IDs" >&2
+        return 1
+    fi
+
+    for storage_name in storage storage_deleted db_backups; do
+        storage_path="${PROJECT_ROOT}/${storage_name}"
+        mkdir -p "$storage_path"
+        chmod u+rwx,g+rwx,o-rwx "$storage_path"
+        mismatched_path="$(find "$storage_path" \
+            \( ! -uid "$EASELECT_RUNTIME_UID" -o ! -gid "$EASELECT_RUNTIME_GID" \) \
+            -print -quit)"
+        if [[ -n "$mismatched_path" ]]; then
+            echo "error: Docker bind-mount ownership does not match runtime ${EASELECT_RUNTIME_UID}:${EASELECT_RUNTIME_GID}: ${mismatched_path}" >&2
+            return 1
+        fi
+        if ! write_probe="$(mktemp "${storage_path}/.easelect-write-probe.XXXXXX")"; then
+            echo "error: Docker bind mount is not writable: ${storage_path}" >&2
+            return 1
+        fi
+        rm -f "$write_probe"
+    done
 }
 
 start_docker() {
@@ -41,14 +79,16 @@ start_docker() {
     
     # Check Docker
     if ! command -v docker &> /dev/null; then
-        echo -e "${RED}❌ Docker not found. Please install Docker Desktop.${NC}"
+        echo -e "${RED}❌ Docker not found. Install Docker Engine or Docker Desktop.${NC}"
         exit 1
     fi
     
     if ! docker info &> /dev/null 2>&1; then
-        echo -e "${RED}❌ Docker daemon not running. Start Docker Desktop.${NC}"
+        echo -e "${RED}❌ Docker daemon is not available. Start Docker Engine or Docker Desktop.${NC}"
         exit 1
     fi
+
+    prepare_local_docker_storage
     
     # Stop conflicting processes
     check_port_available
@@ -76,7 +116,7 @@ start_docker() {
             echo -e "${RED}❌ Docker database already contains ${existing_public_tables} public tables.${NC}"
             echo "   --restore-db expects a fresh DB volume so the import does not collide with existing objects."
             echo "   Recreate the DB volume first, for example:"
-            echo "   docker-compose -f docker/docker-compose.dev.yml down -v"
+            echo "   docker compose -f docker/docker-compose.dev.yml down -v"
             exit 1
         fi
 

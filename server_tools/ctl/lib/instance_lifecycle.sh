@@ -29,7 +29,7 @@ start_instance() {
         echo "   Expected: ${env_file}"
         echo ""
         echo "   To create a new instance:"
-        echo "   1. mkdir -p ${instance_dir}/{storage,backups}"
+        echo "   1. mkdir -p ${instance_dir}/{storage,storage_deleted,backups}"
         echo "   2. cp instances/template.env ${env_file}"
         echo "   3. Edit ${env_file} with unique ports and credentials"
         exit 1

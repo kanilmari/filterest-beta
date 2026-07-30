@@ -129,6 +129,8 @@ instances/*/backups/*.sql.gz
 # Seed dumps and database backups
 data/db_backups/*.sql
 data/db_backups/easelect_migration_manifest_*.txt
+data/instance_trash/
+data/project_trash/
 easelect_full_dump*.sql
 agent_tasks/20_in_progress/20*--*/
 agent_tasks/_artifacts/worker_runs/
@@ -153,5 +155,3 @@ TICKET_*_ACTIVE/
 
 # Per-ticket transition locks (created on demand by ./task move/hold/done/close/etc.)
 .task_transition_locks/
-apps/dronekuva/.astro/
-apps/dronekuva/dist/

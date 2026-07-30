@@ -62,6 +62,8 @@ WORKDIR /app
 ARG EASELECT_APP_VERSION=unknown
 ARG EASELECT_DB_VERSION=unknown
 ARG EASELECT_GIT_COMMIT=unknown
+ARG EASELECT_RUNTIME_UID=1000
+ARG EASELECT_RUNTIME_GID=1000
 
 LABEL easelect.version_contract="1" \
       easelect.app_version="${EASELECT_APP_VERSION}" \
@@ -78,8 +80,13 @@ RUN apk add --no-cache \
     libwebp=1.6.0-r0
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S easelect && \
-    adduser -u 1001 -S easelect -G easelect
+RUN case "${EASELECT_RUNTIME_UID}:${EASELECT_RUNTIME_GID}" in \
+        *[!0-9:]*|:*|*:) printf 'runtime UID/GID must be numeric\n' >&2; exit 1 ;; \
+    esac && \
+    [ "${EASELECT_RUNTIME_UID}" -ge 1000 ] && \
+    [ "${EASELECT_RUNTIME_GID}" -ge 1000 ] && \
+    addgroup -g "${EASELECT_RUNTIME_GID}" -S easelect && \
+    adduser -u "${EASELECT_RUNTIME_UID}" -S easelect -G easelect
 
 # Copy binary from backend builder
 COPY --from=backend-builder /app/easelect .
@@ -109,7 +116,7 @@ RUN app_file=""; app_version="${EASELECT_APP_VERSION}"; \
     } > easelect-runtime.env
 
 # Create directories for runtime data
-RUN mkdir -p storage db_backups && \
+RUN mkdir -p storage storage_deleted db_backups && \
     chown -R easelect:easelect /app
 
 # Switch to non-root user
@@ -120,7 +127,7 @@ EXPOSE 8082
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8082/api/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8082/health || exit 1
 
 # Run the application
 CMD ["./easelect"]

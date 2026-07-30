@@ -16,10 +16,12 @@ services:
         EASELECT_APP_VERSION: ${EASELECT_APP_VERSION:-unknown}
         EASELECT_DB_VERSION: ${EASELECT_DB_VERSION:-unknown}
         EASELECT_GIT_COMMIT: ${EASELECT_GIT_COMMIT:-unknown}
+        EASELECT_RUNTIME_UID: ${EASELECT_RUNTIME_UID:-1000}
+        EASELECT_RUNTIME_GID: ${EASELECT_RUNTIME_GID:-1000}
     container_name: filterest-app
     restart: unless-stopped
     ports:
-      - "8082:8082"
+      - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8082}:8082"
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -56,6 +58,7 @@ services:
         condition: service_healthy
     volumes:
       - ../storage:/app/storage
+      - ../storage_deleted:/app/storage_deleted
       - ../db_backups:/app/db_backups
     networks:
       - filterest-network
@@ -85,7 +88,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ../server_tools/db_init:/docker-entrypoint-initdb.d
     ports:
-      - "5432:5432"
+      - "${DB_BIND_HOST:-127.0.0.1}:${DB_PORT:-5432}:5432"
     networks:
       - filterest-network
     healthcheck:

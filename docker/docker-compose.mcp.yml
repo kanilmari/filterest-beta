@@ -15,6 +15,8 @@ services:
         EASELECT_APP_VERSION: ${EASELECT_APP_VERSION:-unknown}
         EASELECT_DB_VERSION: ${EASELECT_DB_VERSION:-unknown}
         EASELECT_GIT_COMMIT: ${EASELECT_GIT_COMMIT:-unknown}
+        EASELECT_RUNTIME_UID: ${EASELECT_RUNTIME_UID:-1000}
+        EASELECT_RUNTIME_GID: ${EASELECT_RUNTIME_GID:-1000}
     container_name: mcp-api
     restart: unless-stopped
     ports:
@@ -61,6 +63,7 @@ services:
       - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME:-}
     volumes:
       - ../storage:/app/storage
+      - ../storage_deleted:/app/storage_deleted
     depends_on:
       mcp-db:
         condition: service_healthy

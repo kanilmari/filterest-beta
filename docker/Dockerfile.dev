@@ -5,6 +5,9 @@
 
 FROM golang:1.26.5-alpine3.24
 
+ARG EASELECT_RUNTIME_UID=1000
+ARG EASELECT_RUNTIME_GID=1000
+
 # Install Node.js and other development dependencies
 # libwebp-dev and build-base are needed for chai2010/webp (CGO)
 RUN apk add --no-cache \
@@ -15,6 +18,14 @@ RUN apk add --no-cache \
     ca-certificates=20260611-r0 \
     build-base=0.5-r4 \
     libwebp-dev=1.6.0-r0
+
+RUN case "${EASELECT_RUNTIME_UID}:${EASELECT_RUNTIME_GID}" in \
+        *[!0-9:]*|:*|*:) printf 'runtime UID/GID must be numeric\n' >&2; exit 1 ;; \
+    esac && \
+    [ "${EASELECT_RUNTIME_UID}" -ge 1000 ] && \
+    [ "${EASELECT_RUNTIME_GID}" -ge 1000 ] && \
+    addgroup -g "${EASELECT_RUNTIME_GID}" -S easelect && \
+    adduser -u "${EASELECT_RUNTIME_UID}" -S easelect -G easelect
 
 WORKDIR /app
 
@@ -32,6 +43,11 @@ RUN go mod download
 
 # Copy source (will be overwritten by volume mount in development)
 COPY . .
+
+RUN mkdir -p storage storage_deleted db_backups && \
+    chown -R easelect:easelect /app
+
+USER easelect
 
 # Expose ports
 EXPOSE 8082 5173

@@ -671,7 +671,7 @@ func moveRowStoragePlansToDeleted(moves []rowStorageMove) {
 				log.Printf("error creating directory: %v", err)
 				continue
 			}
-			if err := os.Rename(src, dst); err != nil {
+			if err := storagecleanup.MovePathToDeletedStorage(src, dst); err != nil {
 				log.Printf("error moving directory %s -> %s: %v", src, dst, err)
 			}
 		}
@@ -714,7 +714,7 @@ func moveSharedAssetFilesToDeleted(moves []dtt_asset_linking.SharedAssetFileMove
 					log.Printf("error creating shared asset deleted directory: %v", err)
 					continue
 				}
-				if err := os.Rename(src, dst); err != nil {
+				if err := storagecleanup.MovePathToDeletedStorage(src, dst); err != nil {
 					log.Printf("error moving shared asset file %s -> %s: %v", src, dst, err)
 				}
 			}

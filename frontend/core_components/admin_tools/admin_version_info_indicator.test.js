@@ -36,7 +36,7 @@ describe("admin version info indicator", () => {
         expect(fetchAdminVersionInfoMock).not.toHaveBeenCalled();
     });
 
-    test("hydrates an accessible admin label from the protected endpoint", async () => {
+    test("hydrates a shared info icon and toggles the version panel by click", async () => {
         hasRoutePermissionMock.mockReturnValue(true);
         fetchAdminVersionInfoMock.mockResolvedValue({
             product_name: "Filterest",
@@ -47,14 +47,41 @@ describe("admin version info indicator", () => {
         });
         const { buildAdminVersionInfoIndicator } = await import("./admin_version_info_indicator.js");
 
-        const indicator = buildAdminVersionInfoIndicator();
-        document.body.appendChild(indicator);
+        const shell = buildAdminVersionInfoIndicator();
+        document.body.appendChild(shell);
 
-        await vi.waitFor(() => expect(indicator.hidden).toBe(false));
+        await vi.waitFor(() => expect(shell.hidden).toBe(false));
+        const indicator = shell.querySelector('[data-testid="filterbar-admin-version-info"]');
+        const panel = shell.querySelector('[data-testid="filterbar-admin-version-info-panel"]');
+
         expect(fetchAdminVersionInfoMock).toHaveBeenCalledWith({ suppressAuthRedirect: true });
+        expect(indicator.tagName).toBe("BUTTON");
+        expect(indicator.querySelector("svg")).toBeTruthy();
         expect(indicator.title).toContain("Filterest: 8.27.99");
         expect(indicator.title).toContain("Tietokanta: 8.0.55 (yhteensopiva)");
-        expect(indicator.getAttribute("aria-hidden")).toBe("false");
-        expect(indicator.tabIndex).toBe(0);
+        expect(indicator.getAttribute("aria-expanded")).toBe("false");
+        expect(indicator.getAttribute("aria-controls")).toBe(panel.id);
+        expect(panel.textContent).toContain("Filterest: 8.27.99");
+        expect(panel.hidden).toBe(true);
+
+        indicator.click();
+        expect(indicator.getAttribute("aria-expanded")).toBe("true");
+        expect(panel.hidden).toBe(false);
+        panel.click();
+        expect(panel.hidden).toBe(false);
+
+        indicator.click();
+        expect(indicator.getAttribute("aria-expanded")).toBe("false");
+        expect(panel.hidden).toBe(true);
+
+        const outsideButton = document.createElement("button");
+        outsideButton.addEventListener("click", (event) => event.stopPropagation());
+        document.body.appendChild(outsideButton);
+        indicator.click();
+        outsideButton.click();
+        expect(indicator.getAttribute("aria-expanded")).toBe("false");
+        expect(panel.hidden).toBe(true);
+
+        shell.destroy();
     });
 });

@@ -9,5 +9,6 @@
  */
 
 @import url("./filterbar_layout.css");
+@import url("../admin_tools/admin_version_info_indicator.css");
 @import url("./text_search/text_search.css");
 @import url("./morphing_filterbar_content.css");

@@ -64,6 +64,8 @@ cookies.txt
 storage/
 storage_deleted/
 data/db_backups/
+data/instance_trash/
+data/project_trash/
 data/others/
 data/shared_dev_storage/
 db_backups/

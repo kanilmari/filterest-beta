@@ -46,6 +46,7 @@ test.describe('E9 — Admin version info', () => {
       .locator('[data-testid="filterbar-admin-version-info"]')
       .first();
     await expect(indicator).toBeVisible({ timeout: 10000 });
+    await expect(indicator.locator('svg')).toBeVisible();
 
     const response = await page.request.get('/api/admin/version-info');
     expect(response.status()).toBe(200);
@@ -69,6 +70,31 @@ test.describe('E9 — Admin version info', () => {
         's',
       ),
     );
+
+    const panel = page
+      .locator('.tab_parts_container:visible')
+      .first()
+      .locator('[data-testid="filterbar-admin-version-info-panel"]')
+      .first();
+    await expect(panel).toBeHidden();
+    await indicator.click();
+    await expect(indicator).toHaveAttribute('aria-expanded', 'true');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText(`${expectedProductName}: ${versionInfo.app_version}`);
+    await expect(panel).toContainText(`Database: ${versionInfo.db_version}`);
+
+    await indicator.click();
+    await expect(indicator).toHaveAttribute('aria-expanded', 'false');
+    await expect(panel).toBeHidden();
+
+    await indicator.click();
+    await expect(panel).toBeVisible();
+    await page
+      .locator('.tab_parts_container:visible .filterbar-clock-bar__content')
+      .first()
+      .click();
+    await expect(indicator).toHaveAttribute('aria-expanded', 'false');
+    await expect(panel).toBeHidden();
 
     const placement = await indicator.evaluate((element) => {
       const indicatorBox = element.getBoundingClientRect();

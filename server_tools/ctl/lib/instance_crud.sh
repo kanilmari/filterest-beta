@@ -1,10 +1,10 @@
 #!/bin/bash
 # ==============================================================================
-# instance_crud.sh: Instance creation and deletion
+# instance_crud.sh: Instance creation and recoverable retirement
 #
 # Handles the full lifecycle of instance directories and configuration:
 # - Creating new instances with auto-generated ports and credentials
-# - Deleting instances with safety prompts and optional backup
+# - Retiring instances into a recoverable, owner-only project trash
 # ==============================================================================
 
 # Host-port slot bases for Docker instances. Keep one stable slot per instance so
@@ -119,7 +119,7 @@ create_instance() {
     echo -e "${BLUE}🆕 Creating instance '${name}'...${NC}"
     
     # Create directories
-    mkdir -p "${instance_dir}"/{storage,backups}
+    mkdir -p "${instance_dir}"/{storage,storage_deleted,backups}
     echo "   ✓ Created ${instance_dir}/"
     
     # Reserve a stable slot per instance so app/db/optional sidecars stay in a
@@ -256,7 +256,10 @@ EOF
 }
 
 # ------------------------------------------------------------------------------
-# Delete instance
+# Retire one instance without permanently deleting its files or Docker volume.
+# Between the live instance tree, optional DB dump, and project trash it keeps
+# every local recovery surface available after the operator confirmation.
+# Why: an ordinary cleanup action must not destroy media or the named DB volume.
 # ------------------------------------------------------------------------------
 delete_instance() {
     local instance="$1"
@@ -274,35 +277,77 @@ delete_instance() {
         exit 1
     fi
     
-    echo -e "${RED}⚠️  WARNING: This will delete instance '${instance}'${NC}"
+    echo -e "${RED}⚠️  WARNING: This will retire instance '${instance}'${NC}"
     echo "   Directory: ${instance_dir}/"
+    echo "   Files move to the protected project trash; Docker volumes are retained."
     echo ""
-    
-    # Offer backup first
+
+    local backup_confirm="no"
+    local database_running=false
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "easelect-${instance}-db"; then
-        read -p "   Create backup before deletion? (yes/no): " backup_confirm
-        if [[ "$backup_confirm" == "yes" ]]; then
-            backup_instance "$instance"
-        fi
+        database_running=true
+        read -p "   Create a portable DB backup before retirement? (yes/no): " backup_confirm
     fi
-    
-    read -p "   Type instance name to confirm deletion: " confirm
+
+    read -p "   Type instance name to confirm retirement: " confirm
     
     if [[ "$confirm" != "$instance" ]]; then
         echo "   Cancelled."
         exit 0
     fi
-    
-    echo -e "${YELLOW}🗑️  Deleting instance '${instance}'...${NC}"
-    
-    # Stop containers if running
+
+    local retirement_timestamp
+    local retirement_root
+    local retired_instance_dir
+    local retirement_db_dir
+    local retirement_db_file
+    retirement_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    retirement_root="${PROJECT_ROOT}/data/instance_trash/deleted_instances/${instance}_${retirement_timestamp}"
+    retired_instance_dir="${retirement_root}/instance"
+    retirement_db_dir="${retirement_root}/database"
+    retirement_db_file="${retirement_db_dir}/backup_before_retirement_${retirement_timestamp}.sql.gz"
+
+    if [[ -e "$retirement_root" ]]; then
+        echo -e "${RED}❌ Retirement target already exists: ${retirement_root}${NC}"
+        exit 1
+    fi
+    mkdir -p "$retirement_db_dir"
+    chmod 700 "$retirement_root" "$retirement_db_dir"
+
+    if [[ "$database_running" == true ]] && [[ "$backup_confirm" == "yes" ]]; then
+        backup_instance "$instance" "$retirement_db_file"
+    fi
+
+    echo -e "${YELLOW}🗑️  Moving instance '${instance}' to protected trash...${NC}"
+
+    # Keep named Docker volumes recoverable. Purging them is a separate,
+    # explicitly destructive operator action.
     if [[ -f "$env_file" ]]; then
         export INSTANCE="$instance"
-        $(compose_cmd "$instance") down -v 2>/dev/null || true
+        if ! $(compose_cmd "$instance") down; then
+            echo -e "${RED}❌ Could not stop the instance; retirement cancelled${NC}"
+            exit 1
+        fi
     fi
-    
-    # Remove directory
-    rm -rf "$instance_dir"
-    
-    echo -e "${GREEN}✅ Instance '${instance}' deleted${NC}"
+
+    mv "$instance_dir" "$retired_instance_dir"
+    (
+        umask 077
+        {
+            printf 'INSTANCE=%s\n' "$instance"
+            printf 'RETIRED_AT=%s\n' "$retirement_timestamp"
+            printf 'SOURCE_PATH=%s\n' "$instance_dir"
+            printf 'RETIRED_INSTANCE_PATH=%s\n' "$retired_instance_dir"
+            printf 'DOCKER_VOLUMES_RETAINED=true\n'
+            if [[ -f "$retirement_db_file" ]]; then
+                printf 'DATABASE_BACKUP=%s\n' "$retirement_db_file"
+            else
+                printf 'DATABASE_BACKUP=not_created\n'
+            fi
+        } > "${retirement_root}/RESTORE.env"
+    )
+
+    echo -e "${GREEN}✅ Instance '${instance}' moved to protected trash${NC}"
+    echo "   Recovery path: ${retirement_root}"
+    echo "   Docker named volumes were retained."
 }
