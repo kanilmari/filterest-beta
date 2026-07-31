@@ -19,6 +19,11 @@ services:
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8082}:8082"    # Go backend
       - "${VITE_BIND_HOST:-127.0.0.1}:${VITE_PORT:-5173}:5173"  # Vite dev server
+    env_file:
+      - path: ${EASELECT_RUNTIME_ENV_FILE}
+        required: true
+      - path: ${EASELECT_DEV_ENV_FILE}
+        required: false
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -26,6 +31,11 @@ services:
       - DB_PASSWORD=${DB_ADMIN_PASSWORD}
       - DB_NAME=${DB_NAME}
       - ENVIRONMENT_TYPE=dev
+      - FILTEREST_PROJECTS_HOME=/filterest-projects
+      - TLS_CERT_FILE=/run/easelect-private/localhost_certificate.crt
+      - TLS_KEY_FILE=/run/easelect-private/localhost_private_key.key
+      - VITE_DEV_PORT=5173
+      - VITE_HMR_PORT=${VITE_PORT:-5173}
       - SESSION_KEY=${SESSION_KEY}
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
       - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME:-}
@@ -64,9 +74,14 @@ services:
       - ../storage:/app/storage
       - ../storage_deleted:/app/storage_deleted
       - ../db_backups:/app/db_backups
+      # Keep project data writable outside the source tree while exposing only
+      # the two TLS files (not the whole key home) to the container.
+      - ${FILTEREST_PROJECTS_HOME}:/filterest-projects
+      - ${EASELECT_TLS_CERT_FILE}:/run/easelect-private/localhost_certificate.crt:ro
+      - ${EASELECT_TLS_KEY_FILE}:/run/easelect-private/localhost_private_key.key:ro
     networks:
       - easelect-network
-    command: sh -c "npm run dev & go run main.go"
+    command: sh -c "npm run dev -- --host 0.0.0.0 & go run main.go"
 
   # ----------------------------------------------------------------------------
   # PostgreSQL Database with PostGIS + pgvector extensions

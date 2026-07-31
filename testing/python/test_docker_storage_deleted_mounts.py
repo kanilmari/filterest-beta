@@ -117,6 +117,16 @@ class DockerStorageDeletedMountTests(unittest.TestCase):
         )
         self.assertIn("Docker bind-mount ownership does not match runtime", docker_source)
         self.assertIn(
+            "easelect_full_dump.sql 2>/dev/null | head -1 || true)",
+            docker_source,
+        )
+        self.assertIn("FROM pg_depend AS d", docker_source)
+        self.assertIn("AND d.deptype = 'e'", docker_source)
+        self.assertIn('stream_bootstrap_schema_sql "${bootstrap_tmp_dir}/schema.sql" "1"', docker_source)
+        self.assertIn('_local_docker_compose up -d db', docker_source)
+        self.assertEqual(docker_source.count('_local_docker_compose up -d app'), 2)
+        self.assertNotIn('_local_docker_compose restart app', docker_source)
+        self.assertIn(
             "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8082}:8082",
             compose_source,
         )
@@ -124,6 +134,73 @@ class DockerStorageDeletedMountTests(unittest.TestCase):
             "${DB_BIND_HOST:-127.0.0.1}:${DB_PORT:-5433}:5432",
             compose_source,
         )
+        self.assertIn("path: ${EASELECT_RUNTIME_ENV_FILE}", compose_source)
+        self.assertIn("path: ${EASELECT_DEV_ENV_FILE}", compose_source)
+        self.assertIn(
+            "${FILTEREST_PROJECTS_HOME}:/filterest-projects",
+            compose_source,
+        )
+        self.assertIn(
+            "${EASELECT_TLS_CERT_FILE}:/run/easelect-private/localhost_certificate.crt:ro",
+            compose_source,
+        )
+        self.assertIn(
+            "${EASELECT_TLS_KEY_FILE}:/run/easelect-private/localhost_private_key.key:ro",
+            compose_source,
+        )
+        self.assertIn(
+            'for private_file in "$EASELECT_TLS_CERT_FILE" "$EASELECT_TLS_KEY_FILE"',
+            docker_source,
+        )
+        self.assertIn("VITE_DEV_PORT=5173", compose_source)
+        self.assertIn("VITE_HMR_PORT=${VITE_PORT:-5173}", compose_source)
+        self.assertIn(
+            'npm run dev -- --host 0.0.0.0 & go run main.go',
+            compose_source,
+        )
+
+    def test_dev_docker_tracks_supported_node_major_release(self) -> None:
+        dockerfile = (PROJECT_ROOT / "docker/Dockerfile.dev").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("nodejs~24", dockerfile)
+        self.assertIn("npm~11", dockerfile)
+        self.assertNotIn("nodejs=24.17.0-r0", dockerfile)
+
+    def test_dev_docker_keeps_source_edits_out_of_recursive_chown_layer(self) -> None:
+        dockerfile = (PROJECT_ROOT / "docker/Dockerfile.dev").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            "RUN npm ci && chown -R easelect:easelect /app/node_modules",
+            dockerfile,
+        )
+        self.assertIn("COPY --chown=easelect:easelect . .", dockerfile)
+        self.assertNotIn("chown -R easelect:easelect /app\n", dockerfile)
+
+    def test_docker_success_message_uses_actual_host_port_overrides(self) -> None:
+        common_source = (PROJECT_ROOT / "server_tools/ctl/lib/common.sh").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('vite_port="${VITE_PORT:-$vite_port}"', common_source)
+        self.assertIn('db_host="${DB_BIND_HOST:-127.0.0.1}"', common_source)
+        self.assertIn('db_port="${DB_PORT:-$db_port}"', common_source)
+
+    def test_docker_database_initializers_use_the_canonical_postgis_schema(self) -> None:
+        for relative_path in (
+            "server_tools/db_init/01_init_extensions.sh",
+            "server_tools/shared_dev_db/stack/db_init/01_init_extensions.sh",
+        ):
+            with self.subTest(initializer=relative_path):
+                initializer = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertIn("CREATE SCHEMA IF NOT EXISTS postgis", initializer)
+                self.assertIn(
+                    "CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA postgis",
+                    initializer,
+                )
 
     def test_healthcheck_and_default_database_binding_are_safe(self) -> None:
         for dockerfile_name in ("docker/Dockerfile", "docker/Dockerfile.mcp"):

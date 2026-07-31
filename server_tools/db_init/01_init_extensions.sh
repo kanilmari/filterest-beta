@@ -17,7 +17,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     DO \$\$
     BEGIN
         IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'postgis') THEN
-            EXECUTE 'CREATE EXTENSION IF NOT EXISTS postgis';
+            EXECUTE 'CREATE SCHEMA IF NOT EXISTS postgis';
+            EXECUTE 'CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA postgis';
             RAISE NOTICE 'PostGIS extension enabled';
         ELSE
             RAISE NOTICE 'PostGIS not available, skipping...';

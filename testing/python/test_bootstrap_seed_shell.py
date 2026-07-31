@@ -48,6 +48,7 @@ class BootstrapSeedShellTests(unittest.TestCase):
             schema_file = Path(temp_dir) / "schema.sql"
             schema_file.write_text(
                 "\\restrict token\n"
+                "CREATE SCHEMA postgis;\n"
                 "CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA postgis;\n"
                 "COMMENT ON EXTENSION postgis IS 'spatial';\n"
                 "CREATE TABLE locations (position postgis.geometry(Point,4326));\n"
@@ -59,6 +60,7 @@ class BootstrapSeedShellTests(unittest.TestCase):
 
         self.assertNotIn("\\restrict", rendered)
         self.assertNotIn("\\unrestrict", rendered)
+        self.assertIn("CREATE SCHEMA IF NOT EXISTS postgis;", rendered)
         self.assertIn("CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA postgis;", rendered)
         self.assertIn("COMMENT ON EXTENSION postgis", rendered)
         self.assertIn("postgis.geometry(Point,4326)", rendered)

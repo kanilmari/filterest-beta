@@ -17,6 +17,7 @@ _local_docker_compose() {
 # Between Linux/WSL user IDs and Docker Compose it prevents root-owned source or
 # media artifacts while failing early on storage left behind by another user.
 prepare_local_docker_storage() {
+    local private_file
     local storage_name
     local storage_path
     local mismatched_path
@@ -31,6 +32,14 @@ prepare_local_docker_storage() {
         echo "error: Docker runtime UID/GID must be numeric non-root IDs" >&2
         return 1
     fi
+
+    for private_file in "$EASELECT_TLS_CERT_FILE" "$EASELECT_TLS_KEY_FILE"; do
+        if [[ ! -r "$private_file" ]]; then
+            echo "error: Docker TLS file is missing or unreadable: $private_file" >&2
+            return 1
+        fi
+    done
+    mkdir -p "$FILTEREST_PROJECTS_HOME"
 
     for storage_name in storage storage_deleted db_backups; do
         storage_path="${PROJECT_ROOT}/${storage_name}"
@@ -54,7 +63,18 @@ prepare_local_docker_storage() {
 start_docker() {
     docker_query_public_table_count() {
         docker exec easelect-db-dev psql -U admin_user -d easelect -tAc \
-            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d '[:space:]'
+            "SELECT COUNT(*)
+               FROM pg_class AS c
+               JOIN pg_namespace AS n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public'
+                AND c.relkind IN ('r', 'p')
+                AND NOT EXISTS (
+                    SELECT 1
+                      FROM pg_depend AS d
+                     WHERE d.classid = 'pg_class'::regclass
+                       AND d.objid = c.oid
+                       AND d.deptype = 'e'
+                );" 2>/dev/null | tr -d '[:space:]'
     }
 
     docker_import_sql_file() {
@@ -96,7 +116,15 @@ start_docker() {
     # Start containers
     echo "🐳 Starting Docker containers..."
     _local_docker_compose down 2>/dev/null || true
-    _local_docker_compose up -d --build
+    if [[ "$RESTORE_DB" == true ]]; then
+        # Build both images first, but keep the app stopped until the database
+        # restore is complete. Starting the app against a partially imported
+        # schema lets background jobs race the seed and create duplicate rows.
+        _local_docker_compose build
+        _local_docker_compose up -d db
+    else
+        _local_docker_compose up -d --build
+    fi
     
     echo "⏳ Waiting for database..."
     sleep 5
@@ -108,9 +136,10 @@ start_docker() {
         local bootstrap_zip=""
         local bootstrap_password=""
         local bootstrap_tmp_dir=""
+        local bootstrap_schema_stream=""
         local config_count=""
         local existing_public_tables=""
-        dump_file=$(ls -t data/db_backups/easelect_full_dump_*.sql data/db_backups/easelect_full_dump.sql easelect_full_dump_*.sql easelect_full_dump.sql 2>/dev/null | head -1)
+        dump_file=$(ls -t data/db_backups/easelect_full_dump_*.sql data/db_backups/easelect_full_dump.sql easelect_full_dump_*.sql easelect_full_dump.sql 2>/dev/null | head -1 || true)
         existing_public_tables="$(docker_query_public_table_count)"
         if [[ -n "$existing_public_tables" && "$existing_public_tables" != "0" ]]; then
             echo -e "${RED}❌ Docker database already contains ${existing_public_tables} public tables.${NC}"
@@ -128,7 +157,7 @@ start_docker() {
                 echo -e "${RED}❌ Restore verification failed: system_config has no rows after dump import.${NC}"
                 exit 1
             fi
-            _local_docker_compose restart app
+            _local_docker_compose up -d app
         else
             bootstrap_zip="$(current_bootstrap_seed_zip_path 2>/dev/null || true)"
             if [[ -n "$bootstrap_zip" ]]; then
@@ -155,14 +184,16 @@ start_docker() {
                 [[ -f "${bootstrap_tmp_dir}/schema.sql" ]] || { echo -e "${RED}❌ bootstrap zip missing schema.sql${NC}"; exit 1; }
                 [[ -f "${bootstrap_tmp_dir}/seed_data.sql" ]] || { echo -e "${RED}❌ bootstrap zip missing seed_data.sql${NC}"; exit 1; }
 
-                docker_import_sql_file "Docker bootstrap schema restore" "${bootstrap_tmp_dir}/schema.sql"
+                bootstrap_schema_stream="${bootstrap_tmp_dir}/schema.rendered.sql"
+                stream_bootstrap_schema_sql "${bootstrap_tmp_dir}/schema.sql" "1" > "${bootstrap_schema_stream}"
+                docker_import_sql_file "Docker bootstrap schema restore" "${bootstrap_schema_stream}"
                 docker_import_sql_file "Docker bootstrap seed restore" "${bootstrap_tmp_dir}/seed_data.sql"
                 config_count="$(docker exec easelect-db-dev psql -U admin_user -d easelect -tAc "SELECT COUNT(*) FROM system_config;" 2>/dev/null | tr -d '[:space:]')"
                 if [[ -z "$config_count" || "$config_count" == "0" ]]; then
                     echo -e "${RED}❌ Restore verification failed: system_config has no rows after bootstrap import.${NC}"
                     exit 1
                 fi
-                _local_docker_compose restart app
+                _local_docker_compose up -d app
             else
                 echo -e "${RED}❌ No database dump or committed bootstrap zip found for --restore-db${NC}"
                 exit 1

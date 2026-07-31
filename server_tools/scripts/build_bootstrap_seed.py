@@ -132,6 +132,12 @@ def normalize_sql_text(sql_text: str) -> str:
     return "\n".join(filtered_lines).rstrip("\n") + "\n"
 
 
+def restore_seed_runtime_search_path(seed_sql: str) -> str:
+    """Reset pg_dump's empty search path before seed rows can fire runtime triggers."""
+    empty_search_path = "SELECT pg_catalog.set_config('search_path', '', false);"
+    return seed_sql.replace(empty_search_path, "RESET search_path;")
+
+
 def split_sql_csv_fields(text: str) -> list[str]:
     """Split a SQL comma list while respecting quotes and nested expressions."""
     fields: list[str] = []
@@ -383,12 +389,36 @@ def should_drop_seed_insert_table(parsed_insert: dict[str, Any]) -> bool:
     return seed_schema_only_policy_for_table(schema_name, table_name) == "schema_only"
 
 
+def parse_system_user_foreign_keys(schema_sql: str) -> dict[str, list[dict[str, str]]]:
+    """Find single-column foreign keys that point to public.system_users(id)."""
+    pattern = re.compile(
+        r"ALTER\s+TABLE\s+ONLY\s+(?P<table>\S+)\s+"
+        r"ADD\s+CONSTRAINT\s+\S+\s+FOREIGN\s+KEY\s*\((?P<column>[^,)]+)\)\s+"
+        r"REFERENCES\s+public\.system_users\s*\(id\)"
+        r"(?:\s+ON\s+DELETE\s+(?P<on_delete>SET\s+NULL|CASCADE|RESTRICT|NO\s+ACTION))?",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    foreign_keys: dict[str, list[dict[str, str]]] = {}
+    for match in pattern.finditer(schema_sql):
+        table = match.group("table").lower()
+        on_delete = re.sub(r"\s+", " ", match.group("on_delete") or "NO ACTION").upper()
+        foreign_keys.setdefault(table, []).append(
+            {
+                "column": normalize_sql_identifier(match.group("column")),
+                "on_delete": on_delete,
+            }
+        )
+    return foreign_keys
+
+
 def apply_seed_row_policies(
     seed_sql: str,
     seed_user_allowlist: Sequence[str] = DEFAULT_SEED_USER_ALLOWLIST,
+    schema_sql: str = "",
 ) -> tuple[str, dict[str, Any]]:
-    """Drop non-bootstrap users and rows from tables that must remain schema-only."""
+    """Keep the public user allowlist and preserve its foreign-key integrity."""
     allowed_usernames = set(normalize_seed_user_allowlist(seed_user_allowlist))
+    system_user_foreign_keys = parse_system_user_foreign_keys(schema_sql)
     parsed_lines: list[tuple[str, dict[str, Any] | None]] = [
         (statement, parse_insert_line(statement)) for statement in split_seed_sql_statements(seed_sql)
     ]
@@ -404,6 +434,8 @@ def apply_seed_row_policies(
 
     output_statements: list[str] = []
     dropped_by_table: dict[str, int] = {}
+    dropped_invalid_user_references_by_table: dict[str, int] = {}
+    nulled_user_references_by_table_column: dict[str, int] = {}
 
     def record_drop(table_name: str) -> None:
         dropped_by_table[table_name] = dropped_by_table.get(table_name, 0) + 1
@@ -431,12 +463,58 @@ def apply_seed_row_policies(
                 record_drop(table)
                 continue
 
-        output_statements.append(line)
+        invalid_reference_requires_drop = False
+        pending_nulled_reference_keys: list[str] = []
+        for foreign_key in system_user_foreign_keys.get(table.lower(), []):
+            column = foreign_key["column"]
+            raw_user_id = column_value(parsed_insert, column)
+            if raw_user_id is None or raw_user_id.upper() == "NULL":
+                continue
+            try:
+                referenced_user_id = int(raw_user_id)
+            except ValueError as exc:
+                raise BootstrapSeedBuilderError(
+                    f"cannot validate {table}.{column} system_users reference: {raw_user_id}"
+                ) from exc
+            if referenced_user_id in allowed_user_ids:
+                continue
+
+            if foreign_key["on_delete"] != "SET NULL":
+                invalid_reference_requires_drop = True
+                break
+
+            for index, insert_column in enumerate(parsed_insert["columns"]):
+                if normalize_sql_identifier(insert_column) == column:
+                    parsed_insert["values"][index] = "NULL"
+                    pending_nulled_reference_keys.append(f"{table}.{column}")
+                    break
+
+        if invalid_reference_requires_drop:
+            record_drop(table)
+            dropped_invalid_user_references_by_table[table] = (
+                dropped_invalid_user_references_by_table.get(table, 0) + 1
+            )
+            continue
+
+        for key in pending_nulled_reference_keys:
+            nulled_user_references_by_table_column[key] = (
+                nulled_user_references_by_table_column.get(key, 0) + 1
+            )
+        output_statements.append(
+            render_insert_line(parsed_insert) if pending_nulled_reference_keys else line
+        )
 
     return "".join(output_statements).rstrip("\n") + "\n", {
         "allowed_usernames": sorted(allowed_usernames),
         "allowed_user_ids": sorted(allowed_user_ids),
         "dropped_insert_rows_by_table": dict(sorted(dropped_by_table.items())),
+        "dropped_invalid_user_references_by_table": dict(
+            sorted(dropped_invalid_user_references_by_table.items())
+        ),
+        "nulled_user_references_by_table_column": dict(
+            sorted(nulled_user_references_by_table_column.items())
+        ),
+        "system_user_foreign_keys_checked": sum(map(len, system_user_foreign_keys.values())),
     }
 
 
@@ -1126,9 +1204,14 @@ def main() -> int:
 
     schema_sql = normalize_sql_text(read_text_file(schema_path))
     seed_sql, seed_metadata = load_seed_sql(args, db_version, seed_profile)
+    seed_sql = restore_seed_runtime_search_path(seed_sql)
     seed_sql, scrubbed_column_counts = scrub_seed_sql_excluded_columns(seed_sql)
     seed_sql = order_system_table_folders_seed_rows(seed_sql)
-    seed_sql, row_policy_metadata = apply_seed_row_policies(seed_sql, seed_user_allowlist)
+    seed_sql, row_policy_metadata = apply_seed_row_policies(
+        seed_sql,
+        seed_user_allowlist,
+        schema_sql,
+    )
     seed_sql = append_seed_profile_role_config(seed_sql, seed_profile)
     seed_audit = audit_seed_sql_tables(seed_sql)
     seed_metadata["excluded_seed_columns"] = list(DEFAULT_EXCLUDED_SEED_COLUMNS)

@@ -38,6 +38,22 @@ def test_scrub_seed_sql_handles_quoted_embedding_identifier() -> None:
     assert 'VALUES (7, NULL, \'still here\');' in scrubbed
 
 
+def test_restore_seed_runtime_search_path_replaces_pg_dump_empty_path() -> None:
+    seed_sql = "\n".join(
+        [
+            "SET standard_conforming_strings = on;",
+            "SELECT pg_catalog.set_config('search_path', '', false);",
+            "INSERT INTO public.example (id) VALUES (1);",
+            "",
+        ]
+    )
+
+    restored = build_bootstrap_seed.restore_seed_runtime_search_path(seed_sql)
+
+    assert "RESET search_path;" in restored
+    assert "set_config('search_path', '', false)" not in restored
+
+
 def test_scrub_seed_sql_handles_overriding_system_value() -> None:
     sql = (
         "INSERT INTO public.example (id, embedding_vector, note) "
@@ -242,6 +258,45 @@ def test_apply_seed_row_policies_keeps_only_allowed_users_and_restricted_rows() 
         "public.system_user_group_memberships": 1,
         "public.system_users": 1,
         "restricted.users_restricted": 1,
+    }
+
+
+def test_apply_seed_row_policies_preserves_system_user_foreign_key_integrity() -> None:
+    schema_sql = """
+ALTER TABLE ONLY public.app_listing
+    ADD CONSTRAINT app_listing_user_id_fkey FOREIGN KEY (user_id)
+    REFERENCES public.system_users(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.required_user_event
+    ADD CONSTRAINT required_user_event_user_id_fkey FOREIGN KEY (user_id)
+    REFERENCES public.system_users(id) ON DELETE CASCADE;
+"""
+    seed_sql = "\n".join(
+        [
+            "INSERT INTO public.system_users (id, username) VALUES (1, 'guest');",
+            "INSERT INTO public.system_users (id, username) VALUES (2, 'private_user');",
+            "INSERT INTO public.app_listing (id, user_id) VALUES (10, 2);",
+            "INSERT INTO public.app_listing (id, user_id) VALUES (11, 1);",
+            "INSERT INTO public.required_user_event (id, user_id) VALUES (20, 2);",
+            "",
+        ]
+    )
+
+    pruned, metadata = build_bootstrap_seed.apply_seed_row_policies(
+        seed_sql,
+        ("guest",),
+        schema_sql,
+    )
+
+    assert "VALUES (10, NULL)" in pruned
+    assert "VALUES (11, 1)" in pruned
+    assert "required_user_event" not in pruned
+    assert "private_user" not in pruned
+    assert metadata["system_user_foreign_keys_checked"] == 2
+    assert metadata["nulled_user_references_by_table_column"] == {
+        "public.app_listing.user_id": 1,
+    }
+    assert metadata["dropped_invalid_user_references_by_table"] == {
+        "public.required_user_event": 1,
     }
 
 

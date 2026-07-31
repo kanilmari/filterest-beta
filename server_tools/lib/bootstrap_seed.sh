@@ -213,7 +213,11 @@ stream_bootstrap_schema_sql() {
     local postgis_available="${2:-1}"
 
     if [[ "$postgis_available" == "1" ]]; then
-        sed '/^\\restrict/d; /^\\unrestrict/d' "$schema_file"
+        sed \
+            -e 's/^CREATE SCHEMA postgis;$/CREATE SCHEMA IF NOT EXISTS postgis;/' \
+            -e '/^\\restrict/d' \
+            -e '/^\\unrestrict/d' \
+            "$schema_file"
         return
     fi
 

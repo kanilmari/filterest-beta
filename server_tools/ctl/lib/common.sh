@@ -208,6 +208,11 @@ print_success() {
     db_port="${db_port:-5432}"
     shared_dev_storage_enabled="${shared_dev_storage_enabled:-false}"
     shared_dev_root="${shared_dev_root:-/srv/easelect-dev}"
+    if [[ "$mode" == "docker" ]]; then
+        vite_port="${VITE_PORT:-$vite_port}"
+        db_host="${DB_BIND_HOST:-127.0.0.1}"
+        db_port="${DB_PORT:-$db_port}"
+    fi
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
     echo -e "${GREEN}✅ ${project_name} is running! (${mode} mode)${NC}"
