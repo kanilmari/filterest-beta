@@ -64,8 +64,3 @@ export PROJECT_ROOT
 # Generated Filterest checkouts deliberately resolve to their root-local runtime files.
 source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
 easelect_resolve_private_paths "$PROJECT_ROOT"
-
-# Private RegFetch and Tukisuu source now belongs to the dynamic project home.
-# Keep their historical Go import paths working through local, untracked links.
-source "$PROJECT_ROOT/server_tools/lib/project_bridges.sh"
-easelect_prepare_project_bridges "$PROJECT_ROOT"
