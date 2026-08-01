@@ -93,6 +93,11 @@ dev_env.txt
 google-application-credentials*.json
 apps/**/my-test-project-*.json
 
+# Private project sources live under the dynamically resolved projects_home.
+# These two paths are local build bridges created by project_bridges.sh.
+/apps/regfetch
+/apps/tukisuu
+
 # Local export staging for public/open-source slices
 /public-slice/
 /open-source-export/

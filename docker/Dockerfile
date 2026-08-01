@@ -18,6 +18,7 @@ RUN npm ci --only=production=false
 
 # Copy frontend source (vite.config.mjs is inside frontend/)
 COPY frontend/ ./frontend/
+COPY server_tools/lib/easelect_private_paths.mjs ./server_tools/lib/easelect_private_paths.mjs
 
 # Build frontend for production
 RUN npm run build

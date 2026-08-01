@@ -101,6 +101,10 @@ Thumbs.db
 **/*private-key*.json
 **/*private_key*.json
 apps/**/my-test-project-*.json
+# Private compiled apps are supplied through the filtered projects_home build
+# context. Do not copy local bridge symlinks into the primary build context.
+apps/regfetch
+apps/tukisuu
 *.crt
 *.pem
 *.key

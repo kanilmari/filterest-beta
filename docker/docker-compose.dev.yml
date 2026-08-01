@@ -31,7 +31,7 @@ services:
       - DB_PASSWORD=${DB_ADMIN_PASSWORD}
       - DB_NAME=${DB_NAME}
       - ENVIRONMENT_TYPE=dev
-      - FILTEREST_PROJECTS_HOME=/filterest-projects
+      - FILTEREST_PROJECTS_HOME=${FILTEREST_PROJECTS_HOME}
       - TLS_CERT_FILE=/run/easelect-private/localhost_certificate.crt
       - TLS_KEY_FILE=/run/easelect-private/localhost_private_key.key
       - VITE_DEV_PORT=5173
@@ -76,12 +76,12 @@ services:
       - ../db_backups:/app/db_backups
       # Keep project data writable outside the source tree while exposing only
       # the two TLS files (not the whole key home) to the container.
-      - ${FILTEREST_PROJECTS_HOME}:/filterest-projects
+      - ${FILTEREST_PROJECTS_HOME}:${FILTEREST_PROJECTS_HOME}
       - ${EASELECT_TLS_CERT_FILE}:/run/easelect-private/localhost_certificate.crt:ro
       - ${EASELECT_TLS_KEY_FILE}:/run/easelect-private/localhost_private_key.key:ro
     networks:
       - easelect-network
-    command: sh -c "npm run dev -- --host 0.0.0.0 & go run main.go"
+    command: sh -c "npm run dev -- --host 0.0.0.0 & go run ."
 
   # ----------------------------------------------------------------------------
   # PostgreSQL Database with PostGIS + pgvector extensions

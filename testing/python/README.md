@@ -18,7 +18,7 @@ python -m pytest testing/python --python-category platform-tooling
 ```
 
 Translatorin ulkoisia ja mahdollisesti laskutettavia LLM-kutsuja tekevät
-`apps/translator/manual_*_smoke.py`-skriptit ajetaan vain erikseen. Ne eivät
+`<projects_home>/translator/manual_*_smoke.py`-skriptit ajetaan vain erikseen. Ne eivät
 kuulu pytest-kokoelmaan.
 
 These are ownership/reporting categories, not claims about process isolation.

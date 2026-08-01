@@ -12,6 +12,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --only=production=false
 
 COPY frontend/ ./frontend/
+COPY server_tools/lib/easelect_private_paths.mjs ./server_tools/lib/easelect_private_paths.mjs
 RUN npm run build
 
 # --- Stage 2: Build Go binary ---
