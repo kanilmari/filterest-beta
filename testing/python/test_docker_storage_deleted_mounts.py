@@ -5,6 +5,7 @@ Exists so container rebuilds cannot discard media archived after a database dele
 """
 
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -168,6 +169,16 @@ class DockerStorageDeletedMountTests(unittest.TestCase):
         self.assertIn("npm~11", dockerfile)
         self.assertNotIn("nodejs=24.17.0-r0", dockerfile)
 
+    def test_app_docker_images_declare_the_admin_runtime_mode(self) -> None:
+        for relative_path in (
+            "docker/Dockerfile",
+            "docker/Dockerfile.dev",
+            "docker/Dockerfile.mcp",
+        ):
+            with self.subTest(dockerfile=relative_path):
+                dockerfile = (PROJECT_ROOT / relative_path).read_text(encoding="utf-8")
+                self.assertIn("ENV EASELECT_RUNTIME_MODE=docker", dockerfile)
+
     def test_dev_docker_keeps_source_edits_out_of_recursive_chown_layer(self) -> None:
         dockerfile = (PROJECT_ROOT / "docker/Dockerfile.dev").read_text(
             encoding="utf-8"
@@ -184,10 +195,80 @@ class DockerStorageDeletedMountTests(unittest.TestCase):
         common_source = (PROJECT_ROOT / "server_tools/ctl/lib/common.sh").read_text(
             encoding="utf-8"
         )
+        docker_source = (PROJECT_ROOT / "server_tools/ctl/lib/docker.sh").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn('vite_port="${VITE_PORT:-$vite_port}"', common_source)
         self.assertIn('db_host="${DB_BIND_HOST:-127.0.0.1}"', common_source)
         self.assertIn('db_port="${DB_PORT:-$db_port}"', common_source)
+        self.assertIn("resolve_local_docker_host_port", docker_source)
+        self.assertLess(
+            docker_source.index("prepare_local_docker_storage"),
+            docker_source.index("check_port_available"),
+        )
+
+        result = subprocess.run(
+            [
+                "bash",
+                "-c",
+                """
+                PROJECT_ROOT="$1"
+                EASELECT_PORT=8082
+                APP_PORT=18082
+                export PROJECT_ROOT EASELECT_PORT APP_PORT
+                source "$PROJECT_ROOT/server_tools/ctl/lib/common.sh"
+                source "$PROJECT_ROOT/server_tools/ctl/lib/docker.sh"
+                resolve_local_docker_host_port
+                printf '%s|%s' "$PORT" "$APP_PORT"
+                """,
+                "bash",
+                str(PROJECT_ROOT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual("18082|18082", result.stdout)
+
+    def test_local_docker_restore_tolerates_preinitialized_postgis_schema(self) -> None:
+        docker_source = (
+            PROJECT_ROOT / "server_tools/ctl/lib/docker.sh"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("stream_local_docker_restore_sql", docker_source)
+        self.assertIn(
+            "CREATE SCHEMA IF NOT EXISTS postgis;",
+            docker_source,
+        )
+
+        result = subprocess.run(
+            [
+                "bash",
+                "-c",
+                """
+                PROJECT_ROOT="$1"
+                export PROJECT_ROOT
+                source "$PROJECT_ROOT/server_tools/ctl/lib/docker.sh"
+                printf '%s\n' \
+                    'CREATE SCHEMA apps;' \
+                    'CREATE SCHEMA postgis;' \
+                    'CREATE TABLE public.example (id integer);' \
+                    | stream_local_docker_restore_sql
+                """,
+                "bash",
+                str(PROJECT_ROOT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            "CREATE SCHEMA apps;\n"
+            "CREATE SCHEMA IF NOT EXISTS postgis;\n"
+            "CREATE TABLE public.example (id integer);\n",
+            result.stdout,
+        )
 
     def test_docker_database_initializers_use_the_canonical_postgis_schema(self) -> None:
         for relative_path in (

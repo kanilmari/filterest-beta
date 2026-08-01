@@ -65,6 +65,9 @@ ARG EASELECT_GIT_COMMIT=unknown
 ARG EASELECT_RUNTIME_UID=1000
 ARG EASELECT_RUNTIME_GID=1000
 
+# The protected admin version panel reports this reviewed execution-mode enum.
+ENV EASELECT_RUNTIME_MODE=docker
+
 LABEL easelect.version_contract="1" \
       easelect.app_version="${EASELECT_APP_VERSION}" \
       easelect.db_version="${EASELECT_DB_VERSION}" \

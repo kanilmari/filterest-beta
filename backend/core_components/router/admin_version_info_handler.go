@@ -6,8 +6,15 @@ package router
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"easelect/backend/core_components/httpresponse"
+)
+
+const (
+	adminRuntimeModeDocker = "docker"
+	adminRuntimeModeNative = "native"
 )
 
 type adminVersionInfoResponse struct {
@@ -16,6 +23,17 @@ type adminVersionInfoResponse struct {
 	DBVersion         string `json:"db_version"`
 	RequiredDBVersion string `json:"required_db_version"`
 	DBCompatible      bool   `json:"db_compatible"`
+	RuntimeMode       string `json:"runtime_mode"`
+}
+
+// currentAdminRuntimeMode returns a stable, non-secret execution-mode value.
+// Docker images opt in through EASELECT_RUNTIME_MODE; ordinary host processes
+// fall back to native so the admin UI never exposes an unreviewed env value.
+func currentAdminRuntimeMode() string {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("EASELECT_RUNTIME_MODE")), adminRuntimeModeDocker) {
+		return adminRuntimeModeDocker
+	}
+	return adminRuntimeModeNative
 }
 
 func adminVersionInfoHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,5 +49,6 @@ func adminVersionInfoHandler(w http.ResponseWriter, r *http.Request) {
 		DBVersion:         readiness.DBVersion,
 		RequiredDBVersion: readiness.RequiredDBVersion,
 		DBCompatible:      readiness.DBCompatible,
+		RuntimeMode:       currentAdminRuntimeMode(),
 	})
 }

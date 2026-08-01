@@ -17,6 +17,9 @@ const VERSION_LABELS = Object.freeze({
         app: "Sovellus",
         database: "Tietokanta",
         requiredDatabase: "Vaadittu tietokanta",
+        runtime: "Ajotapa",
+        runtimeDocker: "Docker",
+        runtimeNative: "Tavallinen",
         compatible: "yhteensopiva",
         incompatible: "ei yhteensopiva",
     },
@@ -24,6 +27,9 @@ const VERSION_LABELS = Object.freeze({
         app: "Application",
         database: "Database",
         requiredDatabase: "Required database",
+        runtime: "Runtime",
+        runtimeDocker: "Docker",
+        runtimeNative: "Native",
         compatible: "compatible",
         incompatible: "incompatible",
     },
@@ -31,6 +37,9 @@ const VERSION_LABELS = Object.freeze({
         app: "应用程序",
         database: "数据库",
         requiredDatabase: "所需数据库",
+        runtime: "运行方式",
+        runtimeDocker: "Docker",
+        runtimeNative: "本机",
         compatible: "兼容",
         incompatible: "不兼容",
     },
@@ -38,26 +47,71 @@ const VERSION_LABELS = Object.freeze({
         app: "應用程式",
         database: "資料庫",
         requiredDatabase: "所需資料庫",
+        runtime: "執行方式",
+        runtimeDocker: "Docker",
+        runtimeNative: "原生",
         compatible: "相容",
         incompatible: "不相容",
     },
 });
 
-export function formatAdminVersionInfoLabel(versionInfo, language = "en") {
+export function buildAdminVersionInfoRows(versionInfo, language = "en") {
     const labels = VERSION_LABELS[language] || VERSION_LABELS.en;
     const productName = String(versionInfo?.product_name || labels.app).trim();
     const appVersion = String(versionInfo?.app_version || "unknown").trim();
     const databaseVersion = String(versionInfo?.db_version || "unknown").trim();
     const requiredDatabaseVersion = String(versionInfo?.required_db_version || "unknown").trim();
+    const runtimeMode = String(versionInfo?.runtime_mode || "native").trim().toLowerCase();
+    const runtimeLabel = runtimeMode === "docker"
+        ? labels.runtimeDocker
+        : labels.runtimeNative;
     const compatibilityLabel = versionInfo?.db_compatible
         ? labels.compatible
         : labels.incompatible;
 
-    return [
-        `${productName}: ${appVersion}`,
-        `${labels.database}: ${databaseVersion} (${compatibilityLabel})`,
-        `${labels.requiredDatabase}: ${requiredDatabaseVersion}`,
-    ].join("\n");
+    return Object.freeze([
+        { id: "application", label: productName, value: appVersion },
+        {
+            id: "database",
+            label: labels.database,
+            value: `${databaseVersion} (${compatibilityLabel})`,
+        },
+        {
+            id: "required-database",
+            label: labels.requiredDatabase,
+            value: requiredDatabaseVersion,
+        },
+        { id: "runtime", label: labels.runtime, value: runtimeLabel },
+    ]);
+}
+
+export function formatAdminVersionInfoLabel(versionInfo, language = "en") {
+    return buildAdminVersionInfoRows(versionInfo, language)
+        .map(({ label, value }) => `${label} ${value}`)
+        .join("\n");
+}
+
+function renderAdminVersionInfoRows(panel, rows) {
+    const body = document.createElement("tbody");
+    const rowElements = rows.map(({ id, label, value }) => {
+        const row = document.createElement("tr");
+
+        const keyCell = document.createElement("th");
+        keyCell.scope = "row";
+        keyCell.classList.add("filterbar-clock-bar__version-info-key");
+        keyCell.dataset.versionInfoKey = id;
+        keyCell.textContent = label;
+
+        const valueCell = document.createElement("td");
+        valueCell.classList.add("filterbar-clock-bar__version-info-value");
+        valueCell.dataset.versionInfoValue = id;
+        valueCell.textContent = value;
+
+        row.append(keyCell, valueCell);
+        return row;
+    });
+    body.append(...rowElements);
+    panel.replaceChildren(body);
 }
 
 export function buildAdminVersionInfoIndicator() {
@@ -78,11 +132,11 @@ export function buildAdminVersionInfoIndicator() {
     indicator.setAttribute("aria-expanded", "false");
 
     const panelId = `filterbar-admin-version-info-panel-${++versionInfoPanelSequence}`;
-    const panel = document.createElement("div");
+    const panel = document.createElement("table");
     panel.id = panelId;
     panel.classList.add("filterbar-clock-bar__version-info-panel");
     panel.dataset.testid = "filterbar-admin-version-info-panel";
-    panel.setAttribute("role", "status");
+    panel.setAttribute("aria-live", "polite");
     panel.hidden = true;
     indicator.setAttribute("aria-controls", panelId);
 
@@ -131,13 +185,15 @@ export function buildAdminVersionInfoIndicator() {
 async function hydrateAdminVersionInfoIndicator(shell, indicator, panel) {
     try {
         const versionInfo = await fetchAdminVersionInfo({ suppressAuthRedirect: true });
+        const language = getLanguageWithBrowserFallback();
+        const rows = buildAdminVersionInfoRows(versionInfo, language);
         const label = formatAdminVersionInfoLabel(
             versionInfo,
-            getLanguageWithBrowserFallback()
+            language
         );
         indicator.title = label;
         indicator.setAttribute("aria-label", label.replaceAll("\n", ". "));
-        panel.textContent = label;
+        renderAdminVersionInfoRows(panel, rows);
         shell.hidden = false;
     } catch {
         shell.destroy();

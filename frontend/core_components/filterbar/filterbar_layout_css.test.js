@@ -52,6 +52,7 @@ describe('shared topbar layout CSS', () => {
         const indicatorRule = extractRule(css, '.filterbar-clock-bar__version-info');
         const iconRule = extractRule(css, '.filterbar-clock-bar__version-info-icon');
         const panelRule = extractRule(css, '.filterbar-clock-bar__version-info-panel');
+        const keyRule = extractRule(css, '.filterbar-clock-bar__version-info-key');
 
         expect(shellRule).toContain('right: 8px');
         expect(shellRule).toContain('transform: translateY(-50%)');
@@ -60,6 +61,8 @@ describe('shared topbar layout CSS', () => {
         expect(indicatorRule).toContain('border: 0');
         expect(iconRule).toContain('pointer-events: none');
         expect(panelRule).toContain('bottom: calc(100% + 8px)');
-        expect(panelRule).toContain('white-space: pre-line');
+        expect(panelRule).toContain('border-collapse: separate');
+        expect(panelRule).toContain('border-spacing: 0 2px');
+        expect(keyRule).toContain('padding: 0 19px 0 0');
     });
 });

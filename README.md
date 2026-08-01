@@ -42,8 +42,37 @@ access; the database folder hierarchy remains authoritative.
 - Multilingual interface text and multilingual field values.
 - Group, capability, and dataset permissions for public and authenticated use.
 - Hierarchical projects and folders for organizing datasets.
+- PostGIS-backed point locations with a built-in OpenStreetMap-based Map view.
 - Optional semantic search and AI integrations through separately configured
   provider credentials.
+
+## Geospatial Data With PostGIS
+
+Filterest uses PostGIS for location-aware datasets. The built-in **Map view**
+plots point records on OpenStreetMap tiles and can recognize PostGIS WKT/EWKB
+point values as well as conventional `latitude`/`longitude`, `lat`/`lng`, and
+similar coordinate-column pairs.
+
+The current database-backed map contract is a WGS 84 point column:
+
+```sql
+position postgis.geometry(Point, 4326)
+```
+
+For example, Helsinki can be represented as `POINT(24.9384 60.1699)` — WKT
+uses longitude before latitude. A read-only inspection can extract the values
+without changing the dataset:
+
+```sql
+SELECT
+    postgis.ST_X(position) AS longitude,
+    postgis.ST_Y(position) AS latitude
+FROM your_location_dataset
+WHERE position IS NOT NULL;
+```
+
+The current Map view claim is deliberately limited to point locations; line
+and polygon rendering are not yet part of this documented contract.
 
 ## Current Status
 
@@ -61,7 +90,7 @@ beta repository will become read-only when stable is explicitly activated.
 
 - Go 1.26.5 or newer.
 - Node.js 24 or newer.
-- PostgreSQL 16 with pgvector.
+- PostgreSQL 16 with PostGIS and pgvector.
 - OpenSSL for generating a local development certificate.
 
 The automated local setup script currently targets Ubuntu and Debian systems

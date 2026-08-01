@@ -12,6 +12,7 @@ import (
 )
 
 func TestAdminVersionInfoHandlerReturnsReadinessVersions(t *testing.T) {
+	t.Setenv("EASELECT_RUNTIME_MODE", "docker")
 	restoreProbe := replaceSystemReadinessProbe(func() systemReadyResponse {
 		return systemReadyResponse{
 			ProductName:       "Filterest",
@@ -41,6 +42,17 @@ func TestAdminVersionInfoHandlerReturnsReadinessVersions(t *testing.T) {
 	}
 	if response.DBVersion != "8.0.55" || response.RequiredDBVersion != "8.0.55" || !response.DBCompatible {
 		t.Fatalf("database version payload = %#v, want compatible 8.0.55", response)
+	}
+	if response.RuntimeMode != "docker" {
+		t.Fatalf("runtime mode = %q, want docker", response.RuntimeMode)
+	}
+}
+
+func TestCurrentAdminRuntimeModeDefaultsToNative(t *testing.T) {
+	t.Setenv("EASELECT_RUNTIME_MODE", "unexpected-value")
+
+	if runtimeMode := currentAdminRuntimeMode(); runtimeMode != "native" {
+		t.Fatalf("runtime mode = %q, want native", runtimeMode)
 	}
 }
 

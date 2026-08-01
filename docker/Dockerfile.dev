@@ -8,6 +8,9 @@ FROM golang:1.26.5-alpine3.24
 ARG EASELECT_RUNTIME_UID=1000
 ARG EASELECT_RUNTIME_GID=1000
 
+# The protected admin version panel reports this reviewed execution-mode enum.
+ENV EASELECT_RUNTIME_MODE=docker
+
 # Install Node.js and other development dependencies. Keep the fast-moving
 # Node/npm packages on their reviewed major release lines: Alpine retires old
 # patch packages from its index, which made fresh Linux/WSL builds fail even

@@ -44,6 +44,7 @@ describe("admin version info indicator", () => {
             db_version: "8.0.55",
             required_db_version: "8.0.55",
             db_compatible: true,
+            runtime_mode: "docker",
         });
         const { buildAdminVersionInfoIndicator } = await import("./admin_version_info_indicator.js");
 
@@ -57,11 +58,26 @@ describe("admin version info indicator", () => {
         expect(fetchAdminVersionInfoMock).toHaveBeenCalledWith({ suppressAuthRedirect: true });
         expect(indicator.tagName).toBe("BUTTON");
         expect(indicator.querySelector("svg")).toBeTruthy();
-        expect(indicator.title).toContain("Filterest: 8.27.99");
-        expect(indicator.title).toContain("Tietokanta: 8.0.55 (yhteensopiva)");
+        expect(indicator.title).toContain("Filterest 8.27.99");
+        expect(indicator.title).toContain("Tietokanta 8.0.55 (yhteensopiva)");
+        expect(indicator.title).toContain("Ajotapa Docker");
+        expect(indicator.title).not.toContain(":");
         expect(indicator.getAttribute("aria-expanded")).toBe("false");
         expect(indicator.getAttribute("aria-controls")).toBe(panel.id);
-        expect(panel.textContent).toContain("Filterest: 8.27.99");
+        expect(panel.tagName).toBe("TABLE");
+        expect(panel.querySelectorAll("tbody > tr")).toHaveLength(4);
+        expect(panel.querySelector('[data-version-info-key="application"]')?.tagName)
+            .toBe("TH");
+        expect(panel.querySelector('[data-version-info-value="application"]')?.tagName)
+            .toBe("TD");
+        expect(panel.querySelector('[data-version-info-key="application"]')?.textContent)
+            .toBe("Filterest");
+        expect(panel.querySelector('[data-version-info-value="application"]')?.textContent)
+            .toBe("8.27.99");
+        expect(panel.querySelector('[data-version-info-key="runtime"]')?.textContent)
+            .toBe("Ajotapa");
+        expect(panel.querySelector('[data-version-info-value="runtime"]')?.textContent)
+            .toBe("Docker");
         expect(panel.hidden).toBe(true);
 
         indicator.click();
@@ -83,5 +99,19 @@ describe("admin version info indicator", () => {
         expect(panel.hidden).toBe(true);
 
         shell.destroy();
+    });
+
+    test.each([
+        ["fi", "Ajotapa Tavallinen"],
+        ["en", "Runtime Native"],
+        ["ch", "运行方式 本机"],
+        ["yue", "執行方式 原生"],
+    ])("localizes the native runtime label for %s", async (language, expected) => {
+        const { formatAdminVersionInfoLabel } = await import("./admin_version_info_indicator.js");
+
+        const label = formatAdminVersionInfoLabel({ runtime_mode: "native" }, language);
+
+        expect(label).toContain(expected);
+        expect(label).not.toContain(":");
     });
 });

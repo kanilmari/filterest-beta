@@ -57,6 +57,11 @@ test.describe('E9 — Admin version info', () => {
     });
     expect(versionInfo.app_version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(versionInfo.db_version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(versionInfo.runtime_mode).toMatch(/^(docker|native)$/);
+    const expectedRuntimeMode = String(process.env.EASELECT_EXPECTED_RUNTIME_MODE || '').trim();
+    if (expectedRuntimeMode) {
+      expect(versionInfo.runtime_mode).toBe(expectedRuntimeMode);
+    }
 
     await indicator.hover();
     const escapedProductName = expectedProductName.replace(
@@ -66,7 +71,7 @@ test.describe('E9 — Admin version info', () => {
     await expect(indicator).toHaveAttribute(
       'title',
       new RegExp(
-        `${escapedProductName}: ${versionInfo.app_version}.*Database: ${versionInfo.db_version}`,
+        `${escapedProductName} ${versionInfo.app_version}.*Database ${versionInfo.db_version}`,
         's',
       ),
     );
@@ -80,8 +85,39 @@ test.describe('E9 — Admin version info', () => {
     await indicator.click();
     await expect(indicator).toHaveAttribute('aria-expanded', 'true');
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText(`${expectedProductName}: ${versionInfo.app_version}`);
-    await expect(panel).toContainText(`Database: ${versionInfo.db_version}`);
+    await expect(panel.locator('[data-version-info-key="application"]'))
+      .toHaveText(expectedProductName);
+    await expect(panel.locator('[data-version-info-value="application"]'))
+      .toHaveText(versionInfo.app_version);
+    await expect(panel.locator('[data-version-info-key="database"]'))
+      .toHaveText('Database');
+    await expect(panel.locator('[data-version-info-value="database"]'))
+      .toContainText(versionInfo.db_version);
+    await expect(panel.locator('[data-version-info-key="runtime"]'))
+      .toHaveText('Runtime');
+    await expect(panel.locator('[data-version-info-value="runtime"]'))
+      .toHaveText(versionInfo.runtime_mode === 'docker' ? 'Docker' : 'Native');
+
+    const columnLayout = await panel.evaluate((element) => {
+      const keys = Array.from(element.querySelectorAll('[data-version-info-key]'));
+      const values = Array.from(element.querySelectorAll('[data-version-info-value]'));
+      return {
+        widestKeyTextRight: Math.max(...keys.map((key) => {
+          const keyBox = key.getBoundingClientRect();
+          const rightPadding = Number.parseFloat(getComputedStyle(key).paddingRight) || 0;
+          return keyBox.right - rightPadding;
+        })),
+        valueLefts: values.map((value) => value.getBoundingClientRect().left),
+      };
+    });
+    expect(Math.max(...columnLayout.valueLefts) - Math.min(...columnLayout.valueLefts))
+      .toBeLessThanOrEqual(1);
+    expect(Math.min(...columnLayout.valueLefts) - columnLayout.widestKeyTextRight)
+      .toBeCloseTo(19, 0);
+    await testInfo.attach('admin-version-info-columns', {
+      body: await panel.screenshot(),
+      contentType: 'image/png',
+    });
 
     await indicator.click();
     await expect(indicator).toHaveAttribute('aria-expanded', 'false');

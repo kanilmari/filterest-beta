@@ -13,6 +13,25 @@ _local_docker_compose() {
     docker compose --env-file "$EASELECT_RUNTIME_ENV_FILE" -f docker/docker-compose.dev.yml "$@"
 }
 
+# Resolve one host port for the entire local Docker startup workflow.
+# Between Docker Compose, readiness checks, and the success message it keeps
+# the published port consistent. Why: an APP_PORT override must not leave ctl
+# checking or displaying the native development default instead.
+resolve_local_docker_host_port() {
+    export APP_PORT="${APP_PORT:-$PORT}"
+    PORT="$APP_PORT"
+    export PORT
+}
+
+# Stream a native full dump into the pre-initialized local Docker database.
+# The Docker database image creates the PostGIS schema before restore, while a
+# native pg_dump also emits an unconditional CREATE SCHEMA postgis statement.
+# Making only that statement idempotent preserves the dump while preventing a
+# fresh Docker restore from failing before application data is imported.
+stream_local_docker_restore_sql() {
+    sed 's/^CREATE SCHEMA postgis;$/CREATE SCHEMA IF NOT EXISTS postgis;/'
+}
+
 # Prepare host-owned bind mounts for the non-root development container.
 # Between Linux/WSL user IDs and Docker Compose it prevents root-owned source or
 # media artifacts while failing early on storage left behind by another user.
@@ -23,9 +42,9 @@ prepare_local_docker_storage() {
     local mismatched_path
     local write_probe
 
+    resolve_local_docker_host_port
     export EASELECT_RUNTIME_UID="${EASELECT_RUNTIME_UID:-$(id -u)}"
     export EASELECT_RUNTIME_GID="${EASELECT_RUNTIME_GID:-$(id -g)}"
-    export APP_PORT="${APP_PORT:-$PORT}"
     if [[ ! "$EASELECT_RUNTIME_UID" =~ ^[0-9]+$ ]] ||
        [[ ! "$EASELECT_RUNTIME_GID" =~ ^[0-9]+$ ]] ||
        (( EASELECT_RUNTIME_UID < 1000 || EASELECT_RUNTIME_GID < 1000 )); then
@@ -83,7 +102,8 @@ start_docker() {
         local log_file=""
 
         log_file="$(mktemp)"
-        if ! docker exec -i easelect-db-dev psql -v ON_ERROR_STOP=1 -U admin_user -d easelect < "$sql_file" >"$log_file" 2>&1; then
+        if ! stream_local_docker_restore_sql < "$sql_file" |
+            docker exec -i easelect-db-dev psql -v ON_ERROR_STOP=1 -U admin_user -d easelect >"$log_file" 2>&1; then
             echo -e "${RED}❌ ${import_label} failed.${NC}"
             echo "   First diagnostics:"
             grep -E "^(ERROR|psql:|NOTICE:)" "$log_file" | head -20 | sed 's/^/   /' || sed -n '1,20p' "$log_file" | sed 's/^/   /'
