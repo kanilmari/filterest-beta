@@ -149,9 +149,10 @@ function animateInitialNavbarEntrance(
   hideButton,
   bodyContent
 ) {
-  hideButton.setAttribute('aria-hidden', 'false');
-  hideButton.tabIndex = 0;
-  setShowButtonVisibility(showButton, false, { immediate: true });
+  hideButton.setAttribute('aria-hidden', 'true');
+  hideButton.tabIndex = -1;
+  setShowButtonVisibility(showButton, true, { immediate: true });
+  showButton.setAttribute('aria-expanded', 'true');
   bodyContent?.classList.add('navbar-transitions-ready');
 
   requestAnimationFrame(() => {
@@ -175,19 +176,22 @@ function applyNavbarVisibility(
   isVisible,
   { immediate = false } = {}
 ) {
-  hideButton.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
-  hideButton.tabIndex = isVisible ? 0 : -1;
+  // The canonical menu button now toggles both directions. Keep the legacy
+  // in-navbar control out of the visual and accessibility trees so there is
+  // only one real target in every layout.
+  hideButton.setAttribute('aria-hidden', 'true');
+  hideButton.tabIndex = -1;
+  showButton.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+  setShowButtonVisibility(showButton, true, { immediate });
 
   if (isVisible) {
     clearNavbarCollapseCompletion(navbar);
     navbar.classList.remove('collapsed');
-    setShowButtonVisibility(showButton, false, { immediate: true });
     tabsContainer.classList.remove('navbar_hidden');
   } else {
     navbar.classList.add('collapsed');
     finishNavbarCollapseAfterTransition(navbar, { immediate });
     tabsContainer.classList.add('navbar_hidden');
-    setShowButtonVisibility(showButton, true, { immediate });
   }
 
   updateShowMenuButtonPosition();
@@ -248,9 +252,8 @@ export function initNavbar() {
 
   // Menu-painikkeiden klikkaukset
   showButton.addEventListener('click', () => {
-    if (navVisible) return;
     const currentIsWide = window.innerWidth >= NAVBAR_WIDTH_THRESHOLD;
-    navVisible = true;
+    navVisible = !navVisible;
     if (currentIsWide) {
       localStorage.setItem('navVisibleWide', navVisible);
     } else {

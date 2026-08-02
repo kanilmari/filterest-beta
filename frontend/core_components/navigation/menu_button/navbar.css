@@ -661,10 +661,10 @@ body.light-mode #nav_tree .tree-current-project-badge {
     backdrop-filter: blur(10px);
     box-shadow: var(--fw-shadow-raised);
     margin-right: auto;
-    z-index: calc(var(--z-navbar) - 1);
+    z-index: calc(var(--z-navbar) + 1);
     appearance: none;
-    opacity: 0;
-    pointer-events: none;
+    opacity: 1;
+    pointer-events: auto;
     transform: none;
     will-change: opacity;
 }
@@ -690,7 +690,7 @@ body.light-mode #nav_tree .tree-current-project-badge {
 
 
 #hideMenuButton {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     /* line-height: 0; */

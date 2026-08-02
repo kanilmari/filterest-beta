@@ -151,6 +151,7 @@ vi.mock('./shared_topbar_builder.js', () => ({
     dockButtonIntoSharedTopBar: vi.fn((button, host, owner) => {
         if (!button || !host || !owner) return false;
         button.__sharedTopbarOwner = owner;
+        button.classList.add('shared-topbar-docked-button');
         host.replaceChildren(button);
         return true;
     }),
@@ -158,6 +159,7 @@ vi.mock('./shared_topbar_builder.js', () => ({
     restoreButtonFromSharedTopBar: vi.fn((button, owner) => {
         if (!button || button.__sharedTopbarOwner !== owner) return false;
         button.__sharedTopbarOwner = null;
+        button.classList.remove('shared-topbar-docked-button');
         document.body.prepend(button);
         return true;
     }),
@@ -311,13 +313,15 @@ describe('create_filter_bar inline hero mounting', () => {
         expect(closeSpy).toHaveBeenCalledTimes(1);
     });
 
-    test('renders a working navbar button before the dataset title when the navbar is collapsed', async () => {
+    test('docks the one working navbar button before the dataset title whenever the shared topbar is shown', async () => {
         const sharedTopbarRules = await import('./shared_topbar_builder.js');
         sharedTopbarRules.shouldShowSharedTopBar.mockReturnValue(true);
         document.getElementById('navbar')?.classList.add('collapsed');
         const showButtonClickSpy = vi.fn();
         const documentClickSpy = vi.fn();
-        document.getElementById('showMenuButton')?.addEventListener('click', showButtonClickSpy);
+        const showMenuButtonBeforeMount = document.getElementById('showMenuButton');
+        const originalMenuButtonParent = showMenuButtonBeforeMount?.parentElement;
+        showMenuButtonBeforeMount?.addEventListener('click', showButtonClickSpy);
         document.addEventListener('click', documentClickSpy, { once: true });
 
         const { create_filter_bar } = await import('./filter_bar_builder.js');
@@ -327,12 +331,13 @@ describe('create_filter_bar inline hero mounting', () => {
         const menuSlot = startSlot?.querySelector('.dataset-shared-topbar__menu-slot');
         const title = startSlot?.querySelector('.dataset-shared-topbar__dataset-title');
         const showMenuButton = document.getElementById('showMenuButton');
-        const sharedMenuButton = menuSlot?.querySelector('[data-testid="shared-topbar-menu-button"]');
+        const sharedMenuButton = menuSlot?.firstElementChild;
 
         expect(menuSlot?.hidden).toBe(false);
         expect(menuSlot?.firstElementChild).toBe(sharedMenuButton);
-        expect(sharedMenuButton).not.toBe(showMenuButton);
-        expect(showMenuButton?.classList.contains('shared-topbar-menu-source-hidden')).toBe(true);
+        expect(sharedMenuButton).toBe(showMenuButton);
+        expect(showMenuButton?.classList.contains('shared-topbar-docked-button')).toBe(true);
+        expect(document.querySelectorAll('#showMenuButton')).toHaveLength(1);
         expect(startSlot?.firstElementChild).toBe(menuSlot);
         expect(menuSlot?.nextElementSibling).toBe(title);
 
@@ -343,10 +348,12 @@ describe('create_filter_bar inline hero mounting', () => {
         expect(documentClickSpy.mock.calls[0]?.[0]?.target).toBe(showMenuButton);
 
         document.getElementById('navbar')?.classList.remove('collapsed');
+        sharedTopbarRules.shouldShowSharedTopBar.mockReturnValue(false);
         window.dispatchEvent(new CustomEvent('navbar-visibility-changed'));
 
         expect(menuSlot?.hidden).toBe(true);
-        expect(showMenuButton?.classList.contains('shared-topbar-menu-source-hidden')).toBe(false);
+        expect(showMenuButton?.classList.contains('shared-topbar-docked-button')).toBe(false);
+        expect(showMenuButton?.parentElement).toBe(originalMenuButtonParent);
     });
 
     test('keeps inline hero count-free and wires reset search to the shared filter reset', async () => {

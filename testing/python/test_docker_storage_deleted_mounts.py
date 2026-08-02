@@ -138,6 +138,10 @@ class DockerStorageDeletedMountTests(unittest.TestCase):
         self.assertIn("path: ${EASELECT_RUNTIME_ENV_FILE}", compose_source)
         self.assertIn("path: ${EASELECT_DEV_ENV_FILE}", compose_source)
         self.assertIn(
+            "${FILTEREST_PROJECTS_HOME}:${FILTEREST_PROJECTS_HOME}",
+            compose_source,
+        )
+        self.assertNotIn(
             "${FILTEREST_PROJECTS_HOME}:/filterest-projects",
             compose_source,
         )
@@ -156,6 +160,10 @@ class DockerStorageDeletedMountTests(unittest.TestCase):
         self.assertIn("VITE_DEV_PORT=5173", compose_source)
         self.assertIn("VITE_HMR_PORT=${VITE_PORT:-5173}", compose_source)
         self.assertIn(
+            'npm run dev -- --host 0.0.0.0 & go run .',
+            compose_source,
+        )
+        self.assertNotIn(
             'npm run dev -- --host 0.0.0.0 & go run main.go',
             compose_source,
         )

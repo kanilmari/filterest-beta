@@ -29,13 +29,13 @@ test.describe('Visual Guardian Capture', () => {
       await takeGuardianScreenshot(page, testInfo, 'desktop_navbar_open');
 
       // 2. Desktop Navbar Closed
-      const hideButton = page.locator('#hideMenuButton');
-      if (await hideButton.isVisible()) {
-          await hideButton.click();
+      const menuButton = page.locator('#showMenuButton');
+      if (await menuButton.isVisible()) {
+          await menuButton.click();
           await waitForVisualGuardianIdle(page);
           await takeGuardianScreenshot(page, testInfo, 'desktop_navbar_closed');
       } else {
-          console.log('Hide button not visible in Desktop mode');
+          console.log('Menu button not visible in Desktop mode');
       }
     });
   });

@@ -52,6 +52,7 @@ import {
 } from "../navigation/menu_button/navbar_visibility_handler.js";
 import { getTabIconPath } from "../navigation/main_tabs/tab_icon_library.js";
 import {
+    dockButtonIntoSharedTopBar,
     isSharedTopBarHostActive,
     restoreButtonFromSharedTopBar,
     shouldShowSharedTopBar,
@@ -461,35 +462,6 @@ function buildSharedTopBarArticleCloseButton(onClose) {
     closeButton.textContent = "×";
     closeButton.addEventListener("click", onClose);
     return closeButton;
-}
-
-function buildSharedTopBarMenuButton(showMenuButton) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.classList.add("dataset-shared-topbar__menu-button");
-    button.dataset.testid = "shared-topbar-menu-button";
-    button.title = showMenuButton?.title || "Menu";
-    button.setAttribute(
-        "aria-label",
-        showMenuButton?.getAttribute("aria-label") || "Menu"
-    );
-    button.textContent = "☰";
-
-    if (document.querySelector('meta[name="app-env"]')?.content === "dev") {
-        const badge = document.createElement("span");
-        badge.classList.add("dev-environment-badge");
-        badge.textContent = "DEV";
-        button.appendChild(badge);
-    }
-
-    button.addEventListener("click", (event) => {
-        // The navbar has a document-level outside-click closer on narrow screens.
-        // Keep this click local before forwarding it to the canonical menu control.
-        event.stopPropagation();
-        showMenuButton?.click();
-    });
-
-    return button;
 }
 
 /**
@@ -978,8 +950,6 @@ export function create_filter_bar(
     const sharedTopBarMenuSlot = document.createElement("div");
     sharedTopBarMenuSlot.classList.add("dataset-shared-topbar__menu-slot");
     sharedTopBarMenuSlot.hidden = true;
-    const sharedTopBarMenuButton = buildSharedTopBarMenuButton(showMenuButton);
-    sharedTopBarMenuSlot.appendChild(sharedTopBarMenuButton);
     sharedTopBarStart.append(
         sharedTopBarMenuSlot,
         buildSharedTopBarDatasetTitle(tableName, headerTitleOverride)
@@ -1178,15 +1148,16 @@ export function create_filter_bar(
 
         restoreButtonFromSharedTopBar(fixedToggleButton, sharedTopBarOwner);
         restoreButtonFromSharedTopBar(hideMenuButton, sharedTopBarOwner);
+        restoreButtonFromSharedTopBar(showMenuButton, sharedTopBarOwner);
 
-        const shouldShowMenuButton = shouldShowBar && !navbarVisible;
+        const shouldShowMenuButton = shouldShowBar && Boolean(showMenuButton);
         sharedTopBarMenuSlot.hidden = !shouldShowMenuButton;
-        if (showMenuButton && shouldShowMenuButton) {
-            showMenuButton.__sharedTopbarMenuOwner = sharedTopBarOwner;
-            showMenuButton.classList.add("shared-topbar-menu-source-hidden");
-        } else if (showMenuButton?.__sharedTopbarMenuOwner === sharedTopBarOwner) {
-            showMenuButton.__sharedTopbarMenuOwner = null;
-            showMenuButton.classList.remove("shared-topbar-menu-source-hidden");
+        if (shouldShowMenuButton) {
+            dockButtonIntoSharedTopBar(
+                showMenuButton,
+                sharedTopBarMenuSlot,
+                sharedTopBarOwner
+            );
         }
 
         updateShowMenuButtonPosition();
@@ -1757,10 +1728,7 @@ export function create_filter_bar(
         sectionOrdering.destroy?.();
         overviewSection?.destroy?.();
         sharedTopBarSearch.destroy?.();
-        if (showMenuButton?.__sharedTopbarMenuOwner === sharedTopBarOwner) {
-            showMenuButton.__sharedTopbarMenuOwner = null;
-            showMenuButton.classList.remove("shared-topbar-menu-source-hidden");
-        }
+        restoreButtonFromSharedTopBar(showMenuButton, sharedTopBarOwner);
         restoreButtonFromSharedTopBar(hideMenuButton, sharedTopBarOwner);
         restoreButtonFromSharedTopBar(fixedToggleButton, sharedTopBarOwner);
         clockBar.destroy?.();

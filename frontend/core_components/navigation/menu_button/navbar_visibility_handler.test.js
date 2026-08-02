@@ -51,10 +51,38 @@ describe("navbar_visibility_handler", () => {
         });
 
         initNavbar();
-        document.getElementById("hideMenuButton").click();
+        document.getElementById("showMenuButton").click();
         document.getElementById("showMenuButton").click();
 
         expect(events.slice(-2)).toEqual([false, true]);
+        expect(document.getElementById("hideMenuButton").getAttribute("aria-hidden")).toBe("true");
+        expect(document.getElementById("hideMenuButton").tabIndex).toBe(-1);
+    });
+
+    test("keeps the menu button available and lets it close and reopen an open navbar", async () => {
+        localStorage.setItem("navVisibleWide", "true");
+        const { initNavbar } = await loadModule();
+        const navbar = document.getElementById("navbar");
+        const showButton = document.getElementById("showMenuButton");
+
+        initNavbar();
+
+        expect(showButton.classList.contains("menu-toggle-visible")).toBe(true);
+        expect(showButton.getAttribute("aria-hidden")).toBe("false");
+        expect(showButton.getAttribute("aria-expanded")).toBe("true");
+        expect(showButton.tabIndex).toBe(0);
+
+        showButton.click();
+
+        expect(navbar.classList.contains("collapsed")).toBe(true);
+        expect(showButton.getAttribute("aria-expanded")).toBe("false");
+        expect(showButton.tabIndex).toBe(0);
+
+        showButton.click();
+
+        expect(navbar.classList.contains("collapsed")).toBe(false);
+        expect(showButton.getAttribute("aria-expanded")).toBe("true");
+        expect(showButton.tabIndex).toBe(0);
     });
 
     test("leaves the floating menu button's fixed inset to CSS", async () => {

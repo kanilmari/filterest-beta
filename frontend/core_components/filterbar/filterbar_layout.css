@@ -361,12 +361,6 @@
   top: 0;
 }
 
-#showMenuButton.shared-topbar-menu-source-hidden {
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
 .dataset-shared-topbar__dataset-title {
   min-width: 0;
   box-sizing: border-box;
