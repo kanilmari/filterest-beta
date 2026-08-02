@@ -3,10 +3,10 @@
 This file is generated from the Filterest public-slice candidate flow.
 It is evidence for review, not approval to publish.
 
-- Generated at: `2026-08-02T22:14:43Z`
-- Release source commit used by the generator: `4ed145258b380c0fa41177da10dcf8c068ab95d8`
+- Generated at: `2026-08-02T23:03:09Z`
+- Release source commit used by the generator: `1b5a92ed0d98785befc5e00f8424baf4ad238dc9`
 - Generated Filterest commit: this repository commit; run `git log -1 --oneline`
-- Filterest app version: `8.28.5`
+- Filterest app version: `8.28.6`
 - Database version: `8.0.56`
 
 ## Automated Evidence Included In This Commit
@@ -15,11 +15,11 @@ It is evidence for review, not approval to publish.
 | --- | --- |
 | Public bootstrap content review | `server_tools/public_bootstrap/REVIEW.md` |
 | Public demo/media asset review | `server_tools/public_bootstrap/DEMO_ASSET_REVIEW.md` |
-| Launch-facing public docs wording review | `PUBLICATION_DOCS_REVIEW.md` |
-| Publication governance docs review | `PUBLICATION_GOVERNANCE_REVIEW.md` |
+| Launch-facing public docs wording review | `docs/publication/PUBLICATION_DOCS_REVIEW.md` |
+| Publication governance docs review | `docs/publication/PUBLICATION_GOVERNANCE_REVIEW.md` |
 | Public source license | `LICENSE` and package metadata declare GPLv2 / `GPL-2.0-only`. |
 | Third-party notice inventory | `THIRD_PARTY_NOTICES.md` |
-| Third-party notice inventory review | `THIRD_PARTY_NOTICE_REVIEW.md` |
+| Third-party notice inventory review | `docs/publication/THIRD_PARTY_NOTICE_REVIEW.md` |
 | Public app/DB compatibility | `server_tools/versioning/app_db_compatibility.jsonl` and `server_tools/versioning/schema_snapshots/db-8.0.56.sql` |
 | Private source boundary | Candidate contract requires private app/tool paths to be absent before this commit is created. |
 | Secret/private-material scan | Candidate contract runs the tracked-file public-slice audit before this commit is accepted. |

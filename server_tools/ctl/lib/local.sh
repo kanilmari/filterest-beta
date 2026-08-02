@@ -294,7 +294,8 @@ start_local() {
     # continues to use its own root-local certificate and private key.
     export TLS_CERT_FILE="${TLS_CERT_FILE:-$EASELECT_TLS_CERT_FILE}"
     export TLS_KEY_FILE="${TLS_KEY_FILE:-$EASELECT_TLS_KEY_FILE}"
-    if ! go build -o ./easelect_dev . 2>&1; then
+    mkdir -p "$LOCAL_BINARY_DIR"
+    if ! go build -o "$LOCAL_BINARY_PATH" . 2>&1; then
         echo -e "${RED}❌ Build failed${NC}"
         if [[ "$shared_dev_storage_prepared" == true ]]; then
             _shared_dev_storage_release || true
@@ -302,7 +303,7 @@ start_local() {
         exit 1
     fi
     echo "🚀 Starting server..."
-    _launch_detached "$LOG_FILE" ./easelect_dev
+    _launch_detached "$LOG_FILE" "$LOCAL_BINARY_PATH"
     
     # Shared-dev tunnel targets start more slowly because startup still performs
     # DB-backed route/permission sync against the remote canonical dev DB.

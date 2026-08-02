@@ -13,9 +13,9 @@ PASS
 
 - `README.md`
 - `CONTRIBUTING.md`
-- `PUBLISHING.md`
+- `docs/publication/PUBLISHING.md`
 - `NOTICE`
-- `PUBLICATION_CHECKLIST.md`
+- `docs/publication/PUBLICATION_CHECKLIST.md`
 - `SECURITY.md`
 - `TRADEMARKS.md`
 - `docs/constitution/constitution.md`

@@ -1,44 +1,32 @@
-#!/bin/bash
-# safe_test: Wrapper for playwright test to prevent opening HTML report automatically.
-# Usage: ./safe_test [args]
-#
-# Features:
-#   - RAM-aware worker calculation (5 GB per worker, min 1, max 6)
-#   - Swap check with warning if not configured
-#   - Prevents HTML report from auto-opening on failure
+#!/usr/bin/env bash
+# safe_test.sh
+# Runs Playwright with bounded workers and without opening an HTML report.
+# Bridges the Filterest command surface with the repository browser-test matrix.
+# Exists so safe browser testing no longer requires a dedicated root file.
 
-# Get the directory where this script is located (project root)
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# Resolve environment (PATH, cd to project root) — needed for su/root
+# shellcheck source=../ctl/lib/resolve_env.sh
 source "$PROJECT_ROOT/server_tools/ctl/lib/resolve_env.sh"
 
-# ─── RAM-aware worker calculation ───────────────────────────────────
 RAM_PER_WORKER_GB=5
-MAX_WORKERS_CAP=6   # playwright runs 6 projects; no point exceeding that
+MAX_WORKERS_CAP=6
 
-# Read available memory from /proc/meminfo (Linux)
 if [[ -f /proc/meminfo ]]; then
     AVAIL_KB=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
     AVAIL_GB=$(( AVAIL_KB / 1048576 ))
-
     WORKERS=$(( AVAIL_GB / RAM_PER_WORKER_GB ))
-    # Clamp: min 1, max MAX_WORKERS_CAP
     (( WORKERS < 1 )) && WORKERS=1
     (( WORKERS > MAX_WORKERS_CAP )) && WORKERS=$MAX_WORKERS_CAP
-
     echo "RAM: ${AVAIL_GB} GB available → ${WORKERS} worker(s)  (${RAM_PER_WORKER_GB} GB/worker, cap ${MAX_WORKERS_CAP})"
 elif [[ "$(uname -s)" == "Darwin" ]]; then
-    # macOS process/memory reporting differs from Linux; keep local runs deterministic.
     WORKERS=1
     echo "RAM: macOS detected → defaulting to ${WORKERS} worker(s)"
 else
-    # Other non-Linux systems retain the existing conservative fallback.
     WORKERS=2
     echo "RAM: /proc/meminfo not found → defaulting to ${WORKERS} worker(s)"
 fi
 
-# ─── Swap check (Linux only) ────────────────────────────────────────
 if [[ -f /proc/meminfo ]]; then
     SWAP_TOTAL=$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)
     if [[ "$SWAP_TOTAL" -eq 0 ]]; then
@@ -48,13 +36,8 @@ if [[ -f /proc/meminfo ]]; then
 fi
 
 echo ""
-
-# ─── Run tests ──────────────────────────────────────────────────────
-# Snapshot Playwright-spawned browser PIDs before run so we can clean up orphans after.
-# Uses --headless to match only Playwright's headless Chromium, not user's desktop browser.
 PIDS_BEFORE=$(pgrep -f 'headless.*chromium|chromium.*headless|playwright' -u "$(id -u)" 2>/dev/null | sort)
 
-# Allow user to override workers via --workers=N in $@
 if echo "$@" | grep -q -- '--workers'; then
     npx playwright test -c playwright.config.ts --reporter=list "$@"
 else
@@ -62,8 +45,6 @@ else
 fi
 TEST_EXIT=$?
 
-# ─── Cleanup orphaned browser processes ─────────────────────────────
-# Playwright sometimes leaves Chromium processes running after tests finish.
 PIDS_AFTER=$(pgrep -f 'headless.*chromium|chromium.*headless|playwright' -u "$(id -u)" 2>/dev/null | sort)
 ORPHANS=$(comm -13 <(echo "$PIDS_BEFORE") <(echo "$PIDS_AFTER") 2>/dev/null)
 
@@ -72,7 +53,6 @@ if [[ -n "$ORPHANS" ]]; then
     echo ""
     echo "Cleaning up ${ORPHAN_COUNT} orphaned browser process(es)..."
     echo "$ORPHANS" | xargs kill 2>/dev/null
-    # Give them a moment, then force-kill survivors
     sleep 2
     echo "$ORPHANS" | xargs kill -9 2>/dev/null
 fi

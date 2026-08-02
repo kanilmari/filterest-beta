@@ -19,8 +19,8 @@ const defaultViewport = { width: 1440, height: 900, name: "desktop" };
 
 function usage() {
     return `Usage:
-  ./human_qa open <ticket-id> [options]
-  ./human_qa prep <ticket-id> [options]
+  ./filterest audit human open <ticket-id> [options]
+  ./filterest audit human prep <ticket-id> [options]
 
 Options:
   --url <URL|route>          Browser target. Routes like /service_catalog use https://localhost:8082.
@@ -44,8 +44,8 @@ Options:
   --help                     Show this help.
 
 Examples:
-  ./human_qa open 837 --url /service_catalog --new "Firefox card media was fixed" --easier "The exact service catalog route opens ready for acceptance" --how "Inspect the Firefox card in card view" --check "Firefox card shows one logo"
-  ./human_qa prep 834 --file ../filterest-beta/PUBLICATION_CHECKLIST.md --new "Filterest release checklist is ready" --easier "The exact checklist file opens in the browser" --how "Review every unchecked row" --check "License row is approved"`;
+  ./filterest audit human open 837 --url /service_catalog --new "Firefox card media was fixed" --easier "The exact service catalog route opens ready for acceptance" --how "Inspect the Firefox card in card view" --check "Firefox card shows one logo"
+  ./filterest audit human prep 834 --file ../filterest-beta/docs/publication/PUBLICATION_CHECKLIST.md --new "Filterest release checklist is ready" --easier "The exact checklist file opens in the browser" --how "Review every unchecked row" --check "License row is approved"`;
 }
 
 function parseArgs(argv) {

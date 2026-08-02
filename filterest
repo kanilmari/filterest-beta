@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+# filterest
+# Provides one public command surface for setup, administration, maintenance, and QA.
+# Bridges the repository root with canonical implementations under server_tools and testing.
+# Exists so generated Filterest releases do not need a drawer full of root wrappers.
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_ROOT"
+
+usage() {
+    cat <<'USAGE'
+Usage: ./filterest <command> [arguments]
+
+Everyday commands:
+  setup                         Prepare a new local checkout
+  start [ctl arguments]         Build, start, stop, or manage Docker via ctl
+  status [arguments]            Show application and database compatibility
+  data [arguments]              Maintain datasets through the application API
+  language [arguments]          Maintain translations through the application API
+  maintenance logs [arguments]  Preview or prune application logs through the API
+  maintenance data [arguments]  Preview or prune configured data through the API
+
+Developer commands:
+  database [arguments]          Run a read-only database inspection
+  mcp [arguments]               Start the developer MCP server
+  refresh [arguments]           Refresh selected deployment targets
+  test [arguments]              Run Playwright without opening an HTML report
+  search <pattern> [path]       Search repository text without a pager
+  audit browser [arguments]     Run the browser quality audit
+  audit visual [arguments]      Capture/analyze Visual Guardian screenshots
+  audit human [arguments]       Prepare or run browser acceptance evidence
+  timestamp                     Print the shared project timestamp
+  fix-go-imports [arguments]    Run the Go import maintenance helper
+
+The established ./ctl command remains available as a compatibility entrypoint.
+USAGE
+}
+
+resolve_environment() {
+    # shellcheck source=server_tools/ctl/lib/resolve_env.sh
+    source "$PROJECT_ROOT/server_tools/ctl/lib/resolve_env.sh"
+}
+
+command_name="${1:-help}"
+[[ "$#" -eq 0 ]] || shift
+
+case "$command_name" in
+    setup)
+        exec "$PROJECT_ROOT/server_tools/scaffold.sh" setup "$@"
+        ;;
+    start|ctl)
+        exec "$PROJECT_ROOT/ctl" "$@"
+        ;;
+    status)
+        resolve_environment
+        exec python3 "$PROJECT_ROOT/server_tools/agent_tools/dev_status.py" "$@"
+        ;;
+    data)
+        resolve_environment
+        exec python3 "$PROJECT_ROOT/server_tools/agent_tools/api_crud.py" "$@"
+        ;;
+    language)
+        resolve_environment
+        exec python3 "$PROJECT_ROOT/server_tools/agent_tools/api_lang.py" "$@"
+        ;;
+    database)
+        resolve_environment
+        exec python3 "$PROJECT_ROOT/server_tools/agent_tools/db.py" "$@"
+        ;;
+    maintenance)
+        maintenance_name="${1:-}"
+        [[ "$#" -eq 0 ]] || shift
+        resolve_environment
+        case "$maintenance_name" in
+            logs)
+                exec python3 "$PROJECT_ROOT/server_tools/agent_tools/db_log_retention.py" "$@"
+                ;;
+            data)
+                exec python3 "$PROJECT_ROOT/server_tools/agent_tools/db_data_retention.py" "$@"
+                ;;
+            *)
+                printf 'error: maintenance requires logs or data\n' >&2
+                exit 2
+                ;;
+        esac
+        ;;
+    mcp)
+        resolve_environment
+        exec python3 "$PROJECT_ROOT/server_tools/agent_tools/easelect_mcp_server.py" "$@"
+        ;;
+    refresh)
+        resolve_environment
+        exec "$PROJECT_ROOT/server_tools/refresh_targets.sh" "$@"
+        ;;
+    test)
+        exec "$PROJECT_ROOT/server_tools/scripts/safe_test.sh" "$@"
+        ;;
+    search)
+        exec "$PROJECT_ROOT/server_tools/scripts/safe_grep.sh" "$@"
+        ;;
+    audit)
+        audit_name="${1:-}"
+        [[ "$#" -eq 0 ]] || shift
+        case "$audit_name" in
+            browser)
+                resolve_environment
+                exec node "$PROJECT_ROOT/server_tools/scripts/browser_audit.mjs" "$@"
+                ;;
+            visual)
+                exec "$PROJECT_ROOT/server_tools/scripts/guardian.sh" "$@"
+                ;;
+            human)
+                qa_name="${1:-}"
+                resolve_environment
+                case "$qa_name" in
+                    ai-test)
+                        exec node "$PROJECT_ROOT/server_tools/scripts/ai_acceptance_test.mjs" "$@"
+                        ;;
+                    computer-use-test)
+                        exec node "$PROJECT_ROOT/server_tools/scripts/computer_use_acceptance_test.mjs" "$@"
+                        ;;
+                    *)
+                        exec node "$PROJECT_ROOT/server_tools/scripts/human_qa.mjs" "$@"
+                        ;;
+                esac
+                ;;
+            *)
+                printf 'error: audit requires browser, visual, or human\n' >&2
+                exit 2
+                ;;
+        esac
+        ;;
+    timestamp)
+        exec python3 "$PROJECT_ROOT/server_tools/scripts/timestamp.py" "$@"
+        ;;
+    fix-go-imports)
+        exec node "$PROJECT_ROOT/server_tools/scripts/fix_go_imports.js" "$@"
+        ;;
+    help|-h|--help)
+        usage
+        ;;
+    *)
+        printf 'error: unknown Filterest command: %s\n\n' "$command_name" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

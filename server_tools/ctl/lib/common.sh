@@ -15,6 +15,8 @@ NC='\033[0m'
 # Default values
 LOG_FILE="server_output.log"
 PORT=${EASELECT_PORT:-8082}
+LOCAL_BINARY_DIR="${PROJECT_ROOT:-.}/runtime/bin"
+LOCAL_BINARY_PATH="$LOCAL_BINARY_DIR/easelect_dev"
 : "${EASELECT_RUNTIME_ENV_FILE:=${PROJECT_ROOT:-.}/.env}"
 : "${EASELECT_DEV_ENV_FILE:=${PROJECT_ROOT:-.}/dev_env.txt}"
 : "${EASELECT_TLS_CERT_FILE:=${PROJECT_ROOT:-.}/dev-cert.crt}"

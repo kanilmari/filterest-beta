@@ -18,7 +18,7 @@ cat VERSION_APP
 cat VERSION_DB
 ```
 
-Review `PUBLICATION_CHECKLIST.md` before publishing. Every public-beta update
+Review `docs/publication/PUBLICATION_CHECKLIST.md` before publishing. Every public-beta update
 must come from a clean maintainer release-source commit and a reviewed
 sibling-repo commit.
 

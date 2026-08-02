@@ -18,11 +18,11 @@ const defaultAuthState = path.join(repoRoot, "testing/e2e/.auth/user.json");
 const defaultArtifactRoot = path.join(repoRoot, "agent_tasks/_artifacts/human_qa/ai_acceptance");
 const defaultViewport = { width: 1440, height: 900, name: "desktop" };
 
-// Shows the command contract for both direct script use and ./human_qa dispatch.
+// Shows the command contract for direct script use and Filterest dispatch.
 function usage() {
     return `Usage:
-  ./human_qa ai-test <ticket-id> --url <URL|route> [options]
-  ./human_qa ai-test <ticket-id> --file <path> [options]
+  ./filterest audit human ai-test <ticket-id> --url <URL|route> [options]
+  ./filterest audit human ai-test <ticket-id> --file <path> [options]
 
 Options:
   --url <URL|route>          Browser target. Routes like /service_catalog use https://localhost:8082.
@@ -60,8 +60,8 @@ Verdicts:
   inconclusive   The browser ran, but the evidence cannot replace human browser testing.
 
 Examples:
-  ./human_qa ai-test 837 --url /service_catalog --check "Firefox logo appears once" --assert-visible "img[alt*=Firefox]" --assert-no-text "duplicate logo"
-  ./human_qa ai-test 0 --file docs/instructions_and_documentation/Human_QA_Handoff.md --assert-text "Human QA And AI Acceptance"`;
+  ./filterest audit human ai-test 837 --url /service_catalog --check "Firefox logo appears once" --assert-visible "img[alt*=Firefox]" --assert-no-text "duplicate logo"
+  ./filterest audit human ai-test 0 --file docs/instructions_and_documentation/Human_QA_Handoff.md --assert-text "Human QA And AI Acceptance"`;
 }
 
 // Parses CLI flags into a neutral plan before plan files are loaded.

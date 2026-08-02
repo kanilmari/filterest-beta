@@ -33,16 +33,27 @@ cd "$PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 # Ympäristötiedostot ja niiden versionhallittavat scaffold-kohteet
 # ---------------------------------------------------------------------------
-ENV_SOURCE_FILES=(
-  "$EASELECT_RUNTIME_ENV_FILE"
-  "$EASELECT_DEV_ENV_FILE"
-  "$PROJECT_ROOT/instances/serlog.com/.env"
-)
-ENV_SCAFFOLD_FILES=(
-  "$PROJECT_ROOT/.env.scaffold"
-  "$PROJECT_ROOT/dev_env.scaffold"
-  "$PROJECT_ROOT/instances/serlog.com/.env.scaffold"
-)
+if [[ -f "$PROJECT_ROOT/VERSION_APP" && ! -f "$PROJECT_ROOT/VERSION_EASELECT" ]]; then
+  ENV_SOURCE_FILES=(
+    "$EASELECT_RUNTIME_ENV_FILE"
+    "$EASELECT_DEV_ENV_FILE"
+  )
+  ENV_SCAFFOLD_FILES=(
+    "$PROJECT_ROOT/server_tools/scaffolds/runtime.env.scaffold"
+    "$PROJECT_ROOT/server_tools/scaffolds/development.env.scaffold"
+  )
+else
+  ENV_SOURCE_FILES=(
+    "$EASELECT_RUNTIME_ENV_FILE"
+    "$EASELECT_DEV_ENV_FILE"
+    "$PROJECT_ROOT/instances/serlog.com/.env"
+  )
+  ENV_SCAFFOLD_FILES=(
+    "$PROJECT_ROOT/.env.scaffold"
+    "$PROJECT_ROOT/dev_env.scaffold"
+    "$PROJECT_ROOT/instances/serlog.com/.env.scaffold"
+  )
+fi
 
 # ---------------------------------------------------------------------------
 # Apufunktio: Luo .env.scaffold yhdestä .env-tiedostosta
@@ -151,6 +162,8 @@ cmd_setup() {
     "testing/test-results-visual"
     "testing/my-test-results"
     "testing/playwright-report"
+    "runtime/bin"
+    "runtime/logs"
     "server_tools/delivery_chain/helpers/patch_history"
     ".queen"
     "docker/traefik/logs"

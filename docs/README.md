@@ -2,8 +2,9 @@
 
 This repository keeps two deliberately different documentation layers:
 
-- Root files such as `README.md`, `PUBLISHING.md`, `SECURITY.md`, and
-  `PUBLICATION_CHECKLIST.md` describe this generated Filterest-beta repository.
+- Root files such as `README.md` and `SECURITY.md` introduce this generated
+  Filterest-beta repository. Release evidence and maintainer instructions live
+  together under `docs/publication/`.
 - The selected files under `docs/constitution/design/` and
   `docs/instructions_and_documentation/` are copied byte-for-byte from the
   Easelect development source because the same code and technical contracts

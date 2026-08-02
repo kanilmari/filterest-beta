@@ -369,7 +369,7 @@ export function writeDbTaskDraft({ repoRoot, targetUrl, outputDir, reportPath, f
     lines.push("");
     lines.push("## Verification");
     lines.push("");
-    lines.push(`[todo] Re-run \`./browser_audit --url ${targetUrl} --issue-summary --db-task-draft\` after fixes.`);
+    lines.push(`[todo] Re-run \`./filterest audit browser --url ${targetUrl} --issue-summary --db-task-draft\` after fixes.`);
     lines.push("");
     lines.push("## Closing Loop");
     lines.push("");

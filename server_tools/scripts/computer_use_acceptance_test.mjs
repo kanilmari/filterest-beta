@@ -25,8 +25,8 @@ loadRootEnv();
 // Shows the live Computer Use acceptance command contract.
 function usage() {
     return `Usage:
-  ./human_qa computer-use-test <ticket-id> --url <URL|route> [options]
-  ./human_qa computer-use-test <ticket-id> --file <path> [options]
+  ./filterest audit human computer-use-test <ticket-id> --url <URL|route> [options]
+  ./filterest audit human computer-use-test <ticket-id> --file <path> [options]
 
 Options:
   --url <URL|route>          Browser target. Routes like /service_catalog use https://localhost:8082.
@@ -56,8 +56,8 @@ Verdicts:
   inconclusive   Missing key/API support, safety gate, parse issue, or uncertain result.
 
 Examples:
-  ./human_qa computer-use-test 837 --url /service_catalog --prompt-profile ux-audit --check "Firefox card shows one media surface"
-  ./human_qa computer-use-test 834 --file ../filterest-beta/PUBLICATION_CHECKLIST.md --dry-run`;
+  ./filterest audit human computer-use-test 837 --url /service_catalog --prompt-profile ux-audit --check "Firefox card shows one media surface"
+  ./filterest audit human computer-use-test 834 --file ../filterest-beta/docs/publication/PUBLICATION_CHECKLIST.md --dry-run`;
 }
 
 // Reads the resolved runtime env into process.env without logging secrets.

@@ -1,6 +1,6 @@
 # Browser Audit Agent
 
-`./browser_audit` runs a one-page browser audit from the local repo. It opens a
+`./filterest audit browser` runs a one-page browser audit from the local repo. It opens a
 URL with Playwright, captures a full-page screenshot, summarizes the DOM, runs
 axe accessibility checks, runs Lighthouse, asks the Visual Guardian vision model
 to review the screenshot, and writes one prioritized markdown report.
@@ -8,9 +8,9 @@ to review the screenshot, and writes one prioritized markdown report.
 ## Commands
 
 ```bash
-./browser_audit --url https://localhost:8082
-./browser_audit --url https://example.com --skip-vision
-./browser_audit --url https://localhost:8082 --issue-summary --db-task-draft
+./filterest audit browser --url https://localhost:8082
+./filterest audit browser --url https://example.com --skip-vision
+./filterest audit browser --url https://localhost:8082 --issue-summary --db-task-draft
 npm run audit:browser -- --url https://localhost:8082
 npm run audit:browser:full -- --url https://localhost:8082
 ```

@@ -108,7 +108,7 @@ cd filterest-beta
 cp filterest.paths.example filterest.paths.local
 
 # Create runtime directories and local environment files.
-./server_tools/scaffold.sh setup
+./filterest setup
 
 # Fill in the required database, session, URL, and initial-admin values.
 $EDITOR filterest_keys/filterest_runtime/runtime_environment.env \
@@ -118,7 +118,7 @@ $EDITOR filterest_keys/filterest_runtime/runtime_environment.env \
 ./server_tools/setup_local_dev_environment.sh
 
 # Build and start Filterest.
-./ctl
+./filterest start
 ```
 
 Open `https://localhost:8100`. The local certificate is self-signed, so the
@@ -141,7 +141,7 @@ their root-local `.env`, `dev_env.txt`, and TLS paths for compatibility.
 ## Development
 
 ```bash
-./ctl                 # build and run the local application
+./filterest start     # build and run the local application
 npm test              # run frontend unit tests
 go test ./...         # run Go tests
 npm run build         # build frontend assets
@@ -176,5 +176,5 @@ private vulnerability-reporting channel.
 
 Filterest-beta is licensed under the GNU General Public License version 2
 (`GPL-2.0-only`), the same source license selected for the retired alpha
-repository. See `LICENSE` and `PUBLICATION_CHECKLIST.md`. The source license
+repository. See `LICENSE` and `docs/publication/PUBLICATION_CHECKLIST.md`. The source license
 does not grant trademark rights in the `FILTEREST` name or logo.

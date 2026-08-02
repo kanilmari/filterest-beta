@@ -1,4 +1,5 @@
 node_modules/
+runtime/
 # Public bootstrap fixture images are tracked; other runtime uploads stay ignored.
 storage/*
 !storage/9/

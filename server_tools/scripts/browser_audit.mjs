@@ -23,9 +23,9 @@ const defaultAuthState = path.join(repoRoot, "testing/e2e/.auth/user.json");
 const defaultViewport = { width: 1440, height: 900, name: "desktop" };
 const auditCategories = ["performance", "accessibility", "best-practices", "seo"];
 
-// Shows CLI usage and connects npm-script pass-through with the direct wrapper.
+// Shows CLI usage and connects npm-script pass-through with Filterest dispatch.
 function usage() {
-    return `Usage: ./browser_audit --url <URL> [options]
+    return `Usage: ./filterest audit browser --url <URL> [options]
 
 Options:
   --url <URL>                Absolute URL to audit.
@@ -45,8 +45,8 @@ Options:
   --help                     Show this help.
 
 Examples:
-  ./browser_audit --url https://localhost:8082
-  ./browser_audit --url https://example.com --skip-vision
+  ./filterest audit browser --url https://localhost:8082
+  ./filterest audit browser --url https://example.com --skip-vision
   npm run audit:browser -- --url https://localhost:8082
   npm run audit:browser:full -- --url https://localhost:8082`;
 }
