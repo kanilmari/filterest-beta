@@ -1,7 +1,7 @@
 # Filterest Public Docs Wording Audit
 
 - Target: `launch-facing and governing public docs`
-- Files scanned: `9`
+- Files scanned: `8`
 - Missing expected files: `0`
 - Findings: `0`
 
@@ -17,7 +17,6 @@ PASS
 - `NOTICE`
 - `docs/publication/PUBLICATION_CHECKLIST.md`
 - `SECURITY.md`
-- `TRADEMARKS.md`
 - `docs/constitution/constitution.md`
 - `server_tools/public_bootstrap/README.md`
 

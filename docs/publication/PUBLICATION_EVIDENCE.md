@@ -3,10 +3,10 @@
 This file is generated from the Filterest public-slice candidate flow.
 It is evidence for review, not approval to publish.
 
-- Generated at: `2026-08-02T23:03:09Z`
-- Release source commit used by the generator: `1b5a92ed0d98785befc5e00f8424baf4ad238dc9`
+- Generated at: `2026-08-03T00:44:43Z`
+- Release source commit used by the generator: `d71183bbe776522acacb1be1bdda492481fa646d`
 - Generated Filterest commit: this repository commit; run `git log -1 --oneline`
-- Filterest app version: `8.28.6`
+- Filterest app version: `8.28.7`
 - Database version: `8.0.56`
 
 ## Automated Evidence Included In This Commit
@@ -17,6 +17,7 @@ It is evidence for review, not approval to publish.
 | Public demo/media asset review | `server_tools/public_bootstrap/DEMO_ASSET_REVIEW.md` |
 | Launch-facing public docs wording review | `docs/publication/PUBLICATION_DOCS_REVIEW.md` |
 | Publication governance docs review | `docs/publication/PUBLICATION_GOVERNANCE_REVIEW.md` |
+| Ownership and trademark notice | `NOTICE`; the governance review verifies the accepted Filterest Oy ownership, distinct-name, and allowed-use boundaries. |
 | Public source license | `LICENSE` and package metadata declare GPLv2 / `GPL-2.0-only`. |
 | Third-party notice inventory | `THIRD_PARTY_NOTICES.md` |
 | Third-party notice inventory review | `docs/publication/THIRD_PARTY_NOTICE_REVIEW.md` |
@@ -30,7 +31,6 @@ It is evidence for review, not approval to publish.
 The following gates are intentionally not resolved by this generated evidence:
 
 - production-readiness approval beyond this public beta release;
-- owner approval of current `NOTICE` and `TRADEMARKS.md` wording;
 - human/project approval of third-party notices and public bootstrap strategy;
 - owner approval of the browser/runtime proof target and final local proof chain;
 - semantic public docs/screenshot wording review beyond the deterministic media audit;
