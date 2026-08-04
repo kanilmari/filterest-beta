@@ -478,6 +478,25 @@ configure_environment_files() {
     printf '✓ Required Filterest core configuration is valid. Optional integrations may remain blank.\n'
 }
 
+# Stops only a server from this checkout whose on-disk binary was replaced.
+# Bridges generated-checkout refreshes and the shared port helper before DB
+# bootstrap so repeated installations cannot keep serving an obsolete DB.
+stop_stale_checkout_server_before_install() {
+    local port=""
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+        printf '  [dry-run] retire an obsolete same-checkout Filterest server before installation\n'
+        return
+    fi
+    # shellcheck source=server_tools/lib/easelect_private_paths.sh
+    source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
+    # shellcheck source=server_tools/lib/filterest_port_preflight.sh
+    source "$PROJECT_ROOT/server_tools/lib/filterest_port_preflight.sh"
+    easelect_resolve_private_paths "$PROJECT_ROOT"
+    port="$(filterest_configured_port 8100 "$EASELECT_DEV_ENV_FILE" "$EASELECT_RUNTIME_ENV_FILE")"
+    filterest_preflight_stale_checkout_listener "$port" "$PROJECT_ROOT" "$ASSUME_YES"
+}
+
 # Preserve a verified pre-8.28.10 installation, but never infer ownership from
 # shared default names alone. This read-only probe exists solely to avoid moving
 # a legitimate earlier installation away from its initialized database.
@@ -729,7 +748,7 @@ bootstrap_database_and_dependencies() {
 
 start_installed_filterest() {
     local port=""
-    [[ "$NO_START" -eq 0 ]] || return
+    [[ "$NO_START" -eq 0 ]] || return 0
     if [[ "$DRY_RUN" -eq 1 ]]; then
         printf '  [dry-run] start Filterest and verify the first-run browser address\n'
         return
@@ -765,6 +784,7 @@ main() {
         install_node_toolchain_if_needed
     fi
     configure_environment_files
+    stop_stale_checkout_server_before_install
     ensure_admin_binary
     prepare_database_superuser
     bootstrap_database_and_dependencies
