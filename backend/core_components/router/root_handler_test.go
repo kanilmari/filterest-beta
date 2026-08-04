@@ -31,11 +31,13 @@ var rootHandlerTestKey = []byte("root-handler-test-secret-32-bytes")
 type rootHandlerMockDriver struct {
 	loginToBrowse bool
 	instanceRole  string
+	firstRun      bool
 }
 
 type rootHandlerMockConn struct {
 	loginToBrowse bool
 	instanceRole  string
+	firstRun      bool
 }
 
 type rootHandlerMockTx struct{}
@@ -51,6 +53,7 @@ func (d *rootHandlerMockDriver) Open(_ string) (driver.Conn, error) {
 	return &rootHandlerMockConn{
 		loginToBrowse: d.loginToBrowse,
 		instanceRole:  d.instanceRole,
+		firstRun:      d.firstRun,
 	}, nil
 }
 
@@ -84,6 +87,13 @@ func (c *rootHandlerMockConn) Query(query string, args []driver.Value) (driver.R
 
 func (c *rootHandlerMockConn) QueryContext(_ context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	switch {
+	case strings.Contains(query, "WHERE key = $1") &&
+		len(args) > 0 &&
+		args[0].Value == "first_run":
+		return &rootHandlerMockRows{
+			cols: []string{"boolean_value"},
+			vals: []driver.Value{c.firstRun},
+		}, nil
 	case strings.Contains(query, "FROM system_config") &&
 		len(args) > 0 &&
 		args[0].Value == "easelect_instance_role":
@@ -157,6 +167,22 @@ func setupRootHandlerMockDBWithRole(t *testing.T, loginToBrowse bool, instanceRo
 		backend.Db = orig
 		backend.ResetEaselectInstanceRoleCache()
 	})
+}
+
+func openRootHandlerFirstRunDB(t *testing.T) *sql.DB {
+	t.Helper()
+	name := fmt.Sprintf(
+		"root_handler_first_run_%d_%d",
+		time.Now().UnixNano(),
+		atomic.AddInt64(&rootHandlerDriverCounter, 1),
+	)
+	sql.Register(name, &rootHandlerMockDriver{firstRun: true})
+	db, err := sql.Open(name, "")
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return db
 }
 
 func setupRootHandlerSessionStore(t *testing.T) {
@@ -252,6 +278,27 @@ func TestRootHandlerRedirectsAnonymousRootWhenLoginRequired(t *testing.T) {
 	}
 	if got := rr.Header().Get("Location"); got != "/login" {
 		t.Fatalf("Location = %q, want /login", got)
+	}
+}
+
+func TestRootHandlerRedirectsFreshInstallToFirstRunSetup(t *testing.T) {
+	setupRootHandlerMockDB(t, false)
+	setupRootHandlerSessionStore(t)
+	setupRootHandlerFrontend(t)
+
+	originalDB := backend.Db
+	backend.Db = openRootHandlerFirstRunDB(t)
+	t.Cleanup(func() { backend.Db = originalDB })
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	rootHandler(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusSeeOther)
+	}
+	if got := rr.Header().Get("Location"); got != "/first-run" {
+		t.Fatalf("Location = %q, want /first-run", got)
 	}
 }
 

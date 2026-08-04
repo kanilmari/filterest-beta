@@ -94,6 +94,7 @@ var RouteProfiles = map[string]RouteProfile{
 	// Auth endpoints (must be accessible before login)
 	"auth.LoginHandler":                   PublicProfile,
 	"auth.LoginAPIHandler":                PublicProfile,
+	"auth.FirstRunAdminHandler":           PublicProfile,
 	"auth.RequestPasswordResetOTPHandler": PublicProfile,
 	"auth.ResetPasswordWithOTPHandler":    PublicProfile,
 	"auth.RegisterHandler":                PublicProfile,

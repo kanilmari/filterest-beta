@@ -5,6 +5,7 @@
 package auth
 
 import (
+	backend "easelect/backend/core_components"
 	"fmt"
 	"html/template"
 	"log"
@@ -16,6 +17,7 @@ import (
 
 	frontendassets "easelect/backend/core_components/frontend_assets"
 	"easelect/backend/core_components/httpresponse"
+	"easelect/backend/core_components/logging"
 	"easelect/backend/core_components/middlewares"
 	e_sessions "easelect/backend/core_components/sessions"
 
@@ -99,6 +101,16 @@ func InitAuth(session_store *sessions.CookieStore, fe_dir string) {
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		pending, err := firstRunPendingReader(r.Context(), backend.Db)
+		if err != nil {
+			logging.Errorf("[LoginHandler] first-run state check failed: %v", err)
+			httpresponse.RespondWithError(w, http.StatusServiceUnavailable, "Login is unavailable while setup state cannot be verified")
+			return
+		}
+		if pending {
+			http.Redirect(w, r, "/first-run", http.StatusSeeOther)
+			return
+		}
 		session, _ := e_sessions.GetOrCreateSession(w, r)
 		if session != nil && session.Values["user_id"] != nil {
 			// Jos käyttäjä on muu kuin guest, eli jos user_id on jokin muu kuin 1, ohjataan etusivulle

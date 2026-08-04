@@ -61,10 +61,11 @@
                         data-testid="login-page-tab-tour"
                         data-lang-key="login_page_tab_tour">Tour</button>
                 </div>
-                <div class="auth-top-controls" data-testid="login-page-controls">
-                    <button type="button" id="themeToggleBtn" class="button auth-toolbar-button" data-testid="login-theme-toggle"></button>
-                    <div class="language-selection menu-language-selection auth-language-selection" data-testid="login-language-selection"></div>
-                </div>
+                <div
+                    class="auth-top-controls"
+                    data-auth-preference-controls
+                    data-auth-controls-context="login"
+                    data-testid="login-page-controls"></div>
             </div>
             <section
                 class="auth-page-tab-panel auth-page-login-panel"

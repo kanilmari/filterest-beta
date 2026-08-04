@@ -126,6 +126,15 @@ func TestBuildDefaultRouteManifestCoversScenarioMatrix(t *testing.T) {
 	authModes := mustFindManifestRoute(t, manifest, "auth.GetAuthModesHandler")
 	assertRouteMethods(t, authModes, []string{"GET"}, router.RouteMethodSourceExplicitStableContract)
 
+	firstRunAdmin := mustFindManifestRoute(t, manifest, "auth.FirstRunAdminHandler")
+	assertRouteMethods(t, firstRunAdmin, []string{"GET", "POST"}, router.RouteMethodSourceExplicitStableContract)
+	if firstRunAdmin.PathPattern != "/first-run" {
+		t.Fatalf("expected auth.FirstRunAdminHandler path to be /first-run, got %q", firstRunAdmin.PathPattern)
+	}
+	if mustFindScenarioProfile(t, firstRunAdmin, "production").ProfileName != "public" {
+		t.Fatalf("expected auth.FirstRunAdminHandler production profile to be public")
+	}
+
 	health := mustFindManifestRoute(t, manifest, "router.healthHandler")
 	assertScenarioNames(t, health, []string{"production", "development", "api_language"})
 	assertRouteMethods(t, health, []string{"GET"}, router.RouteMethodSourceExplicitStableContract)

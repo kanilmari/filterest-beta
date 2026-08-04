@@ -119,6 +119,7 @@ func RegisterRoutes(frontendDir string, storagePath string) {
 
 	// UI Routes (GET only)
 	functionRegisterHandler("/login", auth.LoginHandler, "auth.LoginHandler")
+	functionRegisterHandler("/first-run", auth.FirstRunAdminHandler, "auth.FirstRunAdminHandler")
 	functionRegisterHandler("/register_ndYOyXV0INOK3F", auth.RegisterHandler, "auth.RegisterHandler")
 
 	// API Routes (POST/Action)

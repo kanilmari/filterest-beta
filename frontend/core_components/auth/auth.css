@@ -35,6 +35,12 @@ body.login-page {
     gap: 10px;
 }
 
+.auth-preferences-row {
+    width: min(760px, 100%);
+    display: flex;
+    justify-content: flex-end;
+}
+
 .auth-toolbar-button,
 .auth-language-selection .language-button {
     min-height: 42px;
@@ -433,6 +439,7 @@ h1.site_name {
 }
 
 .auth-form input[type="text"],
+.auth-form input[type="email"],
 .auth-form input[type="password"] {
     appearance: none;
     -webkit-appearance: none;
@@ -448,6 +455,7 @@ h1.site_name {
 }
 
 .auth-form input[type="text"]:focus,
+.auth-form input[type="email"]:focus,
 .auth-form input[type="password"]:focus {
     outline: none;
     border-color: var(--auth-focus-color, hsl(var(--brand-hue), 50%, 50%));
@@ -456,6 +464,7 @@ h1.site_name {
 }
 
 .auth-form input[type="text"]::placeholder,
+.auth-form input[type="email"]::placeholder,
 .auth-form input[type="password"]::placeholder {
     color: var(--empty_field_text_color);
 }
@@ -520,6 +529,24 @@ h1.site_name {
 
 #submit {
     margin-top: 12px;
+}
+
+.first-run-admin-shell {
+    justify-content: center;
+}
+
+.first-run-admin-page .auth-page-content-card {
+    width: min(720px, 100%);
+    margin: auto;
+}
+
+.first-run-admin-page .auth-intro-box {
+    max-width: 600px;
+    text-align: center;
+}
+
+.first-run-admin-page .auth-form {
+    display: grid;
 }
 
 .privacy-notice-link {
@@ -811,6 +838,7 @@ body.loading .auth-page-shell {
     background-color: currentColor;
 }
 
+.auth-theme-toggle,
 #themeToggleBtn {
     display: flex;
     align-items: center;

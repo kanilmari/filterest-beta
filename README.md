@@ -124,14 +124,15 @@ $EDITOR filterest_keys/filterest_runtime/runtime_environment.env \
 Open `https://localhost:8100`. The local certificate is self-signed, so the
 browser may ask you to accept it once.
 
-On first setup, Filterest creates a login-ready initial admin and shows the
-one-time credentials in the terminal. By default, it also writes them to the
-gitignored `data/bootstrap/initial_admin_credentials.txt` file with restricted
-permissions. Delete that file after signing in and changing the password.
+On first browser access, Filterest opens a one-time form where you choose the
+administrator username, email address, and password. The form is available only
+while the server-owned first-run setting is pending and no login-ready admin
+exists. A successful submission creates the account and closes first-run mode
+as one transaction; later visits go to normal login.
 
 The bundled public seed contains synthetic multilingual example datasets and
 media only. See `server_tools/public_bootstrap/README.md` for the seed and
-initial-admin boundaries.
+first-administrator boundaries.
 
 The Git-ignored `filterest.paths.local` accepts arbitrary safe relative or
 absolute `projects_home` and `keys_home` values. Relative values start at the

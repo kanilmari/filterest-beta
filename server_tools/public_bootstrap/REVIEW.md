@@ -90,12 +90,12 @@ PASS
 - `public.riskienhallinta_tiketit_relation`: 26
 - `public.system_about`: 1
 - `public.system_column_details`: 29
-- `public.system_config`: 7
+- `public.system_config`: 8
 - `public.system_db_tables`: 37
 - `public.system_db_version`: 1
 - `public.system_functions`: 15
 - `public.system_group_table_func_rights`: 16
-- `public.system_lang_keys`: 414
+- `public.system_lang_keys`: 425
 - `public.system_table_folders`: 14
 - `public.system_user_group_memberships`: 3
 - `public.system_user_groups`: 3
@@ -119,5 +119,5 @@ PASS
 
 This deterministic report does not approve the public bootstrap strategy or content scope for publication.
 It also does not replace runtime proof of the first-ever admin credential path.
-Fixture user rows are not a reusable admin password; setup must generate the initial admin separately.
+Fixture user rows are not a reusable admin password; the installation owner creates the first admin through the guarded browser form.
 A human/project owner still needs to review the bootstrap content and approve the credential path before publication.

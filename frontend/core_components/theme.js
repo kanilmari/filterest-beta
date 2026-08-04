@@ -19,6 +19,7 @@ export const themeIcons = {
 let currentThemeIndex;
 let systemThemeMediaQuery = null;
 let systemThemeChangeHandler = null;
+const initializedThemeButtons = new WeakSet();
 
 document.addEventListener('DOMContentLoaded', () => {
     currentThemeIndex = initializeTheme(themes, applyTheme);
@@ -31,19 +32,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', function(event) {
-            event.stopPropagation();
-            currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-            const newTheme = themes[currentThemeIndex];
-            applyTheme(newTheme);
-            localStorage.setItem('theme', newTheme);
-
-            void updateThemeButton(newTheme);
-        });
-    }
+    document.querySelectorAll('[data-theme-toggle], #themeToggleBtn').forEach((button) => {
+        initializeThemeToggle(button);
+    });
 });
+
+/**
+ * Binds one reusable theme button to the shared light/dark/system state.
+ *
+ * @param {HTMLElement} themeToggleButton
+ */
+export function initializeThemeToggle(themeToggleButton) {
+    if (!(themeToggleButton instanceof HTMLElement) || initializedThemeButtons.has(themeToggleButton)) {
+        return;
+    }
+
+    initializedThemeButtons.add(themeToggleButton);
+    if (!Number.isInteger(currentThemeIndex)) {
+        currentThemeIndex = initializeTheme(themes, applyTheme);
+    } else {
+        void updateThemeButton(themes[currentThemeIndex], themeToggleButton);
+    }
+
+    themeToggleButton.addEventListener('click', function(event) {
+        event.stopPropagation();
+        currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+        const newTheme = themes[currentThemeIndex];
+        applyTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        void updateThemeButton(newTheme);
+    });
+}
 
 
 /**
@@ -76,18 +95,22 @@ export function applyTheme(theme) {
  * Exists to keep icon state synchronized after initialization and user toggles.
  *
  * @param {string} theme
+ * @param {HTMLElement|null} targetButton
  * @returns {Promise<void>}
  */
-export async function updateThemeButton(theme) {
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (!themeToggleBtn) return;
+export async function updateThemeButton(theme, targetButton = null) {
+    const themeToggleButtons = targetButton
+        ? [targetButton]
+        : Array.from(document.querySelectorAll('[data-theme-toggle], #themeToggleBtn'));
 
-    themeToggleBtn.replaceChildren();
-    themeToggleBtn.setAttribute('aria-label', `Theme: ${theme}`);
-    themeToggleBtn.title = `Theme: ${theme}`;
-    themeToggleBtn.appendChild(
-        createMaskIconSpan(themeIcons[theme] || themeIcons.system, ["theme-toggle-icon"])
-    );
+    themeToggleButtons.forEach((themeToggleButton) => {
+        themeToggleButton.replaceChildren();
+        themeToggleButton.setAttribute('aria-label', `Theme: ${theme}`);
+        themeToggleButton.title = `Theme: ${theme}`;
+        themeToggleButton.appendChild(
+            createMaskIconSpan(themeIcons[theme] || themeIcons.system, ["theme-toggle-icon"])
+        );
+    });
 }
 
 

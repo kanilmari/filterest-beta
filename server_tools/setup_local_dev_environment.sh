@@ -9,7 +9,6 @@
 #
 # Prerequisites:
 #   - Ubuntu/Debian-based system
-#   - sudo access
 #   - PostgreSQL 16 installed (apt install postgresql-16 postgresql-16-pgvector)
 #   - Go 1.26.5+ installed
 #   - Node.js 24+ installed
@@ -321,13 +320,12 @@ echo -e "${GREEN}  ✓ Credentials loaded${NC}"
 echo ""
 echo -e "${BLUE}[3/8] Creating database roles...${NC}"
 
-# Use sudo/peer auth when available. Generated public checkouts can also pass
-# POSTGRES_SUPERUSER* env vars from a local private preview helper.
-POSTGRES_SUPERUSER="${POSTGRES_SUPERUSER:-postgres}"
-POSTGRES_SUPERUSER_PASSWORD="${POSTGRES_SUPERUSER_PASSWORD:-}"
+# Database setup always uses an explicit database administrator connection.
+# OS package and PostgreSQL-cluster provisioning remain separate host tasks.
+POSTGRES_SUPERUSER="${POSTGRES_SUPERUSER:-$DB_ADMIN_USER}"
+POSTGRES_SUPERUSER_PASSWORD="${POSTGRES_SUPERUSER_PASSWORD:-$DB_ADMIN_PASSWORD}"
 POSTGRES_SUPERUSER_HOST="${POSTGRES_SUPERUSER_HOST:-localhost}"
 POSTGRES_SUPERUSER_DB="${POSTGRES_SUPERUSER_DB:-postgres}"
-POSTGRES_SUPERUSER_ACCESS_MODE=""
 
 run_superuser_psql() {
     local args=("$@")
@@ -343,34 +341,22 @@ run_superuser_psql() {
         args=(-d "$POSTGRES_SUPERUSER_DB" "${args[@]}")
     fi
 
-    if [[ "$POSTGRES_SUPERUSER_ACCESS_MODE" == "sudo" ]]; then
-        sudo -n -u postgres psql -v ON_ERROR_STOP=1 -p "$PG16_PORT" "${args[@]}"
-        return
-    fi
-
     PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" psql -v ON_ERROR_STOP=1 \
         -h "$POSTGRES_SUPERUSER_HOST" -p "$PG16_PORT" -U "$POSTGRES_SUPERUSER" \
         "${args[@]}"
 }
 
 detect_superuser_access() {
-    if command -v sudo >/dev/null 2>&1 && \
-        sudo -n -u postgres psql -v ON_ERROR_STOP=1 -p "$PG16_PORT" -d postgres -tAc "SELECT 1;" >/dev/null 2>&1; then
-        POSTGRES_SUPERUSER_ACCESS_MODE="sudo"
-        echo -e "${GREEN}  ✓ PostgreSQL superuser access: sudo postgres${NC}"
-        return
-    fi
-
     if [[ -n "$POSTGRES_SUPERUSER_PASSWORD" ]] && \
         [[ "$(PGPASSWORD="$POSTGRES_SUPERUSER_PASSWORD" psql -h "$POSTGRES_SUPERUSER_HOST" -p "$PG16_PORT" -U "$POSTGRES_SUPERUSER" -d "$POSTGRES_SUPERUSER_DB" -tAc "SELECT rolsuper FROM pg_roles WHERE rolname = current_user;" 2>/dev/null | tr -d '[:space:]')" == "t" ]]; then
-        POSTGRES_SUPERUSER_ACCESS_MODE="password"
         echo -e "${GREEN}  ✓ PostgreSQL superuser access: ${POSTGRES_SUPERUSER}@${POSTGRES_SUPERUSER_HOST}:${PG16_PORT}${NC}"
         return
     fi
 
     echo -e "${RED}❌ PostgreSQL superuser access unavailable.${NC}"
-    echo "   Use passwordless sudo for postgres, or set POSTGRES_SUPERUSER, POSTGRES_SUPERUSER_PASSWORD,"
+    echo "   Set POSTGRES_SUPERUSER, POSTGRES_SUPERUSER_PASSWORD,"
     echo "   POSTGRES_SUPERUSER_HOST, and POSTGRES_SUPERUSER_DB to a PostgreSQL superuser connection."
+    echo "   Database setup never requests sudo; host installation and cluster provisioning are separate."
     exit 1
 }
 
@@ -449,10 +435,16 @@ update_db_port_setting() {
     mv "$temp_file" "$write_target"
 }
 
-# Creates a first-run generated Filterest admin only when the public setup needs one.
-# Bridges the setup database credentials and the local one-time credential handoff helper.
+# Creates a generated admin only for the explicitly isolated automated preview.
+# Normal fresh installs leave first_run pending for the browser-owned setup form.
 ensure_generated_filterest_initial_admin() {
     if ! project_is_generated_filterest; then
+        return
+    fi
+
+    if [[ "${FILTEREST_AUTOMATED_PREVIEW_INITIAL_ADMIN:-}" != "1" ]]; then
+        echo ""
+        echo -e "${BLUE}First administrator will be created in the browser on first access.${NC}"
         return
     fi
 
@@ -476,7 +468,7 @@ ensure_generated_filterest_initial_admin() {
     fi
 
     echo ""
-    echo -e "${BLUE}Creating first-run Filterest admin credentials...${NC}"
+    echo -e "${BLUE}Creating isolated automated-preview admin credentials...${NC}"
     FILTEREST_DB_PASSWORD="$DB_ADMIN_PASSWORD" go run ./server_tools/initial_admin_bootstrap "${initial_admin_args[@]}"
 }
 
@@ -664,20 +656,13 @@ SQL
 fi
 
 # --------------------------------------------------------------------------
-# Step 5: Install/enable PostGIS and import dump
+# Step 5: Enable PostGIS when available and import dump
 # --------------------------------------------------------------------------
 echo ""
 echo -e "${BLUE}[5/8] Preparing PostGIS and importing database dump...${NC}"
 
-echo "  Installing PostGIS package (postgresql-16-postgis-3)..."
-if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null && \
-    sudo -n apt-get install -y postgresql-16-postgis-3 >/dev/null 2>&1; then
-    echo "  ✓ PostGIS package installed/available"
-else
-    echo -e "${YELLOW}  ⚠ PostGIS package not available via apt (continuing with fallback support)${NC}"
-fi
-
 echo "  Checking PostGIS extension availability..."
+echo "  OS packages are never installed by database setup; missing PostGIS uses the supported fallback."
 POSTGIS_AVAILABLE="0"
 if PGPASSWORD="$DB_ADMIN_PASSWORD" psql -h localhost -p "$PG16_PORT" -U "$DB_ADMIN_USER" -d "$DB_NAME" \
     -tAc "SELECT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'postgis');" 2>/dev/null | grep -q t; then

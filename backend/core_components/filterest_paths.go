@@ -188,11 +188,11 @@ func resolveFilterestHomes(projectRoot string, privateSource bool) (filterestHom
 			}
 		}
 	}
-	if value := strings.TrimSpace(os.Getenv("FILTEREST_PROJECTS_HOME")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("FILTEREST_PROJECTS_HOME")); value != "" && strings.TrimSpace(os.Getenv("FILTEREST_PROJECTS_HOME_CONFIGURED")) != "0" {
 		values["projects_home"] = value
 		configured["projects_home"] = true
 	}
-	if value := strings.TrimSpace(os.Getenv("FILTEREST_KEYS_HOME")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("FILTEREST_KEYS_HOME")); value != "" && strings.TrimSpace(os.Getenv("FILTEREST_KEYS_HOME_CONFIGURED")) != "0" {
 		values["keys_home"] = value
 		configured["keys_home"] = true
 	}

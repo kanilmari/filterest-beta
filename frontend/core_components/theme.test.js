@@ -121,4 +121,17 @@ describe('theme', () => {
         expect(document.querySelector('.theme-toggle-icon')?.style.maskImage)
             .toContain('theme-locked-dark-icon.svg');
     });
+
+    test('reusable data-theme buttons cycle the shared theme state', async () => {
+        document.body.innerHTML = '<button data-theme-toggle></button>';
+        const { initializeThemeToggle } = await loadModule();
+        const themeButton = document.querySelector('[data-theme-toggle]');
+
+        initializeThemeToggle(themeButton);
+        themeButton.click();
+
+        expect(localStorage.getItem('theme')).toBe('dark');
+        expect(document.body.classList.contains('dark-mode')).toBe(true);
+        expect(themeButton.getAttribute('aria-label')).toBe('Theme: dark');
+    });
 });

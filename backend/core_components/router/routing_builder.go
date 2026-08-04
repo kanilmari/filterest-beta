@@ -17,6 +17,7 @@ import (
 	"time"
 
 	backend "easelect/backend/core_components"
+	"easelect/backend/core_components/auth"
 	frontendassets "easelect/backend/core_components/frontend_assets"
 	"easelect/backend/core_components/httpresponse"
 	"easelect/backend/core_components/middlewares"
@@ -285,6 +286,13 @@ func setAuthShellNoStoreHeaders(w http.ResponseWriter, loginToBrowse bool) {
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
+	if pending, err := auth.IsFirstRunAdminSetupPending(r.Context(), backend.Db); err == nil && pending {
+		http.Redirect(w, r, "/first-run", http.StatusSeeOther)
+		return
+	} else if err != nil {
+		log.Printf("[rootHandler] first-run state check unavailable; setup remains closed: %v", err)
+	}
+
 	// Jos pyyntö on favicon, palvellaan se suoraan
 	if r.URL.Path == "/favicon4S.png" {
 		http.ServeFile(w, r, filepath.Join(localFrontendDir, "favicon4S.png"))

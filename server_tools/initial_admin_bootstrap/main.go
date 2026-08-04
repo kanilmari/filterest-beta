@@ -289,6 +289,16 @@ func ensureInitialAdmin(ctx context.Context, db *sql.DB, cfg initialAdminConfig)
 		return initialAdminResult{}, fmt.Errorf("insert restricted credentials: %w", err)
 	}
 
+	if _, err = tx.ExecContext(ctx, `
+		UPDATE system_config
+		SET boolean_value = FALSE,
+		    json_value = jsonb_set(COALESCE(json_value, '{}'::jsonb), '{value}', 'false'::jsonb, TRUE),
+		    updated = NOW()
+		WHERE key = 'first_run'
+	`); err != nil {
+		return initialAdminResult{}, fmt.Errorf("close first-run state for automated preview: %w", err)
+	}
+
 	if err = tx.Commit(); err != nil {
 		return initialAdminResult{}, fmt.Errorf("commit initial admin: %w", err)
 	}

@@ -5,13 +5,11 @@
 // PIPELINE_EXCEPTION: Login page runs before session/CSRF bootstrap; endpoint_router
 // requires a valid session context that does not exist on the pre-auth login page.
 // Login, OTP, and password-reset fetches are pre-auth and cannot flow through runApiPipeline.
-import { translatePage } from "../lang/translation_handler.js";
 import { gather_browser_fingerprint_hash } from "../../reusable_components/browser_identity_builder.js";
 import { createModal, showModal } from "../../reusable_components/modal/modal_builder.js";
 import { endpoint_router } from "../endpoints/endpoint_router.js";
 import {
     getLanguageWithBrowserFallback,
-    getPreferredAvailableLanguage,
 } from "../state_stores/lang_preference_reader.js";
 import { renderAllowedHtml } from "../../reusable_components/dom_container_builder.js";
 import {
@@ -33,16 +31,7 @@ import {
 import { publishAuthLogin } from "./auth_broadcast.js";
 import { isCrossTabLoginSyncEnabled } from "../config_fetcher.js";
 import { initializeStandaloneLoginShell } from "./login_page_shell_builder.js";
-import "../theme.js";
-import "../lang/lang_panel_printer.js";
-
-
-const IS_DEV_MODE = document.querySelector('meta[name="app-env"]')?.content === 'dev';
-const SUPPORTED_UI_LANGUAGES = ['en', 'fi'];
-
-const chosen_language = getPreferredAvailableLanguage(SUPPORTED_UI_LANGUAGES);
-if (IS_DEV_MODE) console.log("Translating page, chosen_language:", chosen_language);
-translatePage(chosen_language);
+import "./auth_preference_controls.js";
 
 const cookiesToRemove = [
     "device_id",

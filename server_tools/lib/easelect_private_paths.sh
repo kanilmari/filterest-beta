@@ -15,6 +15,16 @@ _easelect_resolve_filterest_homes() {
     local resolver_dir=""
     local output=""
 
+    # A previous resolution exports the calculated defaults for downstream
+    # consumers. Do not reinterpret those defaults as operator overrides when
+    # the same process resolves paths again.
+    if [[ "${FILTEREST_PROJECTS_HOME_CONFIGURED:-}" == "0" ]]; then
+        unset FILTEREST_PROJECTS_HOME
+    fi
+    if [[ "${FILTEREST_KEYS_HOME_CONFIGURED:-}" == "0" ]]; then
+        unset FILTEREST_KEYS_HOME
+    fi
+
     if [[ ! -f "$resolver" ]]; then
         resolver_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
         resolver="$resolver_dir/filterest_paths.py"

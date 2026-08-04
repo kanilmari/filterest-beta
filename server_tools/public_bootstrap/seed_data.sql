@@ -41,7 +41,8 @@ INSERT INTO public.system_config (id, key, json_value, created, updated, creatio
   (3004, 'instance_kind', '{"value": "filterest_sibling"}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', NULL, 'filterest_sibling', NULL, 2),
   (3005, 'overwrite_possible', '{"value": true}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', TRUE, 'true', NULL, 1),
   (3006, 'dev_rate_limiting_off', '{"value": true}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', TRUE, 'true', NULL, 1),
-  (3007, 'use_minified_js_css_in_dev_env', '{"value": false}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', FALSE, 'false', NULL, 1);
+  (3007, 'use_minified_js_css_in_dev_env', '{"value": false}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', FALSE, 'false', NULL, 1),
+  (3008, 'first_run', '{"value": true}'::jsonb, '2026-08-03 00:00:00', '2026-08-03 00:00:00', 'Controls the one-time browser form for creating the first login-ready administrator. It is closed atomically after successful account creation.', TRUE, 'true', NULL, 1);
 
 INSERT INTO public.system_functions (
   id, name, disabled, created, updated, "package", specific_table_related,
@@ -199,7 +200,7 @@ VALUES (
 );
 
 INSERT INTO public.system_db_version (version, description)
-VALUES ('8.0.56', 'Filterest generated public bootstrap');
+VALUES ('8.0.57', 'Filterest generated public bootstrap');
 -- Filterest public bootstrap: metadata and multilingual content for the
 -- established mock services, risks, documentation, and tickets workspace.
 
@@ -544,24 +545,26 @@ WITH mock_rows (
     id, service_id, title_en, title_fi, title_yue, team_en, team_fi,
     team_yue, guidance_en, guidance_fi, guidance_yue, reviewed
 ) AS (VALUES
-  (1, 6, 'Service level agreements in practice', 'Service Level Agreement käytännössä', '實務服務水平協議',
-   'Service management', 'Palvelunhallinta', '服務管理',
-   'Define service hours, support channels, escalation paths, availability, recovery targets, metrics, reporting, and ownership. Write targets so deviations can be measured.',
-   'Määritä palveluajat, tukikanavat, eskalointipolut, saatavuus, palautumistavoitteet, mittarit, raportointi ja omistajuus. Kirjoita tavoitteet niin, että poikkeamat voidaan mitata.',
-   '訂明服務時間、支援渠道、升級路徑、可用性、復原目標、指標、報告同責任。目標要寫到可以量度偏差。',
-   DATE '2026-04-15'),
-  (2, 13, 'IT investment prioritisation model', 'IT-investointien priorisointimalli', '資訊科技投資優先次序模型',
-   'IT leadership', 'Tietohallintojohto', '資訊科技管理層',
-   'Score proposals consistently for strategic value, risk reduction, cost, dependencies, and delivery capacity. Record exceptions as explicit management decisions.',
-   'Pisteytä ehdotukset yhdenmukaisesti strategisen arvon, riskin pienentymisen, kustannusten, riippuvuuksien ja toteutuskyvyn mukaan. Kirjaa poikkeukset johdon tietoisiksi päätöksiksi.',
-   '按策略價值、減低風險、成本、依賴同交付能力一致評分。將例外記錄為管理層嘅明確決定。',
-   DATE '2026-04-20'),
-  (3, 8, 'Bring-your-own-device policy', 'BYOD-politiikka', '自攜設備政策',
-   'Information security', 'Tietoturva', '資訊保安',
-   'Allow personal devices only when work data can be protected, remotely removed, and separated from personal use. Require device locking, current software, MFA, and managed work profiles.',
-   'Salli omat laitteet vain, kun työdata voidaan suojata, etäpoistaa ja erottaa henkilökohtaisesta käytöstä. Vaadi laitelukitus, ajantasainen ohjelmisto, MFA ja hallittu työprofiili.',
-   '只喺工作資料可以受保護、遙距移除同個人用途分隔時先容許私人設備。必須有設備鎖、最新軟件、多重驗證同受管理工作設定檔。',
-   DATE '2026-04-25'),
+  -- The first three rows form the compact, illustrated onboarding guide that
+  -- a new Filterest administrator can browse immediately after first-run setup.
+  (1, 6, 'Start here', 'Aloita tästä', '由此開始',
+   'Filterest administrators', 'Filterest-ylläpitäjät', 'Filterest 管理員',
+   'Sign in with the first administrator account, choose the interface language and theme, confirm the site name and navigation, and replace disposable examples before real use.',
+   'Kirjaudu ensimmäisellä ylläpitäjätilillä, valitse käyttöliittymän kieli ja teema, tarkista sivuston nimi ja navigaatio sekä korvaa kertakäyttöiset esimerkit ennen oikeaa käyttöä.',
+   '用第一個管理員帳戶登入、選擇介面語言同主題、確認網站名稱同導覽，並喺正式使用前取代即棄式範例。',
+   DATE '2026-08-03'),
+  (2, 13, 'First dataset', 'Ensimmäinen tietoaineisto', '第一個資料集',
+   'Filterest administrators', 'Filterest-ylläpitäjät', 'Filterest 管理員',
+   'Begin with one useful list that people already understand. Give every column a clear purpose, mark multilingual fields, and keep only filters that help users make decisions.',
+   'Aloita yhdestä hyödyllisestä listasta, jonka ihmiset jo ymmärtävät. Anna jokaiselle sarakkeelle selkeä tarkoitus, merkitse monikieliset kentät ja säilytä vain päätöksentekoa auttavat suodattimet.',
+   '先建立一個大家已經明白嘅實用清單。確保每個欄位都有清晰用途、標示多語言欄位，並只保留有助使用者作決定嘅篩選條件。',
+   DATE '2026-08-03'),
+  (3, 8, 'Browse, filter and manage data', 'Selaa, suodata ja hallitse tietoja', '瀏覽、篩選同管理資料',
+   'Filterest administrators', 'Filterest-ylläpitäjät', 'Filterest 管理員',
+   'Open a dataset from the navigation, try the card and table views, search and filter the rows, open one row, and make a harmless edit to verify the complete administration loop.',
+   'Avaa tietoaineisto navigaatiosta, kokeile kortti- ja taulukkonäkymiä, hae ja suodata rivejä, avaa yksi rivi ja tee vaaraton muokkaus varmistaaksesi koko hallintaketjun.',
+   '由導覽開啟資料集、試用卡片同表格檢視、搜尋同篩選資料列、開啟其中一列，再作一次無害修改以確認完整管理流程。',
+   DATE '2026-08-03'),
   (4, 8, 'Backup practice checklist', 'Varmistuskäytäntöjen tarkistuslista', '備份作業檢查清單',
    'Infrastructure', 'Infrastruktuuri', '基建',
    'Define recovery objectives for every critical service, keep one copy separate from production credentials, and perform documented restoration tests. A successful job is not proof until restore succeeds.',
@@ -1207,6 +1210,8 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('url_route_endpoint', 'URL-reitin päätepiste', 'URL route endpoint', 'URL 路由端点', 'URL 路由端點', 'public fixture metadata seed'),
   ('usage_explanation', 'Käyttöselite', 'Usage explanation', '使用说明', '使用說明', 'public fixture metadata seed'),
   ('user_group_id', 'Käyttäjäryhmän tunnus', 'User group ID', '用户组 ID', '用戶群組 ID', 'public fixture metadata seed'),
+  ('email', 'Sähköposti', 'Email', '电子邮件', '電郵', 'public fixture metadata seed'),
+  ('password', 'Salasana', 'Password', '密码', '密碼', 'public fixture metadata seed'),
   ('username', 'Käyttäjätunnus', 'Username', '用户名', '用戶名稱', 'public fixture metadata seed'),
   ('value_type', 'Arvon tyyppi', 'Value type', '值类型', '值類型', 'public fixture metadata seed'),
   ('version', 'Versio', 'Version', '版本', '版本', 'public fixture metadata seed'),
@@ -1214,6 +1219,27 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('visible', 'Näkyvä', 'Visible', '可见', '可見', 'public fixture metadata seed'),
   ('webhook_received_at', 'Webhook vastaanotettu', 'Webhook received at', '收到 Webhook 的时间', '收到 Webhook 嘅時間', 'public fixture metadata seed'),
   ('yue', 'Kantoninkiina', 'Cantonese', '粤语', '粵語', 'public fixture metadata seed')
+ON CONFLICT (lang_key) DO UPDATE
+SET fi = EXCLUDED.fi,
+    en = EXCLUDED.en,
+    ch = EXCLUDED.ch,
+    yue = EXCLUDED.yue,
+    updated = now(),
+    creation_spec = EXCLUDED.creation_spec;
+
+-- A fresh public installation asks its owner to choose the first login-ready
+-- administrator. These labels mirror the upgrade migration so the reduced
+-- deterministic bootstrap works without opening the general migration gate.
+INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) VALUES
+  ('first_run_admin_title', 'Luo ensimmäinen pääkäyttäjä', 'Create the first administrator', '创建首位管理员', '建立第一位管理員', 'Public first-run administrator setup label.'),
+  ('first_run_admin_description', 'Valitse tämän asennuksen pääkäyttäjän tunnukset. Sähköpostiosoitetta käytetään kirjautumisen vahvistamiseen ja käyttäjätilin viesteihin.', 'Choose the administrator credentials for this installation. The email address will be used for sign-in verification and account messages.', '请为此安装设置管理员凭据。该电子邮件地址将用于登录验证和账户通知。', '請為此安裝設定管理員登入資料。電郵地址會用於登入驗證及帳戶通知。', 'Public first-run administrator setup label.'),
+  ('first_run_admin_submit', 'Luo pääkäyttäjä', 'Create administrator', '创建管理员', '建立管理員', 'Public first-run administrator setup label.'),
+  ('confirm_password', 'Vahvista salasana', 'Confirm password', '确认密码', '確認密碼', 'Public first-run administrator setup label.'),
+  ('first_run_username_invalid', 'Käytä 3–64 merkkiä: kirjaimia, numeroita, pisteitä, alaviivoja tai yhdysmerkkejä.', 'Use 3–64 characters: letters, numbers, dots, underscores, or hyphens.', '请输入 3–64 个字符，可使用字母、数字、句点、下划线或连字符。', '請輸入 3–64 個字元，可使用字母、數字、句號、底線或連字號。', 'Public first-run administrator validation label.'),
+  ('first_run_email_invalid', 'Anna kelvollinen sähköpostiosoite.', 'Enter a valid email address.', '请输入有效的电子邮件地址。', '請輸入有效的電郵地址。', 'Public first-run administrator validation label.'),
+  ('first_run_password_invalid', 'Käytä 12–128 merkin pituista salasanaa.', 'Use a password containing 12–128 characters.', '密码长度须为 12–128 个字符。', '密碼長度須為 12–128 個字元。', 'Public first-run administrator validation label.'),
+  ('first_run_password_mismatch', 'Salasanat eivät täsmää.', 'The passwords do not match.', '两次输入的密码不一致。', '兩次輸入的密碼不一致。', 'Public first-run administrator validation label.'),
+  ('first_run_admin_creation_failed', 'Pääkäyttäjää ei voitu luoda. Mitään asetusmuutoksia ei tallennettu.', 'The administrator could not be created. No setup changes were saved.', '无法创建管理员，未保存任何设置更改。', '無法建立管理員，未儲存任何設定變更。', 'Public first-run administrator failure label.')
 ON CONFLICT (lang_key) DO UPDATE
 SET fi = EXCLUDED.fi,
     en = EXCLUDED.en,

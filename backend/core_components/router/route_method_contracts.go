@@ -26,6 +26,7 @@ var explicitRouteMethodContracts = map[string]RouteMethodContract{
 	"router.GetDatasetAliasManagementHandler":  {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"router.SaveDatasetAliasManagementHandler": {Methods: []string{http.MethodPost}, Source: RouteMethodSourceExplicitStableContract},
 	"auth.GetAuthModesHandler":                 {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
+	"auth.FirstRunAdminHandler":                {Methods: []string{http.MethodGet, http.MethodPost}, Source: RouteMethodSourceExplicitStableContract},
 	"product_identity.Handler":                 {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 	"auth.UserPermissionsHandler":              {Methods: []string{http.MethodGet}, Source: RouteMethodSourceExplicitStableContract},
 

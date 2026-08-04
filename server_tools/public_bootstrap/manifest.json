@@ -1,8 +1,8 @@
 {
   "artifact": "filterest-public-bootstrap",
   "format_version": 2,
-  "app_version": "8.28.7",
-  "db_version": "8.0.56",
+  "app_version": "8.28.8",
+  "db_version": "8.0.57",
   "schema_source": "testing/essential/generated/schema.sql",
   "seed_source": "testing/essential/generated/seed.sql",
   "purpose": "local independent Filterest bootstrap without private source runtime dependency",
@@ -81,12 +81,12 @@
     "public.riskienhallinta_tiketit_relation": 26,
     "public.system_about": 1,
     "public.system_column_details": 29,
-    "public.system_config": 7,
+    "public.system_config": 8,
     "public.system_db_tables": 37,
     "public.system_db_version": 1,
     "public.system_functions": 15,
     "public.system_group_table_func_rights": 16,
-    "public.system_lang_keys": 414,
+    "public.system_lang_keys": 425,
     "public.system_table_folders": 14,
     "public.system_user_group_memberships": 3,
     "public.system_user_groups": 3,
@@ -98,7 +98,7 @@
       "sha256": "8c80cf0ad388053e0b8bae98aec522a9f9e746f498584aacfd9cdfdfed68683f"
     },
     "server_tools/public_bootstrap/seed_data.sql": {
-      "sha256": "ac5bf85bac521c424be83cd7a9cd451d4a05a08ce4b38e120acacd4270d39e1c"
+      "sha256": "bbc0821fba36b47c92c620779a1c560a2b7c52f9d2e4f48848ebf1b3efcab9d7"
     }
   },
   "source_files": {
@@ -118,10 +118,10 @@
       "sha256": "02f9652ba94d7264499fab3d4ab495c4dc627643a1b37d025c047fb5093d1372"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.seed.sql": {
-      "sha256": "b0e9cdb73dc4cfb6ba1422a671e96390ec6469666613927b3da01bc2b5074aac"
+      "sha256": "84590332303596583554263c38679d3fcf811836832a0f1e0ebfd716679029d1"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.lang_keys.sql": {
-      "sha256": "e88406ac478c4e399c9f410ab25326a1978c99b523177dfb973f66881639b8b5"
+      "sha256": "419b4820c4b757c4dd354442dd50dbf577e7bd53caa5e86482e55bf4d779d992"
     },
     "server_tools/public_slice_export/public_bootstrap/fixtures/docs/first-dataset.png": {
       "sha256": "77779de3984a98e3fe7b6f0d01e3224165f707ab20796706c6b5221740dc6d22"

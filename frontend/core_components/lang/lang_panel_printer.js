@@ -1,211 +1,200 @@
 // lang_panel_printer.js
-// Renders the language selection panel and wires user interactions to the translation system.
-// Bridges lang_preference_reader and translation_handler with the DOM language-menu UI.
-// Exists to keep language-panel rendering isolated from the broader navigation and translation logic.
-import { translatePage } from './translation_handler.js';
-import {
-  getPreferredAvailableLanguage,
-  setLanguage,
-} from '../state_stores/lang_preference_reader.js';
-import { createMaskIconSpan } from '../../icons/icon_mask_builder.js';
+// Renders reusable language selectors and wires them to page translation.
+// Bridges the language catalog, saved preference, and translation system.
+// Exists so application chrome and standalone forms share one selector behavior.
 
-const menu_language_icon_path = '/frontend/icons/navigation/language-globe-icon.svg';
+import { translatePage } from "./translation_handler.js";
+import {
+    getPreferredAvailableLanguage,
+    setLanguage,
+} from "../state_stores/lang_preference_reader.js";
+import { createMaskIconSpan } from "../../icons/icon_mask_builder.js";
+import { getUiLanguageOptions } from "./ui_language_catalog.js";
+
+const MENU_LANGUAGE_ICON_PATH = "/frontend/icons/navigation/language-globe-icon.svg";
+const initializedSelectors = new WeakSet();
+const selectorLanguageOptions = new WeakMap();
+let selectorSequence = 0;
 
 function ensureMenuLanguageIcon(buttonElement) {
-  if (!buttonElement) return null;
+    if (!buttonElement) return null;
 
-  let iconElement = buttonElement.querySelector('.language-button-icon');
-  if (iconElement) {
+    let iconElement = buttonElement.querySelector(".language-button-icon");
+    if (iconElement) return iconElement;
+
+    iconElement = createMaskIconSpan(MENU_LANGUAGE_ICON_PATH, ["language-button-icon"]);
+    buttonElement.prepend(iconElement);
     return iconElement;
-  }
-
-  iconElement = createMaskIconSpan(menu_language_icon_path, ['language-button-icon']);
-  buttonElement.prepend(iconElement);
-  return iconElement;
 }
 
 function ensureMenuLanguageLabel(buttonElement) {
-  if (!buttonElement) return null;
+    if (!buttonElement) return null;
 
-  let labelElement = buttonElement.querySelector('.language-code-label');
-  if (labelElement) {
+    let labelElement = buttonElement.querySelector(".language-code-label");
+    if (labelElement) return labelElement;
+
+    labelElement = document.createElement("span");
+    labelElement.className = "language-code-label";
+    buttonElement.appendChild(labelElement);
     return labelElement;
-  }
-
-  labelElement = document.createElement('span');
-  labelElement.className = 'language-code-label';
-  buttonElement.appendChild(labelElement);
-  return labelElement;
 }
 
-function syncMenuLanguageButton(buttonElement, languageCode) {
-  if (!buttonElement) return;
+function syncMenuLanguageButton(buttonElement, languageCode, languageOptions) {
+    if (!buttonElement) return;
 
-  ensureMenuLanguageIcon(buttonElement);
-  const labelElement = ensureMenuLanguageLabel(buttonElement);
-  labelElement.textContent = getShortLanguageCode(languageCode) || 'EN';
+    ensureMenuLanguageIcon(buttonElement);
+    const labelElement = ensureMenuLanguageLabel(buttonElement);
+    const selectedLanguage = languageOptions.find((language) => language.value === languageCode);
+    labelElement.textContent = selectedLanguage?.shortLabel || String(languageCode || "EN").toUpperCase();
 }
 
-// Määritellään kielivaihtoehdot
-const languages = [
-  { id: 'lang-en', value: 'en', label: 'English (US)', title: 'Show menus in English' },
-  { id: 'lang-fi', value: 'fi', label: 'Finnish (Suomi)', title: 'Show menus in Finnish' },
-  { id: 'lang-yue', value: 'yue', label: 'Cantonese (廣東話)', title: '以廣東話顯示選單' },
-//   { id: 'lang-sv', value: 'sv', label: 'Swedish (Svenska)', title: 'Show menus in Swedish' },
-//   { id: 'lang-ch', value: 'ch', label: 'Chinese (中文)', title: 'Show menus in Chinese' },
-];
-const menuLanguageValues = languages.map((lang) => lang.value);
+function buildLanguageButton() {
+    const languageButton = document.createElement("button");
+    languageButton.type = "button";
+    languageButton.classList.add("language-button", "button");
+    languageButton.dataset.testid = "language-menu-button";
+    return languageButton;
+}
 
-document.addEventListener('DOMContentLoaded', function() {
-  const languageSelectorDiv = document.querySelector('.language-selection.menu-language-selection');
-  if (!languageSelectorDiv) {
-    console.warn('kielenvalitsimen elementtiä ei löytynyt.');
-    return;
-  }
+function buildLanguagePanel(languageOptions, selectorId) {
+    const floatingPanel = document.createElement("div");
+    floatingPanel.classList.add("floating-language-panel", "hidden");
+    floatingPanel.dataset.testid = "language-menu-panel";
 
-  // Luodaan kielivalitsin-nappi:
-  let languageButton = document.createElement('button');
-  languageButton.classList.add('language-button');
-  languageButton.classList.add('button');
-  languageButton.dataset.testid = 'language-menu-button';
+    const panelContent = document.createElement("div");
+    panelContent.classList.add("panel-content");
 
-  // Liitetään nappi valikkoon
-  languageSelectorDiv.appendChild(languageButton);
+    const heading = document.createElement("label");
+    const headingText = document.createElement("b");
+    heading.dataset.langKey = "select_menu_language";
+    heading.appendChild(headingText);
+    panelContent.appendChild(heading);
 
-  // Luodaan kelluva paneeli
-  let floatingPanel = document.createElement('div');
-  floatingPanel.classList.add('floating-language-panel', 'hidden');
-  floatingPanel.dataset.testid = 'language-menu-panel';
-  
-  // Rakennetaan paneelin sisältö turvallisesti:
-  let panelContent = document.createElement('div');
-  panelContent.classList.add('panel-content');
+    languageOptions.forEach((language) => {
+        const optionContainer = document.createElement("div");
+        optionContainer.classList.add("language-option");
 
-  // "Valitse kieli" -otsikko
-  {
-    let labelElement = document.createElement('label');
-    let boldElement = document.createElement('b');
-    // boldElement.textContent = 'Valitse kieli';
-    // add attribute data-lang-key
-    labelElement.dataset.langKey = 'select_menu_language';
-    labelElement.appendChild(boldElement);
-    panelContent.appendChild(labelElement);
-  }
+        const inputElement = document.createElement("input");
+        inputElement.id = `${selectorId}-${language.id}`;
+        inputElement.type = "radio";
+        inputElement.name = `${selectorId}-menu-lang`;
+        inputElement.value = language.value;
+        inputElement.title = language.title;
+        inputElement.dataset.testid = `language-menu-option-${language.value}`;
 
-  // Kielioptiot
-  languages.forEach(lang => {
-    let languageOptionDiv = document.createElement('div');
-    languageOptionDiv.classList.add('language-option');
+        const optionLabel = document.createElement("label");
+        optionLabel.setAttribute("for", inputElement.id);
+        optionLabel.textContent = language.label;
 
-    let inputElement = document.createElement('input');
-    inputElement.id = lang.id;
-    inputElement.type = 'radio';
-    inputElement.name = 'menu-lang';
-    inputElement.value = lang.value;
-    inputElement.title = lang.title;
-    inputElement.dataset.testid = `language-menu-option-${lang.value}`;
-
-    let labelLang = document.createElement('label');
-    labelLang.setAttribute('for', lang.id);
-    labelLang.textContent = lang.label;
-
-    languageOptionDiv.appendChild(inputElement);
-    languageOptionDiv.appendChild(labelLang);
-    panelContent.appendChild(languageOptionDiv);
-  });
-
-  // Lisätään paneelin sisältö paneliin ja liitetään se kielivalitsimen sisään
-  floatingPanel.appendChild(panelContent);
-  languageSelectorDiv.appendChild(floatingPanel);
-  languageSelectorDiv.style.position = 'relative';
-
-  // Haetaan juuri lisätyt elementit
-  const radioInputs = floatingPanel.querySelectorAll('input[name="menu-lang"]');
-
-  // Napin klikkaus avaa/sulkee paneelin
-  languageButton.addEventListener('click', function() {
-    toggleLanguagePanel();
-  });
-
-  // Radioille tapahtumankuuntelijat: kieli vaihtuu -> tallennus, sivun käännös, paneelin sulku
-  radioInputs.forEach(function(radio) {
-    radio.addEventListener('change', function() {
-      setLanguage(radio.value);
-      void updateMenuLanguageDisplay(radio.value);
-      translatePage(radio.value);
-      floatingPanel.classList.add('hidden');
+        optionContainer.append(inputElement, optionLabel);
+        panelContent.appendChild(optionContainer);
     });
-  });
 
-  // Asetetaan oletuskieli
-  const initialLanguage = setDefaultMenuLanguage();
-  void updateMenuLanguageDisplay(initialLanguage);
+    floatingPanel.appendChild(panelContent);
+    return floatingPanel;
+}
 
-  // Käännetään sivu tallennetulla kielellä
-  translatePage(initialLanguage);
+function setDefaultMenuLanguage(languageSelector, languageOptions) {
+    const availableValues = languageOptions.map((language) => language.value);
+    const savedLanguage = getPreferredAvailableLanguage(availableValues);
+    const matchingRadio = languageSelector.querySelector(
+        `.floating-language-panel input[value="${savedLanguage}"]`
+    ) || languageSelector.querySelector('.floating-language-panel input[value="en"]')
+        || languageSelector.querySelector('.floating-language-panel input[type="radio"]');
 
-  // Suljetaan paneeli klikatessa ulkopuolelle
-  document.addEventListener('click', function(event) {
-    if (!languageSelectorDiv.contains(event.target) && !floatingPanel.contains(event.target)) {
-      if (!floatingPanel.classList.contains('hidden')) {
-        floatingPanel.classList.add('hidden');
-      }
-    }
-  });
-
-  // Tämä funktio näyttää/piilottaa paneelin, 
-  // ja asettaa sen sijainnin napin alle.
-  function toggleLanguagePanel() {
-    // Suljetaan muut vastaavat paneelit (jos on)
-    document.querySelectorAll('.floating-language-panel').forEach((panel) => {
-      if (panel !== floatingPanel) {
-        panel.classList.add('hidden');
-      }
-    });
-    // Sijainnin laskenta
-    positionPanelBelowButton();
-    floatingPanel.classList.toggle('hidden');
-  }
-
-  // Sijoitetaan paneeli napin alapuolelle
-  function positionPanelBelowButton() {
-    floatingPanel.style.minWidth = `${Math.max(languageButton.offsetWidth + 132, 220)}px`;
-  }
-});
-
-// Asetetaan oletuskieli localStoragen tai selaimen mukaan
-function setDefaultMenuLanguage() {
-  const savedLang = getPreferredAvailableLanguage(menuLanguageValues);
-  let matchingRadio = document.querySelector(
-    `.floating-language-panel input[value="${savedLang}"]`
-  ) || document.querySelector('.floating-language-panel input[value="en"]')
-    || document.querySelector('.floating-language-panel input[name="menu-lang"]');
-  if (matchingRadio) {
+    if (!matchingRadio) return savedLanguage;
     matchingRadio.checked = true;
     return matchingRadio.value;
-  }
-  return savedLang;
 }
 
-// Päivittää valitun kielen tekstin buttoniin
-export async function updateMenuLanguageDisplay(nextLanguage = null) {
-  let chosen_language = nextLanguage
-    || document.querySelector('.floating-language-panel input[type="radio"]:checked')?.value
-    || getPreferredAvailableLanguage(menuLanguageValues);
-  let buttonElement = document.querySelector('.language-selection .language-button');
-  if (buttonElement) {
-    syncMenuLanguageButton(buttonElement, chosen_language);
-  }
+/**
+ * Initializes one reusable language selector.
+ *
+ * @param {HTMLElement} languageSelector
+ * @param {{languages?: Array<object>}} options
+ * @returns {string|null} initially selected language
+ */
+export function initializeLanguageSelector(
+    languageSelector,
+    { languages = getUiLanguageOptions("application") } = {}
+) {
+    if (!(languageSelector instanceof HTMLElement) || initializedSelectors.has(languageSelector)) {
+        return null;
+    }
+    if (!Array.isArray(languages) || languages.length === 0) return null;
+
+    initializedSelectors.add(languageSelector);
+    selectorLanguageOptions.set(languageSelector, languages);
+    selectorSequence += 1;
+
+    const selectorId = languageSelector.dataset.languageSelectorId
+        || `language-selector-${selectorSequence}`;
+    languageSelector.dataset.languageSelectorId = selectorId;
+    languageSelector.style.position = "relative";
+
+    const languageButton = buildLanguageButton();
+    const floatingPanel = buildLanguagePanel(languages, selectorId);
+    languageSelector.append(languageButton, floatingPanel);
+
+    const initialLanguage = setDefaultMenuLanguage(languageSelector, languages);
+    syncMenuLanguageButton(languageButton, initialLanguage, languages);
+    void translatePage(initialLanguage);
+
+    languageButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        document.querySelectorAll(".floating-language-panel").forEach((panel) => {
+            if (panel !== floatingPanel) panel.classList.add("hidden");
+        });
+        floatingPanel.style.minWidth = `${Math.max(languageButton.offsetWidth + 132, 220)}px`;
+        floatingPanel.classList.toggle("hidden");
+    });
+
+    floatingPanel.querySelectorAll('input[type="radio"]').forEach((radio) => {
+        radio.addEventListener("change", () => {
+            setLanguage(radio.value);
+            syncMenuLanguageButton(languageButton, radio.value, languages);
+            void translatePage(radio.value);
+            floatingPanel.classList.add("hidden");
+        });
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!languageSelector.contains(event.target)) floatingPanel.classList.add("hidden");
+    });
+
+    return initialLanguage;
 }
 
-// Palauttaa lyhyen koodin, esim. 'EN'
-function getShortLanguageCode(languageCode) {
-  const shortCodes = {
-    'en': 'EN',
-    'fi': 'FI',
-    'sv': 'SV',
-    'ch': 'CH',
-    'yue': '粵'
-  };
-  return shortCodes[languageCode] || languageCode;
+/**
+ * Initializes every uninitialized language selector below a root node.
+ *
+ * @param {Document|HTMLElement} root
+ */
+export function initializeLanguageSelectors(root = document) {
+    root.querySelectorAll(".language-selection.menu-language-selection").forEach((selector) => {
+        initializeLanguageSelector(selector);
+    });
 }
+
+/**
+ * Synchronizes selector button labels after an external language change.
+ *
+ * @param {string|null} nextLanguage
+ * @param {HTMLElement|null} targetSelector
+ */
+export async function updateMenuLanguageDisplay(nextLanguage = null, targetSelector = null) {
+    const selectors = targetSelector
+        ? [targetSelector]
+        : Array.from(document.querySelectorAll(".language-selection.menu-language-selection"));
+
+    selectors.forEach((selector) => {
+        const languages = selectorLanguageOptions.get(selector) || getUiLanguageOptions("application");
+        const availableValues = languages.map((language) => language.value);
+        const chosenLanguage = nextLanguage
+            || selector.querySelector('.floating-language-panel input[type="radio"]:checked')?.value
+            || getPreferredAvailableLanguage(availableValues);
+        syncMenuLanguageButton(selector.querySelector(".language-button"), chosenLanguage, languages);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => initializeLanguageSelectors(document));

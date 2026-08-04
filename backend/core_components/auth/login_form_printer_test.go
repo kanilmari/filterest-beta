@@ -123,6 +123,8 @@ func setupLoginHandlerMockDB(t *testing.T, loginToBrowse bool) {
 	t.Helper()
 
 	orig := backend.Db
+	origFirstRunReader := firstRunPendingReader
+	firstRunPendingReader = func(context.Context, *sql.DB) (bool, error) { return false, nil }
 	name := fmt.Sprintf(
 		"login_handler_%d_%d",
 		time.Now().UnixNano(),
@@ -139,7 +141,26 @@ func setupLoginHandlerMockDB(t *testing.T, loginToBrowse bool) {
 	t.Cleanup(func() {
 		_ = db.Close()
 		backend.Db = orig
+		firstRunPendingReader = origFirstRunReader
 	})
+}
+
+func TestLoginHandlerRedirectsToFirstRunSetupWhenPending(t *testing.T) {
+	prepareLoginHandlerSessionStore(t)
+	setupLoginHandlerMockDB(t, true)
+	firstRunPendingReader = func(context.Context, *sql.DB) (bool, error) { return true, nil }
+
+	req := httptest.NewRequest(http.MethodGet, "https://localhost/login", nil)
+	rr := httptest.NewRecorder()
+
+	LoginHandler(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusSeeOther)
+	}
+	if got := rr.Header().Get("Location"); got != "/first-run" {
+		t.Fatalf("Location = %q, want /first-run", got)
+	}
 }
 
 func setupLoginHandlerFrontend(t *testing.T) {

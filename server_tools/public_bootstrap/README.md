@@ -24,23 +24,21 @@ local database as durable source changes.
 ## Credential Boundary
 
 The public bootstrap seed creates fixture user rows for smoke testing and UI
-metadata, but it does not ship a reusable admin password. During
-`./server_tools/setup_local_dev_environment.sh`, the generated Filterest setup
-flow creates a one-time initial admin when no login-ready admin already exists.
-The username format is `admin_<site_slug>`; the default slug is `filterest`, so
-the default username is `admin_filterest`.
+metadata, but it does not ship a reusable admin password. On first browser
+access, Filterest opens a one-time form where the installation owner chooses
+the administrator username, email address, and password. The email address is
+stored as the account's verification and notification address.
 
-The generated password is revealed once through setup stdout and the local
-gitignored handoff file configured by `FILTEREST_INITIAL_ADMIN_HANDOFF_FILE`,
-defaulting to `data/bootstrap/initial_admin_credentials.txt`. The file is
-written with `0600` permissions. Delete it after the first login and password
-rotation.
+The server-owned `first_run` setting and absence of a login-ready admin must
+both be true before the form is available. The account, hashed password,
+administrator membership, and transition of `first_run` to false are committed
+in one database transaction. Existing installations and completed setups fail
+closed and redirect to normal login.
 
-For a login-ready production-like setup, set `FILTEREST_INITIAL_ADMIN_EMAIL`
-before running setup so login OTP delivery can target the real admin mailbox.
-The setup helper requires that email unless this is an explicit local dev
-preview with `LOGIN_OTP_CODE` configured. Local dev OTP previews are not a
-production authentication model.
+The generated-credential helper remains available only to the isolated,
+disposable automated preview when
+`FILTEREST_AUTOMATED_PREVIEW_INITIAL_ADMIN=1` is set. It is not the normal
+installation flow and does not define production authentication behavior.
 
 Before a public GitHub release, review the schema boundary and seed contents
 against the publication checklist.

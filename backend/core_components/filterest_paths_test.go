@@ -29,6 +29,43 @@ func TestResolveFilterestHomesKeepsPrivateAndPublicDefaultsDistinct(t *testing.T
 	}
 }
 
+func TestResolveFilterestHomesDoesNotReinterpretExportedDefaultsAsOverrides(t *testing.T) {
+	projectRoot := t.TempDir()
+	t.Setenv("FILTEREST_PROJECTS_HOME", filepath.Join(projectRoot, "filterest_projects"))
+	t.Setenv("FILTEREST_KEYS_HOME", filepath.Join(projectRoot, "filterest_keys"))
+	t.Setenv("FILTEREST_PROJECTS_HOME_CONFIGURED", "0")
+	t.Setenv("FILTEREST_KEYS_HOME_CONFIGURED", "0")
+
+	homes, err := resolveFilterestHomes(projectRoot, false)
+	if err != nil {
+		t.Fatalf("resolveFilterestHomes() error = %v", err)
+	}
+	if homes.ProjectsHomeConfigured || homes.KeysHomeConfigured {
+		t.Fatalf("configured flags = %#v, want calculated defaults", homes)
+	}
+}
+
+func TestResolveFilterestHomesKeepsExplicitEnvironmentOverrides(t *testing.T) {
+	projectRoot := t.TempDir()
+	projectsHome := filepath.Join(t.TempDir(), "projects")
+	keysHome := filepath.Join(t.TempDir(), "keys")
+	t.Setenv("FILTEREST_PROJECTS_HOME", projectsHome)
+	t.Setenv("FILTEREST_KEYS_HOME", keysHome)
+	t.Setenv("FILTEREST_PROJECTS_HOME_CONFIGURED", "1")
+	t.Setenv("FILTEREST_KEYS_HOME_CONFIGURED", "1")
+
+	homes, err := resolveFilterestHomes(projectRoot, false)
+	if err != nil {
+		t.Fatalf("resolveFilterestHomes() error = %v", err)
+	}
+	if homes.ProjectsHome != projectsHome || homes.KeysHome != keysHome {
+		t.Fatalf("homes = %#v, want explicit environment paths", homes)
+	}
+	if !homes.ProjectsHomeConfigured || !homes.KeysHomeConfigured {
+		t.Fatalf("configured flags = %#v, want explicit overrides", homes)
+	}
+}
+
 func TestResolveFilterestHomesAcceptsDynamicRelativeAndAbsolutePaths(t *testing.T) {
 	projectRoot := t.TempDir()
 	absoluteKeys := filepath.Join(t.TempDir(), "operator keys")
