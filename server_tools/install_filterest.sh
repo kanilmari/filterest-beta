@@ -327,6 +327,91 @@ is_placeholder_secret() {
     esac
 }
 
+# Validates only the local values required to start and bootstrap Filterest.
+# Optional provider, email, payment, and service-integration values may stay blank.
+# Error output names invalid keys but never prints their values.
+validate_filterest_core_environment_file() {
+    local file="$1"
+    local label="$2"
+    local expected_environment_type="$3"
+    local expected_local_tls="$4"
+    local expected_base_url="$5"
+    local key=""
+    local value=""
+    local missing_keys=()
+    local placeholder_keys=()
+    local invalid_keys=()
+    local required_keys=(
+        SITE_NAME SITE_SLUG FILTEREST_INSTALL_PROFILE ENVIRONMENT_TYPE BASE_URL
+        PORT EASELECT_PORT APP_PORT TLS_CERT_FILE TLS_KEY_FILE
+        DB_HOST DB_PORT DB_SSLMODE DB_ADMIN_USER DB_USER DB_NAME
+        DB_READONLY_USER DB_CONFIDENTIAL_USER DB_BASIC_USER DB_GUEST_USER
+        INSTANCE_NAME SESSION_COOKIE_NAME
+    )
+    local secret_keys=(
+        DB_ADMIN_PASSWORD DB_PASSWORD DB_READONLY_PASSWORD DB_CONFIDENTIAL_PASSWORD
+        DB_BASIC_PASSWORD DB_GUEST_PASSWORD SESSION_SECRET_KEY SESSION_KEY
+    )
+    local numeric_keys=(PORT EASELECT_PORT APP_PORT DB_PORT)
+
+    if [[ ! -f "$file" ]]; then
+        printf 'error: required Filterest configuration file missing: %s\n' "$label" >&2
+        return 1
+    fi
+
+    for key in "${required_keys[@]}"; do
+        [[ -n "$(env_value "$file" "$key")" ]] || missing_keys+=("$key")
+    done
+    for key in "${secret_keys[@]}"; do
+        value="$(env_value "$file" "$key")"
+        if is_placeholder_secret "$value"; then
+            placeholder_keys+=("$key")
+        fi
+    done
+    for key in "${numeric_keys[@]}"; do
+        value="$(env_value "$file" "$key")"
+        if [[ -n "$value" && ! "$value" =~ ^[1-9][0-9]{0,4}$ ]]; then
+            invalid_keys+=("$key")
+        fi
+    done
+
+    [[ "$(env_value "$file" FILTEREST_INSTALL_PROFILE)" == "$PROFILE" ]] || invalid_keys+=("FILTEREST_INSTALL_PROFILE")
+    [[ "$(env_value "$file" ENVIRONMENT_TYPE)" == "$expected_environment_type" ]] || invalid_keys+=("ENVIRONMENT_TYPE")
+    [[ "$(env_value "$file" FILTEREST_LOCAL_TLS)" == "$expected_local_tls" ]] || invalid_keys+=("FILTEREST_LOCAL_TLS")
+    [[ "$(env_value "$file" BASE_URL)" == "$expected_base_url" ]] || invalid_keys+=("BASE_URL")
+    [[ "$(env_value "$file" PORT)" == "$(env_value "$file" EASELECT_PORT)" ]] || invalid_keys+=("EASELECT_PORT")
+    [[ "$(env_value "$file" PORT)" == "$(env_value "$file" APP_PORT)" ]] || invalid_keys+=("APP_PORT")
+
+    for key in SESSION_SECRET_KEY SESSION_KEY; do
+        value="$(env_value "$file" "$key")"
+        if [[ -n "$value" && ${#value} -lt 32 ]]; then
+            invalid_keys+=("$key")
+        fi
+    done
+
+    if [[ ${#missing_keys[@]} -eq 0 && ${#placeholder_keys[@]} -eq 0 && ${#invalid_keys[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    printf 'error: Filterest core configuration validation failed for %s.\n' "$label" >&2
+    if [[ ${#missing_keys[@]} -gt 0 ]]; then
+        printf '  Missing required keys:' >&2
+        printf ' %s' "${missing_keys[@]}" >&2
+        printf '\n' >&2
+    fi
+    if [[ ${#placeholder_keys[@]} -gt 0 ]]; then
+        printf '  Empty or placeholder secrets:' >&2
+        printf ' %s' "${placeholder_keys[@]}" >&2
+        printf '\n' >&2
+    fi
+    if [[ ${#invalid_keys[@]} -gt 0 ]]; then
+        printf '  Invalid or inconsistent keys:' >&2
+        printf ' %s' "${invalid_keys[@]}" >&2
+        printf '\n' >&2
+    fi
+    return 1
+}
+
 configure_environment_files() {
     local runtime_file=""
     local development_file=""
@@ -384,7 +469,13 @@ configure_environment_files() {
     done
     configure_installation_database_identity "$runtime_file" "$development_file"
     chmod 600 "$runtime_file" "$development_file"
-    printf '✓ Protected local configuration is ready.\n'
+    validate_filterest_core_environment_file \
+        "$runtime_file" "runtime environment" "$environment_type" "$local_tls" "$base_url" \
+        || die "required Filterest runtime configuration is incomplete"
+    validate_filterest_core_environment_file \
+        "$development_file" "development environment" "$environment_type" "$local_tls" "$base_url" \
+        || die "required Filterest development configuration is incomplete"
+    printf '✓ Required Filterest core configuration is valid. Optional integrations may remain blank.\n'
 }
 
 # Preserve a verified pre-8.28.10 installation, but never infer ownership from

@@ -238,7 +238,12 @@ cmd_setup() {
   echo "  Scaffold puuttui:          $env_missing"
   echo ""
   if [[ $env_created -gt 0 ]]; then
-    echo -e "${YELLOW}Muista täyttää arvot ympäristötiedostoihin ennen palvelimen käynnistystä!${RESET}"
+    if [[ -f "$PROJECT_ROOT/VERSION_APP" && ! -f "$PROJECT_ROOT/VERSION_EASELECT" ]]; then
+      echo -e "${GREEN}Pakolliset Filterest-asetukset täytetään ja tarkistetaan automaattisesti seuraavassa vaiheessa.${RESET}"
+      echo "Valinnaiset integraatiot voi määrittää myöhemmin."
+    else
+      echo -e "${YELLOW}Muista täyttää arvot ympäristötiedostoihin ennen palvelimen käynnistystä!${RESET}"
+    fi
     echo ""
   fi
   ok "Alustus valmis."
