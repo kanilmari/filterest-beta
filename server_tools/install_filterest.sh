@@ -342,7 +342,7 @@ configure_environment_files() {
     )
 
     if [[ "$DRY_RUN" -eq 1 ]]; then
-        printf '  [dry-run] create protected runtime configuration and random local secrets\n'
+        printf '  [dry-run] create an isolated installation identity, protected runtime configuration, and random local secrets\n'
         return
     fi
     "$PROJECT_ROOT/server_tools/scaffold.sh" setup
@@ -382,8 +382,96 @@ configure_environment_files() {
             fi
         done
     done
+    configure_installation_database_identity "$runtime_file" "$development_file"
     chmod 600 "$runtime_file" "$development_file"
     printf '✓ Protected local configuration is ready.\n'
+}
+
+# Preserve a verified pre-8.28.10 installation, but never infer ownership from
+# shared default names alone. This read-only probe exists solely to avoid moving
+# a legitimate earlier installation away from its initialized database.
+verified_legacy_database_identity() {
+    local runtime_file="$1"
+    local completion_marker="$PROJECT_ROOT/runtime/filterest-setup-complete"
+    local host=""
+    local port=""
+    local role=""
+    local password=""
+    local database=""
+    local required_version=""
+    local actual_version=""
+
+    [[ -f "$completion_marker" ]] || return 1
+    [[ "$(env_value "$runtime_file" DB_NAME)" == "filterest" ]] || return 1
+    [[ "$(env_value "$runtime_file" DB_ADMIN_USER)" == "filterest_admin" ]] || return 1
+    command -v psql >/dev/null 2>&1 || return 1
+
+    host="$(env_value "$runtime_file" DB_HOST)"
+    port="$(env_value "$runtime_file" DB_PORT)"
+    role="$(env_value "$runtime_file" DB_ADMIN_USER)"
+    password="$(env_value "$runtime_file" DB_ADMIN_PASSWORD)"
+    database="$(env_value "$runtime_file" DB_NAME)"
+    required_version="$(tr -d '[:space:]' < "$PROJECT_ROOT/VERSION_DB")"
+    [[ -n "$password" && -n "$required_version" ]] || return 1
+
+    actual_version="$(PGPASSWORD="$password" psql \
+        -h "${host:-localhost}" -p "${port:-5433}" -U "$role" -d "$database" -qAt \
+        -c "SELECT version FROM system_db_version ORDER BY applied_at DESC NULLS LAST, id DESC LIMIT 1;" \
+        2>/dev/null | tr -d '[:space:]' || true)"
+    [[ "$actual_version" == "$required_version" ]]
+}
+
+set_standard_database_identity_value() {
+    local file="$1"
+    local key="$2"
+    local standard_value="$3"
+    local isolated_value="$4"
+    local current_value=""
+
+    current_value="$(env_value "$file" "$key")"
+    if [[ -z "$current_value" || "$current_value" == "$standard_value" ]]; then
+        set_env_value "$file" "$key" "$isolated_value"
+    fi
+}
+
+# Give every new checkout its own stable PostgreSQL namespace. The ignored
+# installation marker follows the checkout across reruns, while explicit
+# operator-supplied database and role names remain untouched.
+configure_installation_database_identity() {
+    local runtime_file="$1"
+    local development_file="$2"
+    local marker="$PROJECT_ROOT/runtime/filterest-installation-id"
+    local installation_id=""
+    local file=""
+
+    if [[ -f "$marker" ]]; then
+        installation_id="$(tr -d '[:space:]' < "$marker")"
+    elif verified_legacy_database_identity "$runtime_file"; then
+        installation_id="legacy"
+        mkdir -p "$(dirname "$marker")"
+        (umask 077 && printf '%s\n' "$installation_id" > "$marker")
+    else
+        installation_id="$(openssl rand -hex 4)"
+        mkdir -p "$(dirname "$marker")"
+        (umask 077 && printf '%s\n' "$installation_id" > "$marker")
+    fi
+
+    if [[ "$installation_id" == "legacy" ]]; then
+        printf '✓ Verified and preserved the existing Filterest database identity.\n'
+        return
+    fi
+    [[ "$installation_id" =~ ^[a-f0-9]{8}$ ]] || die "invalid Filterest installation identity marker"
+
+    for file in "$runtime_file" "$development_file"; do
+        set_standard_database_identity_value "$file" DB_NAME filterest "filterest_${installation_id}"
+        set_standard_database_identity_value "$file" DB_ADMIN_USER filterest_admin "filterest_admin_${installation_id}"
+        set_standard_database_identity_value "$file" DB_USER filterest_admin "filterest_admin_${installation_id}"
+        set_standard_database_identity_value "$file" DB_READONLY_USER filterest_readonly "filterest_readonly_${installation_id}"
+        set_standard_database_identity_value "$file" DB_CONFIDENTIAL_USER filterest_confidential "filterest_confidential_${installation_id}"
+        set_standard_database_identity_value "$file" DB_BASIC_USER filterest_basic "filterest_basic_${installation_id}"
+        set_standard_database_identity_value "$file" DB_GUEST_USER filterest_guest "filterest_guest_${installation_id}"
+    done
+    printf '✓ Isolated database identity %s is ready for this installation.\n' "$installation_id"
 }
 
 ensure_admin_binary() {
@@ -589,4 +677,6 @@ main() {
     fi
 }
 
-main "$@"
+if [[ "${FILTEREST_INSTALLER_LIBRARY_ONLY:-0}" != "1" ]]; then
+    main "$@"
+fi

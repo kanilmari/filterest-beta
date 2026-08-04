@@ -617,13 +617,15 @@ func systemVersionsCompatible(required string, actual string) bool {
 	requiredParts := parseSystemVersion(required)
 	actualParts := parseSystemVersion(actual)
 
-	if actualParts[0] < requiredParts[0] {
-		return false
+	for index := range requiredParts {
+		if actualParts[index] < requiredParts[index] {
+			return false
+		}
+		if actualParts[index] > requiredParts[index] {
+			return true
+		}
 	}
-	if actualParts[0] > requiredParts[0] {
-		return true
-	}
-	return actualParts[1] >= requiredParts[1]
+	return true
 }
 
 func parseSystemVersion(version string) [3]int {

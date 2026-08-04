@@ -33,7 +33,17 @@ def resolve_easelect_private_paths(
     """Derive private file paths from the compatible dynamic home contract."""
 
     resolved_project_root = Path(project_root).resolve()
-    resolved_environment = os.environ if environment is None else environment
+    source_environment = os.environ if environment is None else environment
+    resolved_environment = dict(source_environment)
+    # Shell path resolution exports calculated defaults for child processes.
+    # Keep those values from becoming false operator overrides when Python
+    # resolves the same public checkout again.
+    for value_key, configured_key in (
+        ("FILTEREST_PROJECTS_HOME", "FILTEREST_PROJECTS_HOME_CONFIGURED"),
+        ("FILTEREST_KEYS_HOME", "FILTEREST_KEYS_HOME_CONFIGURED"),
+    ):
+        if resolved_environment.get(configured_key) == "0":
+            resolved_environment.pop(value_key, None)
     homes = resolve_filterest_homes(resolved_project_root, resolved_environment)
     private_source = is_private_easelect_source_checkout(resolved_project_root)
     if not private_source and not homes.keys_home_configured:

@@ -37,6 +37,28 @@ func TestReadApplicationVersionFileFallsBackToPublicMarker(t *testing.T) {
 	}
 }
 
+func TestDatabaseCompatibilityUsesFullTrackedVersion(t *testing.T) {
+	tests := []struct {
+		name     string
+		required string
+		actual   string
+		want     bool
+	}{
+		{name: "older patch is rejected", required: "8.0.57", actual: "8.0.30", want: false},
+		{name: "same version is accepted", required: "8.0.57", actual: "8.0.57", want: true},
+		{name: "newer patch is accepted", required: "8.0.57", actual: "8.0.58", want: true},
+		{name: "newer minor is accepted", required: "8.0.57", actual: "8.1.0", want: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isCompatible(test.required, test.actual); got != test.want {
+				t.Fatalf("isCompatible(%q, %q) = %v, want %v", test.required, test.actual, got, test.want)
+			}
+		})
+	}
+}
+
 func mustWriteVersionFile(t *testing.T, root string, fileName string, content string) {
 	t.Helper()
 	if err := os.WriteFile(filepath.Join(root, fileName), []byte(content), 0o644); err != nil {

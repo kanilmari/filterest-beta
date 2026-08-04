@@ -88,22 +88,19 @@ func readDatabaseVersion(db *sql.DB) (string, error) {
 	return version, nil
 }
 
-// isCompatible checks if actualVersion >= requiredVersion.
-// Only compares major.minor (patch is informational).
+// isCompatible checks all three numeric components so every tracked database
+// migration version participates in the startup safety gate.
 func isCompatible(required, actual string) bool {
 	reqParts := parseVersion(required)
 	actParts := parseVersion(actual)
 
-	// Major must match or be higher
-	if actParts[0] < reqParts[0] {
-		return false
-	}
-	if actParts[0] > reqParts[0] {
-		return true
-	}
-	// Same major: minor must be >= required
-	if actParts[1] < reqParts[1] {
-		return false
+	for index := range reqParts {
+		if actParts[index] < reqParts[index] {
+			return false
+		}
+		if actParts[index] > reqParts[index] {
+			return true
+		}
 	}
 	return true
 }

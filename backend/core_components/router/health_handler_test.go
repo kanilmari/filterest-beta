@@ -425,14 +425,16 @@ func TestSystemActiveRequestTrackingCountsOnlyApplicationRequests(t *testing.T) 
 	}
 }
 
-func TestSystemVersionsCompatibleUsesMajorMinorContract(t *testing.T) {
+func TestSystemVersionsCompatibleUsesFullDatabaseVersion(t *testing.T) {
 	tests := []struct {
 		name     string
 		required string
 		actual   string
 		want     bool
 	}{
-		{name: "same major minor lower patch", required: "8.0.38", actual: "8.0.1", want: true},
+		{name: "same major minor lower patch", required: "8.0.38", actual: "8.0.1", want: false},
+		{name: "same version", required: "8.0.38", actual: "8.0.38", want: true},
+		{name: "newer patch", required: "8.0.38", actual: "8.0.39", want: true},
 		{name: "newer minor", required: "8.0.38", actual: "8.1.0", want: true},
 		{name: "older minor", required: "8.1.0", actual: "8.0.99", want: false},
 		{name: "older major", required: "8.0.0", actual: "7.9.99", want: false},
