@@ -58,6 +58,52 @@ installed_profile() {
     done
 }
 
+# Reads the profile recorded only after database bootstrap and dependencies finish.
+# Between the public start command and the resumable installer it is the durable setup gate.
+# Why: environment files can already exist after an interrupted setup, so their presence alone
+# must not allow Filterest to skip the remaining installation steps.
+completed_setup_profile() {
+    local completion_marker="$PROJECT_ROOT/runtime/filterest-setup-complete"
+    sed -n 's/^profile=//p' "$completion_marker" 2>/dev/null | head -1 || true
+}
+
+# Reports whether a generated Filterest checkout still needs its guided setup.
+# Between generated-release identity, protected settings, and the completion marker it detects
+# both fresh downloads and interrupted installations without consulting an uninitialized DB.
+filterest_setup_is_required() {
+    local configured_profile=""
+    local completed_profile=""
+
+    [[ -f "$PROJECT_ROOT/VERSION_APP" && ! -f "$PROJECT_ROOT/VERSION_EASELECT" ]] || return 1
+    configured_profile="$(installed_profile)"
+    completed_profile="$(completed_setup_profile)"
+    [[ -n "$configured_profile" && "$configured_profile" == "$completed_profile" ]] && return 1
+    return 0
+}
+
+# Runs setup automatically when an actual start is requested from an unfinished checkout.
+# Between the start command and profile-aware installer it preserves a partial setup's profile
+# and lets the installer resume safely before starting the application itself.
+run_setup_before_first_start() {
+    local profile=""
+    profile="$(installed_profile)"
+    [[ -n "$profile" ]] || profile="$(completed_setup_profile)"
+
+    printf 'Filterest setup has not completed in this checkout.\n'
+    printf 'Starting the guided setup before the application...\n\n'
+    if [[ -n "$profile" ]]; then
+        exec "$PROJECT_ROOT/server_tools/install_filterest.sh" --profile "$profile"
+    fi
+    exec "$PROJECT_ROOT/server_tools/install_filterest.sh"
+}
+
+# Distinguishes application startup from compatibility actions such as --stop or --help.
+# Between the public command arguments and automatic setup it prevents a maintenance action
+# from unexpectedly installing packages or creating local runtime state.
+start_action_was_requested() {
+    [[ "$#" -eq 0 || "${1:-}" == "start" ]]
+}
+
 command_name="${1:-help}"
 [[ "$#" -eq 0 ]] || shift
 
@@ -66,6 +112,9 @@ case "$command_name" in
         exec "$PROJECT_ROOT/server_tools/install_filterest.sh" "$@"
         ;;
     start|ctl)
+        if start_action_was_requested "$@" && filterest_setup_is_required; then
+            run_setup_before_first_start
+        fi
         if [[ "$(installed_profile)" == "admin" ]]; then
             exec "$PROJECT_ROOT/server_tools/run_filterest_admin.sh" "$@"
         fi

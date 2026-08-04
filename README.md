@@ -112,16 +112,16 @@ cd filterest-beta
 # Optional but recommended: keep projects and keys below this one checkout.
 cp filterest.paths.example filterest.paths.local
 
-# Install dependencies, create protected settings, initialize the example
-# database, and start Filterest. The command asks whether this is an admin or
-# development installation.
-./filterest setup
+# Start Filterest. On a fresh download this automatically opens the guided
+# setup first, creates protected settings, initializes the example database,
+# and then starts the application.
+./filterest start
 ```
 
 Both profiles open at `https://localhost:8100/first-run`. The local certificate
 is self-signed, so the browser may ask you to accept it once. The admin binary
 retains production-only routes while using direct local TLS for secure browser
-sessions. Use
+sessions. Use the explicit setup commands
 `./filterest setup --profile admin --yes` or
 `./filterest setup --profile development --yes` for an explicit unattended
 profile choice.
