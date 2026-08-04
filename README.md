@@ -86,17 +86,22 @@ artifact history rather than copying the retired alpha history. A future stable
 `filterest` release will use its own repository and fresh artifact history; this
 beta repository will become read-only when stable is explicitly activated.
 
-## Requirements
+## Installation Profiles
 
-- Go 1.26.5 or newer.
-- Node.js 24 or newer.
-- PostgreSQL 16 with PostGIS and pgvector.
-- OpenSSL for generating a local development certificate.
+The setup command asks which kind of installation you need:
 
-The automated local setup script currently targets Ubuntu and Debian systems
-and requires access to a PostgreSQL superuser. Other environments can use the
-same application and PostgreSQL stack, but may need manual dependency and
-database setup.
+- **Browser administration** is the recommended choice for normal use. It
+  installs PostgreSQL 16, PostGIS, pgvector, and a checksum-verified Filterest
+  binary. It does not install Go, Node.js, npm packages, or browser-test tools.
+- **Development and administration** installs the same runtime plus Go 1.26.5,
+  Node.js 24, source dependencies, and the Chromium browser used by the
+  automated UI tests.
+
+Automatic host setup currently targets Ubuntu 22.04 or newer, Debian 12 or
+newer, and compatible APT-based Linux distributions. It requests `sudo` only
+when host packages or the initial PostgreSQL administrator role are missing.
+Normal Filterest use after installation runs as the current user and does not
+require `sudo`.
 
 ## Quick Start
 
@@ -107,22 +112,19 @@ cd filterest-beta
 # Optional but recommended: keep projects and keys below this one checkout.
 cp filterest.paths.example filterest.paths.local
 
-# Create runtime directories and local environment files.
+# Install dependencies, create protected settings, initialize the example
+# database, and start Filterest. The command asks whether this is an admin or
+# development installation.
 ./filterest setup
-
-# Fill in the required database, session, URL, and initial-admin values.
-$EDITOR filterest_keys/filterest_runtime/runtime_environment.env \
-  filterest_keys/filterest_runtime/development_environment.env
-
-# Create the local database from the public synthetic seed and install dependencies.
-./server_tools/setup_local_dev_environment.sh
-
-# Build and start Filterest.
-./filterest start
 ```
 
-Open `https://localhost:8100`. The local certificate is self-signed, so the
-browser may ask you to accept it once.
+Both profiles open at `https://localhost:8100/first-run`. The local certificate
+is self-signed, so the browser may ask you to accept it once. The admin binary
+retains production-only routes while using direct local TLS for secure browser
+sessions. Use
+`./filterest setup --profile admin --yes` or
+`./filterest setup --profile development --yes` for an explicit unattended
+profile choice.
 
 On first browser access, Filterest opens a one-time form where you choose the
 administrator username, email address, and password. The form is available only
@@ -142,6 +144,7 @@ their root-local `.env`, `dev_env.txt`, and TLS paths for compatibility.
 ## Development
 
 ```bash
+./filterest setup --profile development  # one-time toolchain and database setup
 ./filterest start     # build and run the local application
 npm test              # run frontend unit tests
 go test ./...         # run Go tests

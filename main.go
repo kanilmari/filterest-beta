@@ -325,7 +325,7 @@ func main() {
 		}
 	}()
 
-	if envType == "prod" {
+	if !backend.ShouldServeWithTLS(envType, os.Getenv("FILTEREST_LOCAL_TLS")) {
 		// ------------------------------------------------------------
 		// Tuotanto: nginx terminatoi TLS:n portissa 443 → sovellus
 		// kuuntelee selväkielistä HTTP:tä portissa 8082
@@ -339,18 +339,20 @@ func main() {
 		}
 	} else {
 		// ------------------------------------------------------------
-		// Kehitys: käytetään itse-allekirjoitettuja serttejä
+		// Kehitys ja paikallinen admin-asennus käyttävät suoraa TLS:ää.
 		// ------------------------------------------------------------
-		// Start secondary HTTP server for ngrok/webhooks to avoid TLS issues
-		p, _ := strconv.Atoi(port) // port already validated above
-		httpPort := p + 1
-		go func() {
-			httpAddr := fmt.Sprintf("0.0.0.0:%d", httpPort)
-			log.Printf("[INFO] Starting plain HTTP server for webhooks on %s...", httpAddr)
-			if err := http.ListenAndServe(httpAddr, wrappedHandler); err != nil {
-				log.Printf("Webhook server error: %v", err)
-			}
-		}()
+		if envType != "prod" {
+			// Start secondary HTTP server for development webhooks to avoid TLS issues.
+			p, _ := strconv.Atoi(port) // port already validated above
+			httpPort := p + 1
+			go func() {
+				httpAddr := fmt.Sprintf("0.0.0.0:%d", httpPort)
+				log.Printf("[INFO] Starting plain HTTP server for webhooks on %s...", httpAddr)
+				if err := http.ListenAndServe(httpAddr, wrappedHandler); err != nil {
+					log.Printf("Webhook server error: %v", err)
+				}
+			}()
+		}
 
 		certFile := os.Getenv("TLS_CERT_FILE")
 		if certFile == "" {
@@ -361,7 +363,7 @@ func main() {
 			keyFile = "dev-cert.key"
 		}
 
-		log.Printf("[INFO] Server running on port %s with self-signed TLS…", port)
+		log.Printf("[INFO] Server running on port %s with direct TLS…", port)
 		if externalPort := os.Getenv("APP_PORT"); externalPort != "" && externalPort != port {
 			log.Printf("[INFO] External port (Docker mapping): %s → access via https://localhost:%s", externalPort, externalPort)
 		}

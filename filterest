@@ -14,8 +14,8 @@ usage() {
 Usage: ./filterest <command> [arguments]
 
 Everyday commands:
-  setup                         Prepare a new local checkout
-  start [ctl arguments]         Build, start, stop, or manage Docker via ctl
+  setup [options]               Install for browser administration or development
+  start [arguments]             Start with the installed profile (prebuilt or development)
   status [arguments]            Show application and database compatibility
   data [arguments]              Maintain datasets through the application API
   language [arguments]          Maintain translations through the application API
@@ -43,14 +43,32 @@ resolve_environment() {
     source "$PROJECT_ROOT/server_tools/ctl/lib/resolve_env.sh"
 }
 
+installed_profile() {
+    local candidate_file=""
+    local profile=""
+
+    resolve_environment
+    for candidate_file in "$EASELECT_DEV_ENV_FILE" "$EASELECT_RUNTIME_ENV_FILE"; do
+        [[ -f "$candidate_file" ]] || continue
+        profile="$(grep -E '^FILTEREST_INSTALL_PROFILE=' "$candidate_file" 2>/dev/null | tail -1 | cut -d'=' -f2- || true)"
+        if [[ -n "$profile" ]]; then
+            printf '%s' "$profile"
+            return
+        fi
+    done
+}
+
 command_name="${1:-help}"
 [[ "$#" -eq 0 ]] || shift
 
 case "$command_name" in
     setup)
-        exec "$PROJECT_ROOT/server_tools/scaffold.sh" setup "$@"
+        exec "$PROJECT_ROOT/server_tools/install_filterest.sh" "$@"
         ;;
     start|ctl)
+        if [[ "$(installed_profile)" == "admin" ]]; then
+            exec "$PROJECT_ROOT/server_tools/run_filterest_admin.sh" "$@"
+        fi
         exec "$PROJECT_ROOT/ctl" "$@"
         ;;
     status)

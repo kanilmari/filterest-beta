@@ -10,13 +10,13 @@
 # Prerequisites:
 #   - Ubuntu/Debian-based system
 #   - PostgreSQL 16 installed (apt install postgresql-16 postgresql-16-pgvector)
-#   - Go 1.26.5+ installed
-#   - Node.js 24+ installed
+#   - Go 1.26.5+ and Node.js 24+ installed for the development profile
+#   - Neither Go nor Node.js is required for the prebuilt admin profile
 #   - Native environment files present at the resolved runtime/development paths
 #   - Local TLS files present or openssl available for generating them
 #
 # Usage:
-#   ./server_tools/setup_local_dev_environment.sh
+#   ./server_tools/setup_local_dev_environment.sh [--profile admin|development]
 #
 # What it does:
 #   1. Detects the correct PostgreSQL 16 cluster and port
@@ -46,7 +46,9 @@ source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
 easelect_resolve_private_paths "$PROJECT_ROOT"
 
 FORCE_RECREATE=false
+RESUME_EXISTING=false
 DUMP_SOURCE_KIND=""
+SETUP_PROFILE="${FILTEREST_INSTALL_PROFILE:-development}"
 
 project_display_name() {
     if project_is_generated_filterest; then
@@ -138,26 +140,52 @@ ensure_local_tls_files() {
 }
 
 show_setup_usage() {
-    echo "Usage: ./server_tools/setup_local_dev_environment.sh [--force]"
-    echo "  --force   Drop and recreate an existing non-empty configured database before import"
+    echo "Usage: ./server_tools/setup_local_dev_environment.sh [--force|--resume-existing] [--profile admin|development]"
+    echo "  --force                 Drop and recreate an existing non-empty configured database before import"
+    echo "  --resume-existing       Skip import for an existing bootstrapped database and finish setup steps"
+    echo "  --profile admin         Bootstrap runtime data without Go or Node.js dependencies"
+    echo "  --profile development   Bootstrap runtime data and install source-development dependencies"
 }
 
-for arg in "$@"; do
-    case "$arg" in
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
         --force)
             FORCE_RECREATE=true
+            shift
+            ;;
+        --resume-existing)
+            RESUME_EXISTING=true
+            shift
+            ;;
+        --profile)
+            [[ "$#" -ge 2 ]] || { echo -e "${RED}❌ --profile requires admin or development${NC}"; exit 1; }
+            SETUP_PROFILE="$2"
+            shift 2
             ;;
         --help|-h)
             show_setup_usage
             exit 0
             ;;
         *)
-            echo -e "${RED}❌ Unknown argument: $arg${NC}"
+            echo -e "${RED}❌ Unknown argument: $1${NC}"
             show_setup_usage
             exit 1
             ;;
     esac
 done
+
+case "$SETUP_PROFILE" in
+    admin|development) ;;
+    *)
+        echo -e "${RED}❌ Setup profile must be admin or development: ${SETUP_PROFILE}${NC}"
+        exit 1
+        ;;
+esac
+
+if [[ "$FORCE_RECREATE" == true && "$RESUME_EXISTING" == true ]]; then
+    echo -e "${RED}❌ --force and --resume-existing cannot be used together${NC}"
+    exit 1
+fi
 
 echo -e "${BLUE}========================================${NC}"
 PROJECT_NAME="$(project_display_name)"
@@ -207,13 +235,17 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
     exit 1
 fi
 
-command -v go &>/dev/null || { echo -e "${RED}❌ Go not found. Install Go ${EASELECT_MIN_GO_VERSION}+${NC}"; exit 1; }
-GO_VERSION="$(easelect_detect_go_version || true)"
-easelect_go_meets_minimum "$GO_VERSION" || {
-    echo -e "${RED}❌ Go ${GO_VERSION:-unknown} is unsupported. Install Go ${EASELECT_MIN_GO_VERSION}+${NC}"
-    exit 1
-}
-command -v node &>/dev/null || { echo -e "${RED}❌ Node.js not found. Install Node.js 24+${NC}"; exit 1; }
+if [[ "$SETUP_PROFILE" == "development" ]]; then
+    command -v go &>/dev/null || { echo -e "${RED}❌ Go not found. Install Go ${EASELECT_MIN_GO_VERSION}+${NC}"; exit 1; }
+    GO_VERSION="$(easelect_detect_go_version || true)"
+    easelect_go_meets_minimum "$GO_VERSION" || {
+        echo -e "${RED}❌ Go ${GO_VERSION:-unknown} is unsupported. Install Go ${EASELECT_MIN_GO_VERSION}+${NC}"
+        exit 1
+    }
+    command -v node &>/dev/null || { echo -e "${RED}❌ Node.js not found. Install Node.js 24+${NC}"; exit 1; }
+else
+    echo -e "${GREEN}  ✓ Admin profile: prebuilt binary selected; Go and Node.js are not required${NC}"
+fi
 command -v psql &>/dev/null || { echo -e "${RED}❌ psql not found. Install PostgreSQL 16${NC}"; exit 1; }
 if [[ "$DUMP_SOURCE_KIND" == "bootstrap_zip" ]]; then
     command -v unzip &>/dev/null || { echo -e "${RED}❌ unzip not found. Install unzip to use the committed bootstrap zip.${NC}"; exit 1; }
@@ -639,6 +671,9 @@ SELECT format('CREATE DATABASE %I', :'db_name');
 \gexec
 SQL
         echo -e "${GREEN}  ✓ Database recreated${NC}"
+    elif [[ "$EXISTING_PUBLIC_TABLES" -gt 0 && "$RESUME_EXISTING" == true ]]; then
+        SKIP_IMPORT=yes
+        echo -e "${YELLOW}  ⚠ Resuming setup against the existing bootstrapped database '$DB_NAME'.${NC}"
     elif [[ "$EXISTING_PUBLIC_TABLES" -gt 0 ]]; then
         echo -e "${RED}❌ Database '$DB_NAME' already exists and is not empty (${EXISTING_PUBLIC_TABLES} public tables).${NC}"
         echo "   Re-run with --force to drop and recreate it before import."
@@ -672,7 +707,7 @@ fi
 ROW_COUNT=$(count_public_user_relations_as_admin 2>/dev/null || echo "0")
 ROW_COUNT=$(echo "$ROW_COUNT" | tr -d '[:space:]')
 
-if [[ "$ROW_COUNT" -gt 0 ]]; then
+if [[ "$ROW_COUNT" -gt 0 && "${SKIP_IMPORT:-no}" != "yes" ]]; then
     echo -e "${RED}❌ Refusing to import into non-empty database '$DB_NAME' (${ROW_COUNT} public tables).${NC}"
     echo "   Re-run with --force to drop and recreate the database before import."
     exit 1
@@ -946,15 +981,19 @@ fi
 # Install dependencies
 # --------------------------------------------------------------------------
 echo ""
-echo -e "${BLUE}Installing dependencies...${NC}"
+if [[ "$SETUP_PROFILE" == "development" ]]; then
+    echo -e "${BLUE}Installing source-development dependencies...${NC}"
 
-if [[ ! -d "node_modules" ]]; then
-    echo "  Running npm ci..."
-    npm ci --silent 2>&1 | tail -3
+    if [[ ! -d "node_modules" ]]; then
+        echo "  Running npm ci..."
+        npm ci --silent 2>&1 | tail -3
+    fi
+
+    echo "  Running go mod download..."
+    go mod download 2>&1 | tail -3 || true
+else
+    echo -e "${GREEN}  ✓ Admin profile: source-development dependencies skipped${NC}"
 fi
-
-echo "  Running go mod download..."
-go mod download 2>&1 | tail -3 || true
 
 ensure_generated_filterest_initial_admin
 
@@ -964,11 +1003,19 @@ echo -e "${GREEN}  ✅ Setup complete!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 echo -e "  Database: ${DB_NAME} on port ${PG16_PORT}"
-echo -e "  Start server: ${BLUE}./ctl${NC} or ${BLUE}go run main.go${NC}"
+if [[ "$SETUP_PROFILE" == "admin" ]]; then
+    echo -e "  Start server: ${BLUE}./filterest start${NC} (prebuilt binary)"
+else
+    echo -e "  Start server: ${BLUE}./filterest start${NC} (source development)"
+fi
 ACCESS_PORT="$(get_env_value "APP_PORT")"
 ACCESS_PORT="${ACCESS_PORT:-$(get_env_value "PORT")}"
 ACCESS_PORT="${ACCESS_PORT:-8082}"
-echo -e "  Access: ${BLUE}https://localhost:${ACCESS_PORT}${NC}"
+if [[ "$SETUP_PROFILE" == "admin" ]]; then
+    echo -e "  Access: ${BLUE}https://localhost:${ACCESS_PORT}${NC}"
+else
+    echo -e "  Access: ${BLUE}https://localhost:${ACCESS_PORT}${NC}"
+fi
 echo ""
 echo -e "${YELLOW}  Note: storage/ directory is not in git.${NC}"
 echo -e "${YELLOW}  If you need uploaded media, copy it from a backup.${NC}"

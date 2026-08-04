@@ -66,7 +66,7 @@ and generated artifact commit.
 | P1 | Public CI and local-preview posture | done | Release agent | Clean candidate generation/verification and the Filterest-owned local preview pass; evidence is summarized in `PUBLICATION_EVIDENCE.md` and ticket #834. |
 | P2 | Local release evidence review | manual-final | Human release owner | Review this checklist, ticket evidence, generated commit, and approved remote state before authorizing a push. |
 | P2 | GitHub repository target | done | Human release owner | Owner selected the fresh `kanilmari/filterest-beta` repository and retired alpha from the active model on 2026-07-24. Only the approved `origin` and `main` upstream are allowed. |
-| P2 | Remote push | manual-final | Human release owner | Push a reviewed clean commit only to `filterest-beta` after a separate explicit publication decision. A future stable channel requires its own new repository and approval. |
+| P2 | Remote push | manual-final | Human release owner | Push a reviewed clean commit only to `filterest-beta` after a separate explicit publication decision. The approved publish command also pushes the matching `v<VERSION_APP>` tag, which builds checksum-verified Linux admin binaries. A future stable channel requires its own new repository and approval. |
 
 ## Evidence Log
 

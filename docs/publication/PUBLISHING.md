@@ -49,6 +49,11 @@ separate human-approved source-repository action:
 ./filterest_release publish --yes
 ```
 
+The approved publish command pushes the reviewed `main` commit and its matching
+`v<VERSION_APP>` tag. The generated repository's GitHub workflow then builds
+Linux `amd64` and `arm64` binaries plus SHA-256 checksum files for the admin
+installation profile. Do not create or move these version tags by hand.
+
 The command re-verifies both clean repositories, source evidence, and the
 approved `origin/main` contract before pushing beta. No generation command
 adds, replaces, or pushes a remote.

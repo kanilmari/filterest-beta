@@ -1,0 +1,101 @@
+# release-binaries.yml
+# Builds checksum-verified Linux binaries for tagged Filterest beta releases.
+# Bridges a reviewed VERSION_APP tag with admin-profile GitHub Release downloads.
+# Exists so browser administrators do not need Go or Node.js on their machines.
+
+name: Release Filterest binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux ${{ matrix.arch }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            c_compiler: gcc
+            cross_compiler_package: ""
+          - arch: arm64
+            c_compiler: aarch64-linux-gnu-gcc
+            cross_compiler_package: gcc-aarch64-linux-gnu
+    steps:
+      - name: Check out the reviewed tag
+        uses: actions/checkout@v4
+
+      - name: Install the Go version declared by Filterest
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify that the tag matches VERSION_APP
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_tag="v$(tr -d '[:space:]' < VERSION_APP)"
+          test "$GITHUB_REF_NAME" = "$expected_tag"
+
+      - name: Install the ARM64 cross-compiler
+        if: matrix.cross_compiler_package != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y "${{ matrix.cross_compiler_package }}"
+
+      - name: Build the production binary and checksum
+        shell: bash
+        env:
+          GOARCH: ${{ matrix.arch }}
+          CC: ${{ matrix.c_compiler }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          asset="filterest-linux-${GOARCH}"
+          CGO_ENABLED=1 GOOS=linux go build \
+            -trimpath \
+            -ldflags='-w -s -X main.buildEnv=prod' \
+            -o "dist/${asset}" .
+          (cd dist && sha256sum "$asset" > "${asset}.sha256")
+
+      - name: Upload the reviewed binary pair
+        uses: actions/upload-artifact@v4
+        with:
+          name: filterest-linux-${{ matrix.arch }}
+          path: |
+            dist/filterest-linux-${{ matrix.arch }}
+            dist/filterest-linux-${{ matrix.arch }}.sha256
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release assets
+    needs: build-linux
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all architecture artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: filterest-linux-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create the release from the reviewed tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "Filterest ${GITHUB_REF_NAME#v}" \
+            --generate-notes
