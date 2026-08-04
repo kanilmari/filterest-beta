@@ -90,7 +90,7 @@ PASS
 - `public.riskienhallinta_tiketit_relation`: 26
 - `public.system_about`: 1
 - `public.system_column_details`: 29
-- `public.system_config`: 10
+- `public.system_config`: 9
 - `public.system_db_tables`: 37
 - `public.system_db_version`: 1
 - `public.system_functions`: 15

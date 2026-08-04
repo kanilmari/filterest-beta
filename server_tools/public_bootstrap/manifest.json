@@ -81,7 +81,7 @@
     "public.riskienhallinta_tiketit_relation": 26,
     "public.system_about": 1,
     "public.system_column_details": 29,
-    "public.system_config": 10,
+    "public.system_config": 9,
     "public.system_db_tables": 37,
     "public.system_db_version": 1,
     "public.system_functions": 15,
@@ -98,7 +98,7 @@
       "sha256": "023f2bf9511c4636f4209e4c325ac07cfb98caf428f93153178fc511b39e1d75"
     },
     "server_tools/public_bootstrap/seed_data.sql": {
-      "sha256": "b7080ebfbecc2c6e6c16ab564beec76c60fd76dd801e8e040c17a9afbe74c9e4"
+      "sha256": "12188bd7bf06f768c9f9145db839f2c0c6448c0683db762e7ba1ed1d26486857"
     }
   },
   "source_files": {
