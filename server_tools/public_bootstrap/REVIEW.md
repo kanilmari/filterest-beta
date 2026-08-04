@@ -1,7 +1,7 @@
 # Filterest Public Bootstrap Audit
 
 - Target: `Filterest public bootstrap`
-- Schema tables: `37`
+- Schema tables: `38`
 - Seed tables: `22`
 - Example emails: `0`
 - Manifest format: `2`
@@ -29,6 +29,7 @@ PASS
 - `public.system_child_tab_config`
 - `public.system_column_control`
 - `public.system_column_details`
+- `public.system_column_view_presets`
 - `public.system_config`
 - `public.system_db_tables`
 - `public.system_db_version`
@@ -79,17 +80,17 @@ PASS
 
 ## Seed Row Counts
 
-- `public.dokumentaatio`: 10
-- `public.dokumentaatio_tiketit_relation`: 23
-- `public.palvelukatalogi`: 13
-- `public.palvelukatalogi_dokumentaatio_relation`: 30
-- `public.palvelukatalogi_riskienhallinta_relation`: 36
-- `public.palvelukatalogi_tiketit_relation`: 31
-- `public.riskienhallinta`: 12
-- `public.riskienhallinta_dokumentaatio_relation`: 29
-- `public.riskienhallinta_tiketit_relation`: 26
+- `public.dokumentaatio`: 3
+- `public.dokumentaatio_tiketit_relation`: 1
+- `public.palvelukatalogi`: 1
+- `public.palvelukatalogi_dokumentaatio_relation`: 1
+- `public.palvelukatalogi_riskienhallinta_relation`: 1
+- `public.palvelukatalogi_tiketit_relation`: 1
+- `public.riskienhallinta`: 1
+- `public.riskienhallinta_dokumentaatio_relation`: 1
+- `public.riskienhallinta_tiketit_relation`: 1
 - `public.system_about`: 1
-- `public.system_column_details`: 29
+- `public.system_column_details`: 31
 - `public.system_config`: 9
 - `public.system_db_tables`: 37
 - `public.system_db_version`: 1
@@ -97,10 +98,10 @@ PASS
 - `public.system_group_table_func_rights`: 16
 - `public.system_lang_keys`: 468
 - `public.system_table_folders`: 14
-- `public.system_user_group_memberships`: 3
+- `public.system_user_group_memberships`: 1
 - `public.system_user_groups`: 3
-- `public.system_users`: 3
-- `public.tiketit`: 15
+- `public.system_users`: 1
+- `public.tiketit`: 1
 
 ## Manifest Hash Coverage
 
@@ -119,5 +120,5 @@ PASS
 
 This deterministic report does not approve the public bootstrap strategy or content scope for publication.
 It also does not replace runtime proof of the first-ever admin credential path.
-Fixture user rows are not a reusable admin password; the installation owner creates the first admin through the guarded browser form.
+The technical guest row is not a reusable password; the installation owner creates the first admin through the guarded browser form.
 A human/project owner still needs to review the bootstrap content and approve the credential path before publication.

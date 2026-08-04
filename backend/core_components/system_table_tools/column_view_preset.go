@@ -10,18 +10,21 @@ import (
 	"easelect/backend/core_components/httpresponse"
 	e_sessions "easelect/backend/core_components/sessions"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 type columnViewPreset struct {
-	ID            int               `json:"id"`
-	TableName     string            `json:"table_name"`
-	PresetName    string            `json:"preset_name"`
-	HiddenColumns map[string]bool   `json:"hidden_columns"`
-	CreatedBy     *int              `json:"created_by,omitempty"`
-	Created       string            `json:"created"`
+	ID            int             `json:"id"`
+	TableName     string          `json:"table_name"`
+	PresetName    string          `json:"preset_name"`
+	HiddenColumns map[string]bool `json:"hidden_columns"`
+	CreatedBy     *int            `json:"created_by,omitempty"`
+	Created       string          `json:"created"`
 }
 
 // ListColumnViewPresetsHandler returns all presets for a given table.
@@ -45,6 +48,14 @@ func ListColumnViewPresetsHandler(w http.ResponseWriter, r *http.Request) {
 		ORDER BY preset_name
 	`, tableName)
 	if err != nil {
+		// Older generated Filterest databases predate this optional preset table.
+		// Treat that compatibility gap as an empty preset list so opening the
+		// column controls remains usable while the current bootstrap/migration
+		// supplies the table for new and upgraded installations.
+		if isMissingColumnViewPresetsTableError(err) {
+			httpresponse.RespondWithJSON(w, http.StatusOK, []columnViewPreset{})
+			return
+		}
 		log.Printf("\033[31merror: [ListColumnViewPresets] query: %v\033[0m", err)
 		httpresponse.RespondWithError(w, http.StatusInternalServerError, "failed to list presets")
 		return
@@ -66,6 +77,11 @@ func ListColumnViewPresetsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpresponse.RespondWithJSON(w, http.StatusOK, presets)
+}
+
+func isMissingColumnViewPresetsTableError(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "42P01"
 }
 
 type savePresetRequest struct {

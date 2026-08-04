@@ -6,8 +6,8 @@ not legal advice and still needs human/project approval before publication.
 
 ## Candidate
 
-- Filterest app version: `8.28.18`
-- Database version: `8.0.58`
+- Filterest app version: `8.28.19`
+- Database version: `8.0.59`
 - Go metadata source: `go list metadata with go mod download cache`
 - npm metadata source: `package-lock.json with installed package.json license metadata`
 - Go modules listed: `96`

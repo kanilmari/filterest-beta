@@ -23,8 +23,9 @@ local database as durable source changes.
 
 ## Credential Boundary
 
-The public bootstrap seed creates fixture user rows for smoke testing and UI
-metadata, but it does not ship a reusable admin password. On first browser
+The public bootstrap seed creates only the technical guest identity needed for
+anonymous browsing; it does not ship a reusable admin password or any reusable
+ordinary-user password. On first browser
 access, Filterest opens a two-section form where the installation owner first
 chooses the visible environment purpose and sign-in verification method, then
 sets the site identity and creates the administrator username, email address,

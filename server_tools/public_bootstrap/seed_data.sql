@@ -7,20 +7,16 @@ INSERT INTO public.system_user_groups (id, name, created, updated, creation_spec
   (3, 'guests', '2026-03-29 00:00:00+00', '2026-05-21 00:00:00+00', 'public fixture seed');
 
 INSERT INTO public.system_users (id, username, full_name, created, updated, enabled, privileged, main_group_id, creation_spec, bio_social_medias, website, admin_access_allowed) VALUES
-  (1, 'fixture_guest', 'Fixture Guest', '2026-03-29 00:00:00+00', '2026-05-21 00:00:00+00', TRUE, FALSE, 3, 'public fixture seed', '', '', FALSE),
-  (2, 'fixture_basic', 'Fixture Basic', '2026-03-29 00:00:00+00', '2026-05-21 00:00:00+00', TRUE, FALSE, 2, 'public fixture seed', '', '', FALSE),
-  (3, 'fixture_admin', 'Fixture Admin', '2026-03-29 00:00:00+00', '2026-05-21 00:00:00+00', TRUE, TRUE, 1, 'public fixture seed', '', '', TRUE);
+  (1, 'system_guest', 'System Guest', '2026-03-29 00:00:00+00', '2026-08-04 00:00:00+00', TRUE, FALSE, 3, 'Anonymous browsing identity required by the Filterest runtime', '', '', FALSE);
 
 INSERT INTO public.system_user_group_memberships (user_id, group_id, created, updated, id, creation_spec) VALUES
-  (1, 3, '2026-03-29 00:00:00', '2026-05-21 00:00:00', 1001, 'public fixture seed'),
-  (2, 2, '2026-03-29 00:00:00', '2026-05-21 00:00:00', 1002, 'public fixture seed'),
-  (3, 1, '2026-03-29 00:00:00', '2026-05-21 00:00:00', 1003, 'public fixture seed');
+  (1, 3, '2026-03-29 00:00:00', '2026-08-04 00:00:00', 1001, 'public fixture seed');
 
 INSERT INTO public.system_table_folders (id, folder_name, folder_description, created, updated, parent_id, creation_spec, is_current_project, admin_user_id, tab_order_json) VALUES
-  (1, 'database', 'Curated public Filterest fixtures', '2026-03-29', '2026-05-21', NULL, 'public fixture seed', TRUE, 3, '[{"tab_id":"palvelukatalogi","sort_order":1},{"tab_id":"riskienhallinta","sort_order":2},{"tab_id":"dokumentaatio","sort_order":3},{"tab_id":"tiketit","sort_order":4}]'::jsonb);
+  (1, 'database', 'Curated public Filterest fixtures', '2026-03-29', '2026-08-04', NULL, 'public fixture seed', TRUE, NULL, '[{"tab_id":"palvelukatalogi","sort_order":1},{"tab_id":"riskienhallinta","sort_order":2},{"tab_id":"dokumentaatio","sort_order":3},{"tab_id":"tiketit","sort_order":4}]'::jsonb);
 
 INSERT INTO public.system_db_tables (id, table_name, description, table_uid, cached_oid, folder_id, created, updated, creation_spec, default_view_id, schema_name, multi_lang_embeddings, is_default, filterbar_visible_by_default, is_removable, is_main_table, is_about_table, fk_display_column, icon_key) VALUES
-  (101, 'system_users', 'Fixture users', 101, NULL, 1, '2026-03-29 00:00:00', '2026-03-29 00:00:00', 'public fixture seed', NULL, 'public', FALSE, FALSE, TRUE, FALSE, TRUE, FALSE, 'username', 'users'),
+  (101, 'system_users', 'Filterest users', 101, NULL, 1, '2026-03-29 00:00:00', '2026-08-04 00:00:00', 'public fixture seed', NULL, 'public', FALSE, FALSE, TRUE, FALSE, TRUE, FALSE, 'full_name', 'users'),
   (102, 'system_config', 'Fixture config', 102, NULL, 1, '2026-03-29 00:00:00', '2026-03-29 00:00:00', 'public fixture seed', NULL, 'public', FALSE, FALSE, TRUE, FALSE, TRUE, FALSE, 'key', 'settings');
 
 
@@ -201,7 +197,7 @@ VALUES (
 );
 
 INSERT INTO public.system_db_version (version, description)
-VALUES ('8.0.58', 'Filterest generated public bootstrap');
+VALUES ('8.0.59', 'Filterest generated public bootstrap');
 -- Filterest public bootstrap: metadata and multilingual content for the
 -- established mock services, risks, documentation, and tickets workspace.
 
@@ -235,6 +231,10 @@ SET folder_id = CASE table_name
         WHEN 'system_users' THEN 6
         WHEN 'system_config' THEN 2
         ELSE folder_id
+    END,
+    fk_display_column = CASE table_name
+        WHEN 'system_users' THEN 'full_name'
+        ELSE fk_display_column
     END,
     updated = CURRENT_TIMESTAMP
 WHERE table_name IN ('system_users', 'system_config');
@@ -295,6 +295,9 @@ INSERT INTO public.system_column_details
      fco_number, sco_number, lang_key, creation_spec, show_key_on_card,
      show_value_on_card, hide_on_small_card, hide_in_filter_panel, is_multilingual)
 VALUES
+  (101, 'full_name', 'Full name', 'text', 'header', 1, 1, 1, 'full_name', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE),
+  (101, 'username', 'Username', 'text', 'details10', 2, 2, 2, 'username', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, FALSE),
+
   (7, 'palvelu', 'Service', 'text', 'header', 1, 1, 1, 'palvelu', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
   (7, 'kuvaus', 'Description', 'text', 'description', 2, 2, 2, 'kuvaus', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
   (7, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE),
@@ -328,499 +331,141 @@ VALUES
   (10, 'pyyntotyyppi', 'Request type', 'text', 'details40', 7, 6, 6, 'pyyntotyyppi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
   (10, 'maarapaiva', 'Due date', 'date', 'details', 8, 7, 7, 'maarapaiva', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, FALSE);
 
-WITH mock_rows (
-    id, name_en, name_fi, name_yue, description_en, description_fi,
-    description_yue, team_en, team_fi, team_yue, level_en, level_fi,
-    level_yue, owner_en, owner_fi, owner_yue
-) AS (VALUES
-  (1, 'Employee onboarding package', 'Henkilöstön perehdytyspaketti', '員工入職套件',
-   'Coordinates accounts, facilities, equipment, and the onboarding schedule for new employees.',
-   'Koordinoi uusien työntekijöiden tunnukset, tilat, laitteet ja perehdytysaikataulun.',
-   '為新員工協調帳戶、場地、設備同入職時間表。',
-   'General administration', 'Yleishallinto', '綜合行政', '2 business days', '2 arkipäivää', '2個工作天',
-   'Onboarding coordinator', 'Perehdytyskoordinaattori', '入職協調員'),
-  (2, 'Meeting and conference room reservations', 'Kokous- ja neuvottelutilojen varaus', '會議室預約',
-   'Coordinates room bookings, hybrid meeting equipment, and visitor notices.',
-   'Koordinoi tilavaraukset, hybridikokousvarusteet ja vierailijailmoitukset.',
-   '協調會議室預約、混合會議設備同訪客通知。',
-   'General administration', 'Yleishallinto', '綜合行政', '1 business day', '1 arkipäivä', '1個工作天',
-   'Facilities coordinator', 'Tilakoordinaattori', '場地協調員'),
-  (3, 'Procurement request handling', 'Hankinta-aloitteen käsittely', '採購申請處理',
-   'Receives small procurement proposals before finance approval and checks the business need and cost centre.',
-   'Vastaanottaa pienhankinta-aloitteet ennen taloushyväksyntää ja tarkistaa tarpeen sekä kustannuspaikan.',
-   '喺財務批核前接收小額採購申請，並核對業務需要同成本中心。',
-   'General administration', 'Yleishallinto', '綜合行政', '3 business days', '3 arkipäivää', '3個工作天',
-   'Procurement coordinator', 'Hankintakoordinaattori', '採購協調員'),
-  (4, 'Travel and remote-work guidance', 'Matka- ja etätyökäytäntöjen neuvonta', '出差同遙距工作指引',
-   'Provides guidance on business travel, remote-work agreements, and policy interpretation.',
-   'Neuvoo työmatkoissa, etätyösopimuksissa ja käytäntöjen tulkinnassa.',
-   '提供公幹、遙距工作協議同政策解讀方面嘅指引。',
-   'People operations', 'Henkilöstöhallinto', '人事營運', '2 business days', '2 arkipäivää', '2個工作天',
-   'HR service owner', 'HR-palvelun omistaja', '人事服務負責人'),
-  (5, 'Password reset and MFA support', 'Salasanan resetointi ja MFA-tuki', '密碼重設同多重驗證支援',
-   'Restores locked accounts and helps users recover multi-factor authentication.',
-   'Palauttaa lukkiutuneet tilit ja auttaa monivaiheisen tunnistautumisen palautuksessa.',
-   '恢復被鎖帳戶，並協助使用者重新設定多重驗證。',
-   'IT helpdesk', 'IT-palvelupiste', 'IT 服務台', '4 hours', '4 tuntia', '4小時',
-   'Helpdesk lead', 'Palvelupisteen vetäjä', '服務台主管'),
-  (6, 'VPN and remote access', 'VPN- ja etäyhteyspalvelu', 'VPN 同遙距連線服務',
-   'Sets up remote access, investigates outages, and maintains the VPN client.',
-   'Ottaa etäyhteydet käyttöön, selvittää katkokset ja ylläpitää VPN-asiakasohjelmaa.',
-   '設定遙距連線、調查中斷情況同維護 VPN 用戶端。',
-   'Network team', 'Verkkotiimi', '網絡團隊', '8 hours', '8 tuntia', '8小時',
-   'Network service owner', 'Verkkopalvelun omistaja', '網絡服務負責人'),
-  (7, 'Microsoft 365 user accounts', 'Microsoft 365 -käyttäjätilit', 'Microsoft 365 使用者帳戶',
-   'Manages user accounts, groups, licences, and shared mailboxes.',
-   'Hallinnoi käyttäjätilejä, ryhmiä, lisenssejä ja jaettuja postilaatikoita.',
-   '管理使用者帳戶、群組、授權同共享郵箱。',
-   'Identity team', 'Identiteettitiimi', '身份管理團隊', '1 business day', '1 arkipäivä', '1個工作天',
-   'Identity owner', 'Identiteettipalvelun omistaja', '身份服務負責人'),
-  (8, 'Workstation and peripheral lifecycle', 'Työasemien ja oheislaitteiden elinkaari', '工作站同周邊設備生命週期',
-   'Handles device orders, replacements, repairs, and returns.',
-   'Käsittelee laitetilaukset, vaihdot, huollot ja palautukset.',
-   '處理設備訂購、更換、維修同退回。',
-   'Device services', 'Laitepalvelut', '設備服務', '5 business days', '5 arkipäivää', '5個工作天',
-   'Device service owner', 'Laitepalvelun omistaja', '設備服務負責人'),
-  (9, 'Security incident reporting', 'Tietoturvapoikkeaman ilmoitus', '資訊保安事故通報',
-   'Urgent reporting channel for phishing, suspected malware, and lost devices.',
-   'Kiireellinen ilmoituskanava kalastelulle, haittaohjelmaepäilyille ja kadonneille laitteille.',
-   '用作通報網絡釣魚、懷疑惡意程式同遺失設備嘅緊急渠道。',
-   'Information security', 'Tietoturva', '資訊保安', '1 hour', '1 tunti', '1小時',
-   'Security lead', 'Tietoturvavastaava', '資訊保安主管'),
-  (10, 'Purchase invoice approval workflow', 'Ostolaskujen hyväksyntäkierto', '採購發票批核流程',
-   'Routes purchase invoices for review, approval, and overdue reminders.',
-   'Reitittää ostolaskut tarkastukseen ja hyväksyntään sekä lähettää viivästysmuistutukset.',
-   '將採購發票送交審核同批核，並發出逾期提醒。',
-   'Accounts payable', 'Ostolaskutiimi', '應付帳款團隊', '2 business days', '2 arkipäivää', '2個工作天',
-   'Accounts payable owner', 'Ostolaskuprosessin omistaja', '應付帳款流程負責人'),
-  (11, 'Expense claim review', 'Kululaskujen tarkistus', '費用報銷審查',
-   'Reviews travel and expense claims, missing receipts, and payment schedules.',
-   'Tarkistaa matka- ja kululaskut, puuttuvat kuitit ja maksuaikataulut.',
-   '審查差旅同費用報銷、遺漏收據同付款時間表。',
-   'Expense team', 'Kulutiimi', '費用團隊', '3 business days', '3 arkipäivää', '3個工作天',
-   'Expense process owner', 'Kuluprosessin omistaja', '費用流程負責人'),
-  (12, 'Supplier register maintenance', 'Toimittajarekisterin ylläpito', '供應商登記冊維護',
-   'Creates supplier records and verifies bank-detail and business-ID changes.',
-   'Perustaa toimittajatiedot ja tarkistaa pankkitili- sekä Y-tunnusmuutokset.',
-   '建立供應商紀錄，並核實銀行資料同商業登記號碼變更。',
-   'Finance administration', 'Taloushallinto', '財務行政', '4 business days', '4 arkipäivää', '4個工作天',
-   'Supplier data owner', 'Toimittajatietojen omistaja', '供應商資料負責人'),
-  (13, 'Budget and cost-centre reporting', 'Budjetti- ja kustannuspaikkaraportointi', '預算同成本中心報告',
-   'Provides reports for cost centres, project tracking, and month-end closing.',
-   'Tuottaa raportit kustannuspaikoille, projektiseurantaan ja kuukausikatkoihin.',
-   '提供成本中心、項目追蹤同月結報告。',
-   'Controller team', 'Controller-tiimi', '財務控制團隊', '5 business days', '5 arkipäivää', '5個工作天',
-   'Reporting owner', 'Raportoinnin omistaja', '報告服務負責人')
-)
 INSERT INTO public.palvelukatalogi
     (id, palvelu, kuvaus, omistava_tiimi, palvelutaso, tila, vastuuhenkilo)
-SELECT
-    id,
-    json_build_object('en', name_en, 'fi', name_fi, 'yue', name_yue)::text,
-    json_build_object('en', description_en, 'fi', description_fi, 'yue', description_yue)::text,
-    json_build_object('en', team_en, 'fi', team_fi, 'yue', team_yue)::text,
-    json_build_object('en', level_en, 'fi', level_fi, 'yue', level_yue)::text,
-    json_build_object('en', 'Active', 'fi', 'Aktiivinen', 'yue', '使用中')::text,
-    json_build_object('en', owner_en, 'fi', owner_fi, 'yue', owner_yue)::text
-FROM mock_rows;
+VALUES (
+    1,
+    json_build_object(
+        'en', 'Design the services people can rely on',
+        'fi', 'Muotoile palvelut, joihin ihmiset voivat luottaa',
+        'yue', '設計大家可以信賴嘅服務'
+    )::text,
+    json_build_object(
+        'en', 'Use Services to describe what your organization offers, who owns it, and what people can expect. This sample row and the whole table can be deleted; create one or several new tables whenever another structure fits your work better.',
+        'fi', 'Kuvaa Palvelut-taulussa, mitä organisaatiosi tarjoaa, kuka palvelun omistaa ja mitä käyttäjät voivat odottaa. Voit poistaa tämän esimerkkirivin tai koko taulun ja luoda yhden tai useita uusia tauluja aina, kun jokin toinen rakenne palvelee työtäsi paremmin.',
+        'yue', '喺服務資料表描述機構提供乜嘢、由邊個負責，同埋使用者可以期待乜嘢。你可以刪除呢個示例資料列或者成個資料表，亦可以按工作需要建立一個或多個新資料表。'
+    )::text,
+    json_build_object('en', 'Your organization', 'fi', 'Sinun organisaatiosi', 'yue', '你嘅機構')::text,
+    json_build_object('en', 'Define the promise', 'fi', 'Määritä palvelulupaus', 'yue', '訂明服務承諾')::text,
+    json_build_object('en', 'Example', 'fi', 'Esimerkki', 'yue', '示例')::text,
+    json_build_object('en', 'Choose an owner', 'fi', 'Valitse omistaja', 'yue', '選擇負責人')::text
+);
 
-WITH mock_rows (
-    id, service_id, title_en, title_fi, title_yue, description_en,
-    description_fi, description_yue, impact_en, impact_fi, impact_yue,
-    likelihood_en, likelihood_fi, likelihood_yue, owner_en, owner_fi,
-    owner_yue, mitigation_en, mitigation_fi, mitigation_yue
-) AS (VALUES
-  (1, 12, 'Key supplier bankruptcy', 'Avaintoimittajan konkurssi', '主要供應商倒閉',
-   'A critical software or infrastructure supplier may leave the market without a workable transition path.',
-   'Kriittinen ohjelmisto- tai infratoimittaja voi poistua markkinasta ilman toimivaa siirtymäpolkua.',
-   '關鍵軟件或基建供應商可能退出市場，而組織冇可行嘅過渡方案。',
-   'High', 'Korkea', '高', 'Possible', 'Mahdollinen', '可能', 'IT leadership', 'Tietohallintojohto', '資訊科技管理層',
-   'Maintain an exit plan, export data quarterly, and rehearse supplier replacement.',
-   'Ylläpidä exit-suunnitelmaa, vie data neljännesvuosittain ja harjoittele toimittajan korvaamista.',
-   '維護退出方案、每季匯出資料，並演練更換供應商。'),
-  (2, 9, 'Obsolete encryption for confidential data', 'Vanhentunut salaustaso luottamuksellisille tiedoille', '機密資料使用過時加密',
-   'Legacy transport, disk, or backup encryption no longer matches the information classification.',
-   'Vanha siirto-, levy- tai varmuuskopiosalaus ei enää vastaa tietoluokitusta.',
-   '舊式傳輸、磁碟或備份加密已經唔符合資料分類要求。',
-   'Critical', 'Kriittinen', '嚴重', 'Possible', 'Mahdollinen', '可能', 'Information security', 'Tietoturva', '資訊保安',
-   'Inventory encryption, remove weak protocols, and make encryption a procurement gate.',
-   'Inventoi salaus, poista heikot protokollat ja tee salauksesta hankintaportti.',
-   '盤點加密措施、移除弱協定，並將加密要求設為採購關卡。'),
-  (3, 6, 'Critical system outage longer than four hours', 'Kriittisen järjestelmän käyttökatkos yli neljä tuntia', '關鍵系統中斷超過四小時',
-   'A core service may remain unavailable beyond the agreed recovery objective.',
-   'Ydinpalvelu voi olla poissa käytöstä sovittua palautumistavoitetta pidempään.',
-   '核心服務可能中斷，時間超過已同意嘅復原目標。',
-   'Critical', 'Kriittinen', '嚴重', 'Possible', 'Mahdollinen', '可能', 'Service operations', 'Palveluoperaatiot', '服務營運',
-   'Define service-specific recovery targets, test restoration, and publish escalation paths.',
-   'Määritä palvelukohtaiset palautumistavoitteet, testaa palautus ja julkaise eskalointipolut.',
-   '訂明各服務嘅復原目標、測試還原，並公布升級處理路徑。'),
-  (4, 7, 'Dependency on one specialist', 'Henkilöriippuvuus yhdestä osaajasta', '過度依賴單一專家',
-   'A critical integration or system depends on knowledge held by one person.',
-   'Kriittinen integraatio tai järjestelmä riippuu yhden henkilön hiljaisesta tiedosta.',
-   '關鍵整合或系統依賴一個人掌握嘅知識。',
-   'High', 'Korkea', '高', 'Likely', 'Todennäköinen', '很可能', 'IT operations', 'IT-operaatiot', '資訊科技營運',
-   'Document runbooks, pair specialists, and rehearse cover arrangements monthly.',
-   'Dokumentoi ajokirjat, työskentele pareittain ja harjoittele varahenkilömallia kuukausittain.',
-   '記錄操作手冊、安排雙人協作，並每月演練替補安排。'),
-  (5, 5, 'Account breach through phishing', 'Tietomurto kalastelusähköpostin kautta', '網絡釣魚導致帳戶外洩',
-   'A user may disclose credentials after receiving a convincing phishing message.',
-   'Käyttäjä voi luovuttaa tunnuksensa uskottavan kalasteluviestin seurauksena.',
-   '使用者可能因為可信嘅網絡釣魚訊息而洩露登入資料。',
-   'Critical', 'Kriittinen', '嚴重', 'Likely', 'Todennäköinen', '很可能', 'Information security', 'Tietoturva', '資訊保安',
-   'Require MFA, practise reporting, and revoke compromised sessions automatically.',
-   'Vaadi MFA, harjoittele ilmoittamista ja sulje vaarantuneet istunnot automaattisesti.',
-   '強制使用多重驗證、演練通報流程，並自動撤銷受影響工作階段。'),
-  (6, 9, 'Insufficient log retention for investigations', 'Puuttuva lokien säilytys tutkintatilanteessa', '調查所需日誌保存不足',
-   'The service may not retain enough evidence for investigating misuse or disruption.',
-   'Palvelu ei välttämättä säilytä riittävästi aineistoa väärinkäytön tai häiriön tutkintaan.',
-   '服務可能冇保存足夠證據去調查濫用或中斷事件。',
-   'High', 'Korkea', '高', 'Possible', 'Mahdollinen', '可能', 'Data protection', 'Tietosuoja', '資料保障',
-   'Define log classes and retention, restrict access, and test investigation queries.',
-   'Määritä lokiluokat ja säilytysajat, rajaa pääsy ja testaa tutkintahaut.',
-   '訂明日誌類別同保存期、限制存取，並測試調查查詢。'),
-  (7, 13, 'Licence overspend caused by weak management', 'Budjettiylitys lisenssien hallinnan puutteen vuoksi', '授權管理不足導致超支',
-   'Duplicate licences, automatic renewals, or underused subscriptions may increase costs.',
-   'Päällekkäiset lisenssit, automaattiset uusinnat tai vajaakäyttöiset tilaukset voivat kasvattaa kustannuksia.',
-   '重複授權、自動續約或使用率偏低嘅訂閱可能令成本增加。',
-   'Medium', 'Keskitaso', '中', 'Likely', 'Todennäköinen', '很可能', 'IT finance', 'IT-talous', '資訊科技財務',
-   'Compare licences with sign-in data, track renewals, and centralise ownership.',
-   'Vertaa lisenssejä kirjautumisdataan, seuraa uusintoja ja keskitä omistajuus.',
-   '將授權數量同登入資料比較、追蹤續約，並集中管理責任。'),
-  (8, 13, 'Hidden integration dependency failure', 'Integraatioriippuvuuden piilevä katkeaminen', '隱藏整合依賴失效',
-   'An interface may change without notice and interrupt reporting or automation.',
-   'Rajapinta voi muuttua ilman ennakkovaroitusta ja katkaista raportoinnin tai automaation.',
-   '介面可能喺冇預警下改變，令報告或自動化中斷。',
-   'High', 'Korkea', '高', 'Possible', 'Mahdollinen', '可能', 'Integration architecture', 'Integraatioarkkitehtuuri', '整合架構',
-   'Version contracts, monitor failures and latency, and agree change-notice periods.',
-   'Versioi sopimukset, valvo virheitä ja viivettä sekä sovi muutosilmoitusajat.',
-   '為合約版本化、監察失敗同延遲，並約定變更通知期。'),
-  (9, 8, 'Backup restores incompletely', 'Varmuuskopio palautuu puutteellisena', '備份還原唔完整',
-   'A successful backup job may still omit data, permissions, or dependencies during restoration.',
-   'Onnistunut varmistusajo voi silti jättää palautuksessa pois dataa, oikeuksia tai riippuvuuksia.',
-   '備份工作即使顯示成功，還原時仍可能遺漏資料、權限或依賴。',
-   'Critical', 'Kriittinen', '嚴重', 'Possible', 'Mahdollinen', '可能', 'Infrastructure', 'Infrastruktuuri', '基建',
-   'Restore sample data monthly, document the checklist, and report recovery-point exceptions.',
-   'Palauta näyteaineisto kuukausittain, dokumentoi tarkistuslista ja raportoi palautuspistepoikkeamat.',
-   '每月還原樣本資料、記錄檢查清單，並報告復原點偏差。'),
-  (10, 1, 'Personal data processed without an impact assessment', 'Henkilötietojen käsittely ilman vaikutustenarviointia', '未做影響評估就處理個人資料',
-   'A new service may process sensitive data without a DPIA or an updated privacy record.',
-   'Uusi palvelu voi käsitellä arkaluonteista dataa ilman DPIA-arviota tai päivitettyä tietosuojakuvausta.',
-   '新服務可能喺冇做 DPIA 或更新私隱紀錄下處理敏感資料。',
-   'High', 'Korkea', '高', 'Possible', 'Mahdollinen', '可能', 'Data protection', 'Tietosuoja', '資料保障',
-   'Add a DPIA gate to projects and involve the data-protection owner before pilots.',
-   'Lisää projekteihin DPIA-portti ja ota tietosuojavastaava mukaan ennen pilotointia.',
-   '喺項目加入 DPIA 關卡，並喺試行前邀請資料保障負責人參與。'),
-  (11, 13, 'Uncontrolled growth of cloud costs', 'Pilvikustannusten hallitsematon kasvu', '雲端成本失控增長',
-   'Test environments, logging, or elastic resources may remain active without spending limits.',
-   'Testiympäristöt, lokitus tai joustavat resurssit voivat jäädä päälle ilman kustannusrajoja.',
-   '測試環境、日誌或彈性資源可能持續運行而冇支出上限。',
-   'Medium', 'Keskitaso', '中', 'Likely', 'Todennäköinen', '很可能', 'Cloud platform', 'Pilvialusta', '雲端平台',
-   'Set service budgets, tag ownership and cost centres, and schedule non-production shutdowns.',
-   'Aseta palvelubudjetit, merkitse omistajat ja kustannuspaikat sekä ajasta ei-tuotannollisten resurssien sammutus.',
-   '設定服務預算、標示負責人同成本中心，並安排非生產資源定時關閉。'),
-  (12, 8, 'Change management bypassed during an urgent release', 'Muutoshallinnan ohittaminen kiiretilanteessa', '緊急發布繞過變更管理',
-   'A production change may be released without approval, rollback planning, or communication.',
-   'Tuotantomuutos voidaan julkaista ilman hyväksyntää, palautussuunnitelmaa tai viestintää.',
-   '生產變更可能喺冇批核、回復方案或溝通下發布。',
-   'High', 'Korkea', '高', 'Possible', 'Mahdollinen', '可能', 'Change management', 'Muutoshallinta', '變更管理',
-   'Use a lightweight emergency-change path, review within 48 hours, and automate rollback.',
-   'Käytä kevyttä hätämuutospolkua, katselmoi 48 tunnissa ja automatisoi palautus.',
-   '使用精簡緊急變更流程、48 小時內覆檢，並將回復程序自動化。')
-)
 INSERT INTO public.riskienhallinta
     (id, palvelu_id, riski, kuvaus, vaikutus, riskitaso, tila,
      omistava_tiimi, todennakoisyys, alentamistoimet)
-SELECT
-    id, service_id,
-    json_build_object('en', title_en, 'fi', title_fi, 'yue', title_yue)::text,
-    json_build_object('en', description_en, 'fi', description_fi, 'yue', description_yue)::text,
-    json_build_object('en', impact_en, 'fi', impact_fi, 'yue', impact_yue)::text,
-    json_build_object('en', impact_en, 'fi', impact_fi, 'yue', impact_yue)::text,
-    json_build_object('en', 'Open', 'fi', 'Avoin', 'yue', '未處理')::text,
-    json_build_object('en', owner_en, 'fi', owner_fi, 'yue', owner_yue)::text,
-    json_build_object('en', likelihood_en, 'fi', likelihood_fi, 'yue', likelihood_yue)::text,
-    json_build_object('en', mitigation_en, 'fi', mitigation_fi, 'yue', mitigation_yue)::text
-FROM mock_rows;
+VALUES (
+    1,
+    1,
+    json_build_object(
+        'en', 'Make uncertainty actionable',
+        'fi', 'Muuta epävarmuus toiminnaksi',
+        'yue', '將不確定性變成行動'
+    )::text,
+    json_build_object(
+        'en', 'Capture an uncertain event, its causes, and the consequence that matters so the right people can decide what to do.',
+        'fi', 'Kirjaa epävarma tapahtuma, sen syyt ja merkityksellinen seuraus, jotta oikeat ihmiset voivat päättää tarvittavista toimista.',
+        'yue', '記錄不確定事件、成因同重要後果，等合適嘅人可以決定下一步。'
+    )::text,
+    json_build_object('en', 'Define the consequence', 'fi', 'Määritä seuraus', 'yue', '訂明後果')::text,
+    json_build_object('en', 'Assess it together', 'fi', 'Arvioi yhdessä', 'yue', '一齊評估')::text,
+    json_build_object('en', 'Example', 'fi', 'Esimerkki', 'yue', '示例')::text,
+    json_build_object('en', 'Choose an owner', 'fi', 'Valitse omistaja', 'yue', '選擇負責人')::text,
+    json_build_object('en', 'Estimate honestly', 'fi', 'Arvioi rehellisesti', 'yue', '如實估計')::text,
+    json_build_object(
+        'en', 'Use Risks to agree on ownership and practical mitigation instead of merely listing worries. This sample risk and the whole table are disposable; keep the structure, reshape it, or replace it with new tables that fit your decisions.',
+        'fi', 'Sopikaa Riskit-taulussa omistajuudesta ja käytännön hallintatoimista pelkän huolilistan sijaan. Voit poistaa tämän esimerkkiriskin tai koko taulun, muokata rakennetta tai korvata sen päätöksillesi paremmin sopivilla uusilla tauluilla.',
+        'yue', '用風險資料表協定負責人同實際緩解措施，而唔係淨係列出憂慮。你可以刪除呢個示例風險或者成個資料表、調整結構，或者建立更配合決策嘅新資料表。'
+    )::text
+);
 
-WITH mock_rows (
-    id, service_id, title_en, title_fi, title_yue, team_en, team_fi,
-    team_yue, guidance_en, guidance_fi, guidance_yue, reviewed
-) AS (VALUES
-  -- The first three rows form the compact, illustrated onboarding guide that
-  -- a new Filterest administrator can browse immediately after first-run setup.
-  (1, 6, 'Start here', 'Aloita tästä', '由此開始',
-   'Filterest administrators', 'Filterest-ylläpitäjät', 'Filterest 管理員',
-   'Sign in with the first administrator account, choose the interface language and theme, confirm the site name and navigation, and replace disposable examples before real use.',
-   'Kirjaudu ensimmäisellä ylläpitäjätilillä, valitse käyttöliittymän kieli ja teema, tarkista sivuston nimi ja navigaatio sekä korvaa kertakäyttöiset esimerkit ennen oikeaa käyttöä.',
-   '用第一個管理員帳戶登入、選擇介面語言同主題、確認網站名稱同導覽，並喺正式使用前取代即棄式範例。',
-   DATE '2026-08-03'),
-  (2, 13, 'First dataset', 'Ensimmäinen tietoaineisto', '第一個資料集',
-   'Filterest administrators', 'Filterest-ylläpitäjät', 'Filterest 管理員',
-   'Begin with one useful list that people already understand. Give every column a clear purpose, mark multilingual fields, and keep only filters that help users make decisions.',
-   'Aloita yhdestä hyödyllisestä listasta, jonka ihmiset jo ymmärtävät. Anna jokaiselle sarakkeelle selkeä tarkoitus, merkitse monikieliset kentät ja säilytä vain päätöksentekoa auttavat suodattimet.',
-   '先建立一個大家已經明白嘅實用清單。確保每個欄位都有清晰用途、標示多語言欄位，並只保留有助使用者作決定嘅篩選條件。',
-   DATE '2026-08-03'),
-  (3, 8, 'Browse, filter and manage data', 'Selaa, suodata ja hallitse tietoja', '瀏覽、篩選同管理資料',
-   'Filterest administrators', 'Filterest-ylläpitäjät', 'Filterest 管理員',
-   'Open a dataset from the navigation, try the card and table views, search and filter the rows, open one row, and make a harmless edit to verify the complete administration loop.',
-   'Avaa tietoaineisto navigaatiosta, kokeile kortti- ja taulukkonäkymiä, hae ja suodata rivejä, avaa yksi rivi ja tee vaaraton muokkaus varmistaaksesi koko hallintaketjun.',
-   '由導覽開啟資料集、試用卡片同表格檢視、搜尋同篩選資料列、開啟其中一列，再作一次無害修改以確認完整管理流程。',
-   DATE '2026-08-03'),
-  (4, 8, 'Backup practice checklist', 'Varmistuskäytäntöjen tarkistuslista', '備份作業檢查清單',
-   'Infrastructure', 'Infrastruktuuri', '基建',
-   'Define recovery objectives for every critical service, keep one copy separate from production credentials, and perform documented restoration tests. A successful job is not proof until restore succeeds.',
-   'Määritä palautumistavoitteet jokaiselle kriittiselle palvelulle, pidä yksi kopio erillään tuotantotunnuksista ja tee dokumentoidut palautustestit. Onnistunut ajo ei ole todiste ennen onnistunutta palautusta.',
-   '為每項關鍵服務訂明復原目標、保留一份同生產憑證分開嘅副本，並進行有紀錄嘅還原測試。備份工作成功唔代表還原一定成功。',
-   DATE '2026-04-28'),
-  (5, 9, 'ITIL incident-handling process map', 'ITIL-incidentinkäsittelyn prosessikartta', 'ITIL 事故處理流程圖',
-   'Service desk', 'Palvelupiste', '服務台',
-   'Record the symptom, impact, and reporter; prioritise by impact and urgency; restore service before pursuing the full root cause; and review critical or recurring incidents.',
-   'Kirjaa oire, vaikutus ja ilmoittaja; priorisoi vaikutuksen ja kiireellisyyden mukaan; palauta palvelu ennen täydellistä juurisyyanalyysiä; ja katselmoi kriittiset tai toistuvat häiriöt.',
-   '記錄徵狀、影響同通報人；按影響同緊急程度排優先次序；先恢復服務再深入追查根因；並覆檢嚴重或重複事故。',
-   DATE '2026-05-02'),
-  (6, 3, 'Cloud procurement decision memo', 'Pilvipalveluiden hankintapäätösmuistio', '雲端採購決策備忘錄',
-   'Enterprise architecture', 'Yritysarkkitehtuuri', '企業架構',
-   'Before a pilot, document the business benefit, alternatives, data classification, privacy terms, identity controls, integrations, three-year costs, and exit path.',
-   'Dokumentoi ennen pilotointia liiketoimintahyöty, vaihtoehdot, tietoluokitus, tietosuojaehdot, tunnistautuminen, integraatiot, kolmen vuoden kustannukset ja exit-polku.',
-   '試行前記錄業務效益、替代方案、資料分類、私隱條款、身份控制、整合、三年成本同退出路徑。',
-   DATE '2026-05-05'),
-  (7, 12, 'Data retention periods and rationale', 'Datan säilytysajat ja perustelut', '資料保存期限同理據',
-   'Information governance', 'Tiedonhallinta', '資訊管治',
-   'For every dataset, record its purpose, legal basis, minimum retention, deletion method, and owner. Keeping data only in case it is useful generally increases risk.',
-   'Kirjaa jokaiselle aineistolle käyttötarkoitus, oikeusperuste, vähimmäissäilytys, poistotapa ja omistaja. Datan säilyttäminen vain varmuuden vuoksi kasvattaa yleensä riskiä.',
-   '為每個資料集記錄用途、法律基礎、最低保存期、刪除方法同負責人。純粹以備不時之需而保留資料通常會增加風險。',
-   DATE '2026-05-08'),
-  (8, 6, 'Business continuity plan', 'Toiminnan jatkuvuussuunnitelma', '業務持續計劃',
-   'Continuity management', 'Jatkuvuuden hallinta', '持續運作管理',
-   'Classify service criticality, define recovery order and communication channels, name primary and backup roles, and record exercise findings and corrective actions.',
-   'Luokittele palvelujen kriittisyys, määritä palautusjärjestys ja viestintäkanavat, nimeä pää- ja vararoolit sekä kirjaa harjoitusten havainnot ja korjaavat toimet.',
-   '將服務按關鍵程度分類、訂明復原次序同溝通渠道、指定主要同後備角色，並記錄演練發現同改善措施。',
-   DATE '2026-05-12'),
-  (9, 13, 'IT strategy update process', 'Tietohallinnon strategian päivitysprosessi', '資訊科技策略更新流程',
-   'IT leadership', 'Tietohallintojohto', '資訊科技管理層',
-   'Review current state and risks, set architecture choices, prioritise investments, and connect measures to the next budget and roadmap. Strategy is active only when it changes priorities.',
-   'Katselmoi nykytila ja riskit, tee arkkitehtuurivalinnat, priorisoi investoinnit ja kytke mittarit seuraavaan budjettiin ja tiekarttaan. Strategia on käytössä vasta, kun se muuttaa prioriteetteja.',
-   '覆檢現況同風險、作出架構選擇、排列投資優先次序，並將指標連結到下一份預算同路線圖。策略只有改變優先次序先算真正落實。',
-   DATE '2026-05-15'),
-  (10, 7, 'Access lifecycle model', 'Käyttöoikeuksien elinkaarimalli', '存取權生命週期模型',
-   'Identity governance', 'Identiteetin hallinta', '身份管治',
-   'Grant access from an approved need, time-limit high-risk rights, review ownership quarterly, and remove rights immediately when employment or duties end.',
-   'Myönnä oikeudet hyväksytystä tarpeesta, aseta korkean riskin oikeuksille määräaika, katselmoi omistajuus neljännesvuosittain ja poista oikeudet heti työsuhteen tai tehtävien päättyessä.',
-   '按已批准需要授予權限、為高風險權限設定期限、每季審查責任，並喺僱傭或職務完結時立即移除權限。',
-   DATE '2026-05-18')
-)
 INSERT INTO public.dokumentaatio
     (id, palvelu_id, otsikko, kohdetiimi, ohje, paivitetty, voimassaolo)
-SELECT
-    id, service_id,
-    json_build_object('en', title_en, 'fi', title_fi, 'yue', title_yue)::text,
-    json_build_object('en', team_en, 'fi', team_fi, 'yue', team_yue)::text,
-    json_build_object('en', guidance_en, 'fi', guidance_fi, 'yue', guidance_yue)::text,
-    reviewed,
+VALUES
+  (
+    1,
+    1,
+    json_build_object('en', 'Start here', 'fi', 'Aloita tästä', 'yue', '由此開始')::text,
+    json_build_object('en', 'New administrators', 'fi', 'Uudet ylläpitäjät', 'yue', '新管理員')::text,
+    json_build_object(
+        'en', 'This small workspace is yours to reshape. Every example row is synthetic, and every content row, document, and content table can be edited or deleted. Create one new table or several connected tables when you are ready to model your own work.',
+        'fi', 'Tämä pieni työtila on sinun muokattavissasi. Kaikki esimerkkirivit ovat synteettisiä, ja jokaisen sisältörivin, dokumentin sekä sisältötaulun voi muokata tai poistaa. Luo yksi uusi taulu tai useita toisiinsa liittyviä tauluja, kun olet valmis mallintamaan oman työsi.',
+        'yue', '呢個細小工作區由你自由重塑。所有示例資料都係合成內容，而每個內容資料列、文件同內容資料表都可以編輯或刪除。準備好建立自己嘅工作模型時，可以新增一個資料表或者多個互相關聯嘅資料表。'
+    )::text,
+    DATE '2026-08-04',
     json_build_object('en', 'Current', 'fi', 'Voimassa', 'yue', '現行')::text
-FROM mock_rows;
+  ),
+  (
+    2,
+    1,
+    json_build_object('en', 'First dataset', 'fi', 'Ensimmäinen tietoaineisto', 'yue', '第一個資料集')::text,
+    json_build_object('en', 'Workspace builders', 'fi', 'Työtilan rakentajat', 'yue', '工作區建立者')::text,
+    json_build_object(
+        'en', 'Begin with one list people already understand. Give every column a clear purpose, choose the full-name or title field that heads each card, and add multilingual fields only where readers truly need them. You can delete this guide, any other row, or an entire table after it has served its purpose.',
+        'fi', 'Aloita yhdestä listasta, jonka ihmiset jo ymmärtävät. Anna jokaiselle sarakkeelle selkeä tarkoitus, valitse korttien otsikkona toimiva nimi- tai otsikkokenttä ja lisää monikielisiä kenttiä vain todelliseen tarpeeseen. Voit poistaa tämän ohjeen, minkä tahansa muun rivin tai kokonaisen taulun, kun se on täyttänyt tehtävänsä.',
+        'yue', '由一張大家已經明白嘅清單開始。為每個欄位設定清楚用途、選擇用作卡片標題嘅全名或者標題欄位，只喺讀者真正需要時加入多語言欄位。呢份指引、任何其他資料列或者成個資料表完成用途後都可以刪除。'
+    )::text,
+    DATE '2026-08-04',
+    json_build_object('en', 'Current', 'fi', 'Voimassa', 'yue', '現行')::text
+  ),
+  (
+    3,
+    1,
+    json_build_object(
+        'en', 'Browse, filter and manage data',
+        'fi', 'Selaa, suodata ja hallitse tietoja',
+        'yue', '瀏覽、篩選同管理資料'
+    )::text,
+    json_build_object('en', 'Filterest administrators', 'fi', 'Filterest-ylläpitäjät', 'yue', 'Filterest 管理員')::text,
+    json_build_object(
+        'en', 'Open a table from the navigation, switch between cards and rows, search and filter, then open one item and make a harmless edit. The sample service, risk, ticket, documents, and even their tables are safe to remove; the point is to leave you with the workspace your work actually needs.',
+        'fi', 'Avaa taulu navigaatiosta, vaihda kortti- ja rivinäkymien välillä, hae ja suodata sekä avaa lopuksi yksi kohde ja tee vaaraton muokkaus. Esimerkkipalvelun, -riskin, -tiketin, dokumentit ja jopa niiden taulut voi turvallisesti poistaa; tavoitteena on jättää jäljelle juuri sinun työhösi sopiva työtila.',
+        'yue', '由導覽開啟資料表、喺卡片同資料列檢視之間切換、搜尋同篩選，再開啟一項內容作一次無害修改。示例服務、風險、工單、文件，甚至相關資料表都可以安全刪除；重點係最後留下真正配合你工作需要嘅工作區。'
+    )::text,
+    DATE '2026-08-04',
+    json_build_object('en', 'Current', 'fi', 'Voimassa', 'yue', '現行')::text
+  );
 
-WITH mock_rows (
-    id, service_id, risk_id, document_id, title_en, title_fi, title_yue,
-    team_en, team_fi, team_yue, due_on, status_code, priority_code,
-    queue_code, description_en, description_fi, description_yue
-) AS (VALUES
-  (1, 5, 5, 10, 'Password reset works only on mobile', 'Salasanan resetointi onnistuu vain mobiilissa', '密碼重設只喺手機成功',
-   'IT helpdesk', 'IT-palvelupiste', 'IT 服務台', DATE '2026-07-21', 'in_progress', 'normal', 'helpdesk',
-   'Workstation sign-in fails, but the one-time code works on the mobile device.',
-   'Työaseman kirjautuminen epäonnistuu, mutta kertakoodi toimii mobiililaitteessa.',
-   '工作站登入失敗，但一次性驗證碼喺手機可以使用。'),
-  (2, 6, 3, 5, 'VPN disconnects during meetings', 'VPN-yhteys katkeaa palaverin aikana', 'VPN 喺會議期間斷線',
-   'Network team', 'Verkkotiimi', '網絡團隊', DATE '2026-07-20', 'triage', 'high', 'network',
-   'The remote connection drops every ten to fifteen minutes regardless of the home network.',
-   'Etäyhteys katkeaa 10–15 minuutin välein kotiverkosta riippumatta.',
-   '遙距連線每隔十至十五分鐘中斷一次，同屋企網絡無關。'),
-  (3, 7, 7, 10, 'Create a Microsoft 365 account', 'Uusi käyttäjätili Microsoft 365:een', '新增 Microsoft 365 帳戶',
-   'Identity team', 'Identiteettitiimi', '身份管理團隊', DATE '2026-07-24', 'waiting_approval', 'normal', 'identity',
-   'A new trainee needs an account, Teams groups, a licence, and a mailbox.',
-   'Uusi harjoittelija tarvitsee käyttäjätilin, Teams-ryhmät, lisenssin ja postilaatikon.',
-   '新實習生需要帳戶、Teams 群組、授權同郵箱。'),
-  (4, 8, 1, 3, 'Replace a damaged monitor', 'Näytön vaihto rikkoutuneen paneelin takia', '更換損壞顯示器',
-   'Device services', 'Laitepalvelut', '設備服務', DATE '2026-07-28', 'new', 'normal', 'devices',
-   'The external monitor panel is damaged and the user needs a replacement device.',
-   'Ulkoisen näytön paneeli on rikkoutunut ja käyttäjä tarvitsee vaihtolaitteen.',
-   '外置顯示器面板損壞，使用者需要更換設備。'),
-  (5, 9, 5, 5, 'Phishing message impersonates management', 'Kalasteluviesti johdolta näyttävällä lähettäjällä', '冒充管理層嘅網絡釣魚郵件',
-   'Information security', 'Tietoturva', '資訊保安', DATE '2026-07-18', 'in_progress', 'urgent', 'security',
-   'A suspicious message asks the recipient to open an invoice attachment and sign in again.',
-   'Epäilyttävä viesti pyytää avaamaan laskuliitteen ja kirjautumaan uudelleen.',
-   '可疑郵件要求收件人開啟發票附件並重新登入。'),
-  (6, 10, 4, 7, 'Invoice approval chain is missing an approver', 'Ostolaskun hyväksyjä puuttuu kierrosta', '發票批核流程缺少批核人',
-   'Finance administration', 'Taloushallinto', '財務行政', DATE '2026-07-22', 'waiting_approval', 'high', 'finance_approvals',
-   'The invoice is waiting because the cost-centre approver has changed.',
-   'Lasku odottaa, koska kustannuspaikan hyväksyjä on vaihtunut.',
-   '發票仍然等候處理，因為成本中心批核人已經更換。'),
-  (7, 12, 1, 6, 'Update supplier bank details', 'Toimittajan pankkitietojen päivitys', '更新供應商銀行資料',
-   'Accounts payable', 'Ostolaskutiimi', '應付帳款團隊', DATE '2026-07-25', 'triage', 'normal', 'vendors',
-   'The supplier submitted a new bank account that must be independently verified before payment.',
-   'Toimittaja ilmoitti uuden pankkitilin, joka on tarkistettava riippumattomasti ennen maksua.',
-   '供應商提交咗新銀行帳戶，付款前必須獨立核實。'),
-  (8, 1, 4, 10, 'Onboarding package for a new specialist', 'Perehdytyspaketti uudelle asiantuntijalle', '新專員入職套件',
-   'General administration', 'Yleishallinto', '綜合行政', DATE '2026-07-27', 'new', 'normal', 'admin',
-   'A new specialist needs the administration checklist and first-day arrangements.',
-   'Uusi asiantuntija tarvitsee hallinnon tarkistuslistan ja ensimmäisen päivän järjestelyt.',
-   '新專員需要行政檢查清單同第一日安排。'),
-  (9, 2, 2, 3, 'Guest network accounts for a workshop', 'Vierailijaverkon tunnukset työpajaan', '工作坊訪客網絡帳戶',
-   'General administration', 'Yleishallinto', '綜合行政', DATE '2026-07-30', 'waiting_requester', 'low', 'admin',
-   'External participants need guest-network access and meeting-room presentation equipment.',
-   'Ulkoiset osallistujat tarvitsevat vierailijaverkon ja kokoushuoneen esitystekniikan.',
-   '外部參加者需要訪客網絡存取權同會議室簡報設備。'),
-  (10, 13, 7, 2, 'Budget report for project tracking', 'Budjettiraportti projektiseurannalle', '項目追蹤預算報告',
-   'Controller team', 'Controller-tiimi', '財務控制團隊', DATE '2026-07-23', 'new', 'normal', 'finance_approvals',
-   'The project manager needs a cost-centre report before month-end closing.',
-   'Projektipäällikkö tarvitsee kustannuspaikkaraportin ennen kuukausikatkoa.',
-   '項目經理需要喺月結前取得成本中心報告。'),
-  (11, 7, 3, 5, 'Production application sign-in fails', 'Tuotantosovelluksen kirjautuminen epäonnistuu', '生產應用程式登入失敗',
-   'Application team', 'Sovellustiimi', '應用程式團隊', DATE '2026-07-18', 'in_progress', 'urgent', 'urgent',
-   'Several users receive an SSO error after the application update.',
-   'Useat käyttäjät saavat SSO-virheen sovelluspäivityksen jälkeen.',
-   '應用程式更新後，多名使用者遇到單一登入錯誤。'),
-  (12, 13, 8, 2, 'Add a filter to the report view', 'Raporttinäkymään tarvitaan uusi suodatin', '報告檢視新增篩選器',
-   'Development team', 'Kehitystiimi', '開發團隊', DATE '2026-08-07', 'triage', 'low', 'changes',
-   'Add a combined cost-centre and month filter to the reporting view.',
-   'Lisää raporttinäkymään kustannuspaikan ja kuukauden yhdistelmäsuodatin.',
-   '喺報告檢視加入成本中心同月份組合篩選器。'),
-  (13, 11, 8, 5, 'Expense receipt does not open', 'Kululaskun kuitti ei avaudu', '費用收據無法開啟',
-   'Expense team', 'Kulutiimi', '費用團隊', DATE '2026-07-24', 'waiting_requester', 'normal', 'finance_approvals',
-   'The attached receipt opens on mobile but not in the finance review view.',
-   'Liitetty kuitti avautuu mobiilissa mutta ei taloushallinnon tarkistusnäkymässä.',
-   '附件收據喺手機開到，但喺財務審查檢視無法開啟。'),
-  (14, NULL, 3, 5, 'External user cannot download a file', 'Ulkoinen käyttäjä ei saa ladattua tiedostoa', '外部使用者無法下載檔案',
-   'Customer service', 'Asiakaspalvelu', '客戶服務', DATE '2026-07-22', 'new', 'normal', 'external',
-   'A customer cannot download a document from the public portal and requests guidance.',
-   'Asiakas ei saa ladattua dokumenttia julkisesta portaalista ja pyytää ohjetta.',
-   '客戶無法喺公開入口下載文件，並要求協助。'),
-  (15, 6, 2, 5, 'Firewall rule for an integration test', 'Palomuurisääntö integraatiotestiin', '整合測試防火牆規則',
-   'Network team', 'Verkkotiimi', '網絡團隊', DATE '2026-07-24', 'waiting_approval', 'high', 'network',
-   'The test environment needs temporary access to a partner interface.',
-   'Testiympäristö tarvitsee määräaikaisen yhteyden kumppanin rajapintaan.',
-   '測試環境需要臨時連線到合作夥伴介面。')
-)
 INSERT INTO public.tiketit
     (id, palvelu_id, riski_id, dokumentaatio_id, otsikko, vastuutiimi,
      maarapaiva, tila, prioriteetti, pyyntotyyppi, kuvaus)
-SELECT
-    id, service_id, risk_id, document_id,
-    json_build_object('en', title_en, 'fi', title_fi, 'yue', title_yue)::text,
-    json_build_object('en', team_en, 'fi', team_fi, 'yue', team_yue)::text,
-    due_on,
+VALUES (
+    1,
+    1,
+    1,
+    3,
     json_build_object(
-        'en', CASE status_code WHEN 'new' THEN 'Open' WHEN 'in_progress' THEN 'In progress' WHEN 'triage' THEN 'Triage' WHEN 'waiting_approval' THEN 'Waiting for approval' ELSE 'Waiting for requester' END,
-        'fi', CASE status_code WHEN 'new' THEN 'Avoin' WHEN 'in_progress' THEN 'Käynnissä' WHEN 'triage' THEN 'Luokittelussa' WHEN 'waiting_approval' THEN 'Odottaa hyväksyntää' ELSE 'Odottaa pyytäjää' END,
-        'yue', CASE status_code WHEN 'new' THEN '未處理' WHEN 'in_progress' THEN '處理中' WHEN 'triage' THEN '分流中' WHEN 'waiting_approval' THEN '等候批核' ELSE '等候申請人' END
+        'en', 'Turn a request into visible work',
+        'fi', 'Muuta pyyntö näkyväksi työksi',
+        'yue', '將請求變成可見工作'
     )::text,
+    json_build_object('en', 'Choose a responsible team', 'fi', 'Valitse vastuutiimi', 'yue', '選擇負責團隊')::text,
+    NULL,
+    json_build_object('en', 'Example', 'fi', 'Esimerkki', 'yue', '示例')::text,
+    json_build_object('en', 'Set the priority', 'fi', 'Aseta prioriteetti', 'yue', '設定優先次序')::text,
+    json_build_object('en', 'Choose a workflow', 'fi', 'Valitse työnkulku', 'yue', '選擇工作流程')::text,
     json_build_object(
-        'en', CASE priority_code WHEN 'low' THEN 'Low' WHEN 'normal' THEN 'Normal' WHEN 'high' THEN 'High' ELSE 'Urgent' END,
-        'fi', CASE priority_code WHEN 'low' THEN 'Matala' WHEN 'normal' THEN 'Normaali' WHEN 'high' THEN 'Korkea' ELSE 'Kiireellinen' END,
-        'yue', CASE priority_code WHEN 'low' THEN '低' WHEN 'normal' THEN '一般' WHEN 'high' THEN '高' ELSE '緊急' END
-    )::text,
-    json_build_object(
-        'en', CASE queue_code WHEN 'helpdesk' THEN 'Helpdesk L1' WHEN 'network' THEN 'Network and VPN' WHEN 'identity' THEN 'Identity and access' WHEN 'devices' THEN 'Devices and workstations' WHEN 'security' THEN 'Information security' WHEN 'finance_approvals' THEN 'Finance approvals' WHEN 'vendors' THEN 'Suppliers and invoices' WHEN 'admin' THEN 'General administration service desk' WHEN 'urgent' THEN 'Urgent incidents' WHEN 'changes' THEN 'Change requests' ELSE 'External customer portal' END,
-        'fi', CASE queue_code WHEN 'helpdesk' THEN 'Palvelupiste L1' WHEN 'network' THEN 'Verkko ja VPN' WHEN 'identity' THEN 'Identiteetti ja käyttöoikeudet' WHEN 'devices' THEN 'Laite- ja työasema-asiat' WHEN 'security' THEN 'Tietoturva' WHEN 'finance_approvals' THEN 'Taloushallinnon hyväksynnät' WHEN 'vendors' THEN 'Toimittaja- ja ostolaskujono' WHEN 'admin' THEN 'Yleishallinnon palvelupiste' WHEN 'urgent' THEN 'Kiireelliset häiriöt' WHEN 'changes' THEN 'Kehityspyynnöt' ELSE 'Ulkoinen asiakasportaali' END,
-        'yue', CASE queue_code WHEN 'helpdesk' THEN '服務台第一線' WHEN 'network' THEN '網絡同 VPN' WHEN 'identity' THEN '身份同存取權' WHEN 'devices' THEN '設備同工作站' WHEN 'security' THEN '資訊保安' WHEN 'finance_approvals' THEN '財務批核' WHEN 'vendors' THEN '供應商同發票' WHEN 'admin' THEN '綜合行政服務台' WHEN 'urgent' THEN '緊急事故' WHEN 'changes' THEN '變更請求' ELSE '外部客戶入口' END
-    )::text,
-    json_build_object('en', description_en, 'fi', description_fi, 'yue', description_yue)::text
-FROM mock_rows;
+        'en', 'Use Tickets to give requests an owner, state, priority, and next step so work does not disappear into messages. This sample ticket and the whole table can be deleted; keep it only if a ticket workflow helps, or create different tables for the work you really manage.',
+        'fi', 'Anna Tiketit-taulussa pyynnöille omistaja, tila, prioriteetti ja seuraava askel, jotta työ ei huku viesteihin. Voit poistaa tämän esimerkkitiketin tai koko taulun; säilytä se vain, jos tikettityönkulku auttaa, tai luo hallitsemallesi työlle paremmin sopivat taulut.',
+        'yue', '用工單資料表為請求設定負責人、狀態、優先次序同下一步，避免工作消失喺訊息之中。你可以刪除呢個示例工單或者成個資料表；只喺工單流程有幫助時保留，否則可以為真正管理嘅工作建立其他資料表。'
+    )::text
+);
 
 INSERT INTO public.palvelukatalogi_riskienhallinta_relation (palvelu_id, riski_id)
-VALUES
-  (3, 1), (12, 1),
-  (5, 2), (6, 2), (9, 2),
-  (6, 3), (7, 3), (9, 3),
-  (1, 4), (3, 4), (6, 4), (7, 4), (10, 4),
-  (5, 5), (7, 5), (9, 5),
-  (7, 6), (9, 6),
-  (7, 7), (13, 7),
-  (6, 8), (10, 8), (13, 8),
-  (7, 9), (8, 9), (13, 9),
-  (1, 10), (7, 10), (12, 10),
-  (7, 11), (13, 11),
-  (6, 12), (7, 12), (8, 12), (9, 12), (13, 12);
+VALUES (1, 1);
 INSERT INTO public.palvelukatalogi_dokumentaatio_relation (palvelu_id, dokumentaatio_id)
-VALUES
-  (5, 1), (6, 1), (7, 1), (9, 1),
-  (3, 2), (13, 2),
-  (4, 3), (6, 3), (8, 3), (9, 3),
-  (7, 4), (8, 4), (13, 4),
-  (5, 5), (6, 5), (9, 5),
-  (3, 6), (7, 6), (12, 6),
-  (10, 7), (11, 7), (12, 7),
-  (6, 8), (7, 8), (9, 8),
-  (3, 9), (13, 9),
-  (1, 10), (5, 10), (7, 10);
+VALUES (1, 1);
 INSERT INTO public.palvelukatalogi_tiketit_relation (palvelu_id, tiketti_id)
-VALUES
-  (5, 1), (7, 1),
-  (6, 2), (8, 2),
-  (1, 3), (7, 3),
-  (8, 4),
-  (5, 5), (9, 5),
-  (10, 6), (13, 6),
-  (3, 7), (12, 7),
-  (1, 8), (5, 8), (7, 8),
-  (2, 9), (6, 9),
-  (10, 10), (13, 10),
-  (6, 11), (7, 11), (9, 11),
-  (7, 12), (13, 12),
-  (10, 13), (11, 13),
-  (2, 14), (5, 14),
-  (6, 15), (9, 15);
+VALUES (1, 1);
 INSERT INTO public.riskienhallinta_dokumentaatio_relation (riski_id, dokumentaatio_id)
-VALUES
-  (3, 1), (8, 1),
-  (1, 2), (7, 2), (11, 2),
-  (2, 3), (5, 3), (10, 3),
-  (3, 4), (9, 4),
-  (3, 5), (5, 5), (12, 5),
-  (1, 6), (2, 6), (10, 6), (11, 6),
-  (6, 7), (10, 7),
-  (3, 8), (4, 8), (9, 8),
-  (1, 9), (7, 9), (11, 9), (12, 9),
-  (4, 10), (5, 10), (10, 10);
+VALUES (1, 1);
 INSERT INTO public.riskienhallinta_tiketit_relation (riski_id, tiketti_id)
-VALUES
-  (5, 1),
-  (3, 2), (8, 2),
-  (7, 3), (10, 3),
-  (1, 4),
-  (5, 5),
-  (4, 6), (12, 6),
-  (1, 7),
-  (4, 8), (10, 8),
-  (2, 9), (5, 9),
-  (7, 10), (11, 10),
-  (3, 11), (12, 11),
-  (8, 12), (12, 12),
-  (8, 13),
-  (3, 14), (8, 14), (10, 14),
-  (2, 15), (12, 15);
+VALUES (1, 1);
 INSERT INTO public.dokumentaatio_tiketit_relation (dokumentaatio_id, tiketti_id)
-VALUES
-  (10, 1),
-  (5, 2),
-  (6, 3), (10, 3),
-  (3, 4),
-  (5, 5), (10, 5),
-  (7, 6),
-  (6, 7),
-  (10, 8),
-  (3, 9), (5, 9),
-  (2, 10), (9, 10),
-  (5, 11), (8, 11),
-  (2, 12), (9, 12),
-  (5, 13),
-  (5, 14), (7, 14),
-  (5, 15), (6, 15);
+VALUES (3, 1);
 
--- Restore the three reviewed public walkthrough images that shipped with the
--- established mock workspace. Other rows intentionally remain image-free:
--- repeating one theme SVG on every card makes placeholder media look like
--- row-specific content and hides missing fixture assets from browser review.
+-- Restore the three reviewed public walkthrough images that ship with the
+-- minimal workspace. The service, risk, and ticket examples stay image-free.
 UPDATE public.dokumentaatio
 SET cached_image = CASE id
     WHEN 1 THEN '9_1_1.png'
@@ -829,10 +474,10 @@ SET cached_image = CASE id
 END
 WHERE id IN (1, 2, 3);
 
-SELECT setval(pg_get_serial_sequence('public.palvelukatalogi','id'), 13, TRUE);
-SELECT setval(pg_get_serial_sequence('public.riskienhallinta','id'), 12, TRUE);
-SELECT setval(pg_get_serial_sequence('public.dokumentaatio','id'), 10, TRUE);
-SELECT setval(pg_get_serial_sequence('public.tiketit','id'), 15, TRUE);
+SELECT setval(pg_get_serial_sequence('public.palvelukatalogi','id'), 1, TRUE);
+SELECT setval(pg_get_serial_sequence('public.riskienhallinta','id'), 1, TRUE);
+SELECT setval(pg_get_serial_sequence('public.dokumentaatio','id'), 3, TRUE);
+SELECT setval(pg_get_serial_sequence('public.tiketit','id'), 1, TRUE);
 -- Filterest public bootstrap: menus and field labels for the established mock
 -- workspace. Cantonese is stored in the first-class yue language column.
 
