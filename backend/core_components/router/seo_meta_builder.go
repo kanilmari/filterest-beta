@@ -5,6 +5,7 @@
 package router
 
 import (
+	"context"
 	"database/sql"
 	"encoding/xml"
 	"fmt"
@@ -159,9 +160,16 @@ func resolvePageMeta(r *http.Request) pageMeta {
 }
 
 // resolvePageSiteName returns the browser-facing site name for SEO metadata.
-// Between the request host and SITE_NAME fallback it prefers the current domain.
-// Why: Filterest domain pages must not inherit stale serlog.com title suffixes.
+// The administrator-owned First Run value wins over deployment and host fallbacks.
+// Why: the chosen site identity must replace Filterest and legacy domain branding.
 func resolvePageSiteName(r *http.Request) string {
+	ctx := context.Background()
+	if r != nil {
+		ctx = r.Context()
+	}
+	if siteName := configuredSiteNameReader(ctx, backend.Db); siteName != "" {
+		return siteName
+	}
 	if r != nil {
 		if host := normalizePageDisplayHost(r.Header.Get("X-Forwarded-Host")); host != "" {
 			return host

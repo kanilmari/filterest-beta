@@ -56,7 +56,7 @@ VALUES
     ('next', 'Next', 'Seuraava', '下一步', '下一步', 'Shared next-navigation label.'),
     ('back', 'Back', 'Takaisin', '返回', '返回', 'Shared back-navigation button label.'),
     ('proceed', 'Proceed', 'Jatka', '继续', '繼續', 'Shared forward-navigation button label.'),
-    ('first_run_welcome', 'Welcome to $site_name', 'Tervetuloa sovellukseen $site_name', '欢迎使用 $site_name', '歡迎使用 $site_name', 'Multilingual First Run welcome with the application name.'),
+    ('first_run_welcome', 'Welcome to Filterest!', 'Tervetuloa Filterestiin!', '欢迎使用 Filterest！', '歡迎使用 Filterest！', 'Fixed multilingual Filterest welcome before the installation has a site identity.'),
     ('first_run_section_settings', 'Environment', 'Ympäristö', '环境', '環境', 'First Run settings section label.'),
     ('first_run_section_credentials', 'Credentials', 'Tunnukset', '登录凭据', '登入資料', 'First Run credentials section label.'),
     ('first_run_settings_title', 'Set up your workspace', 'Määritä työympäristö', '设置工作区', '設定工作區', 'First Run environment and verification heading.'),
@@ -92,7 +92,9 @@ VALUES
     ('first_run_fixed_pin_mismatch', 'The fixed PIN values do not match.', 'Kiinteät PIN-koodit eivät täsmää.', '两次输入的固定 PIN 不一致。', '兩次輸入的固定 PIN 不一致。', 'First Run fixed PIN confirmation error.'),
     ('first_run_totp_invalid', 'Confirm the authenticator setup with a valid current code.', 'Vahvista autentikaattorin käyttöönotto kelvollisella nykyisellä koodilla.', '请使用有效的当前代码确认身份验证器设置。', '請使用有效的目前驗證碼確認驗證器設定。', 'First Run TOTP enrollment validation error.'),
     ('first_run_postmark_required', 'Email verification requires POSTMARK_API_KEY and EMAIL_FROM_ADDRESS in the protected environment file.', 'Sähköpostivarmennus vaatii suojattuun ympäristötiedostoon POSTMARK_API_KEY- ja EMAIL_FROM_ADDRESS-arvot.', '电子邮件验证需要在受保护的环境文件中设置 POSTMARK_API_KEY 和 EMAIL_FROM_ADDRESS。', '電郵驗證需要在受保護的環境檔案中設定 POSTMARK_API_KEY 及 EMAIL_FROM_ADDRESS。', 'First Run Postmark readiness error.'),
-    ('first_run_admin_description', 'Choose the administrator credentials for this installation. Email is also used for account recovery and messages.', 'Valitse tämän asennuksen pääkäyttäjän tunnukset. Sähköpostia käytetään myös tilin palautukseen ja viesteihin.', '为此安装设置管理员凭据。电子邮件也用于账户恢复和消息。', '為此安裝設定管理員登入資料。電郵亦用於帳戶復原及訊息。', 'Updated First Run administrator description.')
+    ('first_run_site_name', 'Site name', 'Sivuston nimi', '站点名称', '網站名稱', 'First Run site identity field label.'),
+    ('first_run_site_name_invalid', 'Enter a site name containing 1–100 characters.', 'Anna sivustolle 1–100 merkkiä pitkä nimi.', '请输入 1–100 个字符的站点名称。', '請輸入 1–100 個字元的網站名稱。', 'First Run site identity validation error.'),
+    ('first_run_admin_description', 'Choose the site name and administrator credentials for this installation. Email is also used for account recovery and messages.', 'Valitse tämän asennuksen sivuston nimi ja pääkäyttäjän tunnukset. Sähköpostia käytetään myös tilin palautukseen ja viesteihin.', '为此安装设置站点名称和管理员凭据。电子邮件也用于账户恢复和消息。', '為此安裝設定網站名稱及管理員登入資料。電郵亦用於帳戶復原及訊息。', 'First Run site identity and administrator description.')
 ON CONFLICT (lang_key) DO UPDATE
 SET en = EXCLUDED.en,
     fi = EXCLUDED.fi,

@@ -322,6 +322,17 @@ func TestResolveLoginSiteNameUsesForwardedHostAndStripsPort(t *testing.T) {
 	}
 }
 
+func TestResolveLoginSiteNamePrefersAdministratorOwnedIdentity(t *testing.T) {
+	original := configuredSiteNameReader
+	configuredSiteNameReader = func(context.Context, *sql.DB) string { return "Customer Workspace" }
+	t.Cleanup(func() { configuredSiteNameReader = original })
+
+	req := httptest.NewRequest(http.MethodGet, "https://filterest.example/login", nil)
+	if got := resolveLoginSiteName(req); got != "Customer Workspace" {
+		t.Fatalf("resolveLoginSiteName() = %q, want %q", got, "Customer Workspace")
+	}
+}
+
 func TestResolveLoginSiteNameFallsBackToEnvWithoutRequestHost(t *testing.T) {
 	t.Setenv("SITE_NAME", "Serlog.com")
 

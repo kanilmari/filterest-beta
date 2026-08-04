@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	backend "easelect/backend/core_components"
 	"fmt"
 	"html/template"
@@ -26,8 +27,9 @@ import (
 )
 
 var (
-	store        *sessions.CookieStore
-	frontend_dir string
+	store                    *sessions.CookieStore
+	frontend_dir             string
+	configuredSiteNameReader = backend.ConfiguredSiteName
 )
 
 // shouldShowLoginTourScreenshots reads the login tour screenshot toggle from env.
@@ -53,11 +55,16 @@ func shouldShowLoginTourScreenshots(siteName string) bool {
 }
 
 // resolveLoginSiteName returns the public name shown on the login page.
-// Between the incoming HTTP request and SITE_NAME fallback config it chooses the
-// current browser-facing host first.
-// Why: domain deployments such as filterest.com must not inherit stale branding
-// from an older instance-level SITE_NAME value.
+// The administrator-owned First Run value wins over deployment and host fallbacks.
+// Why: normal sign-in should adopt the chosen site identity immediately.
 func resolveLoginSiteName(r *http.Request) string {
+	ctx := context.Background()
+	if r != nil {
+		ctx = r.Context()
+	}
+	if siteName := configuredSiteNameReader(ctx, backend.Db); siteName != "" {
+		return siteName
+	}
 	if r != nil {
 		if host := normalizeLoginDisplayHost(r.Header.Get("X-Forwarded-Host")); host != "" {
 			return host

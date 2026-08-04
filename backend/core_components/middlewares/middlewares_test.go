@@ -2,6 +2,8 @@ package middlewares
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -204,11 +206,29 @@ func TestWithPanicRecovery_ErrorPanic(t *testing.T) {
 // ---------- WithMaintenanceMode ----------------------------------------------
 
 func setupMaintenance(t *testing.T, active bool) {
+	original := configuredMaintenanceSiteNameReader
+	configuredMaintenanceSiteNameReader = func(context.Context, *sql.DB) string { return "" }
 	t.Setenv("MAINTENANCE_MODE", "false")
 	t.Setenv("SITE_NAME", "TestSite")
 	InitMaintenanceMode()
 	SetMaintenanceMode(active)
-	t.Cleanup(func() { SetMaintenanceMode(false) })
+	t.Cleanup(func() {
+		SetMaintenanceMode(false)
+		configuredMaintenanceSiteNameReader = original
+	})
+}
+
+func TestInitMaintenanceModePrefersAdministratorOwnedIdentity(t *testing.T) {
+	original := configuredMaintenanceSiteNameReader
+	configuredMaintenanceSiteNameReader = func(context.Context, *sql.DB) string { return "Customer Workspace" }
+	t.Cleanup(func() { configuredMaintenanceSiteNameReader = original })
+	t.Setenv("SITE_NAME", "Filterest")
+
+	InitMaintenanceMode()
+
+	if !strings.Contains(maintenanceRendered, "Customer Workspace") {
+		t.Fatalf("maintenance page did not use saved site identity: %q", maintenanceRendered)
+	}
 }
 
 func TestWithMaintenanceMode_Off(t *testing.T) {

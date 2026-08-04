@@ -5,6 +5,7 @@
 package router
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"html/template"
@@ -28,6 +29,8 @@ import (
 
 	"github.com/google/uuid"
 )
+
+var configuredSiteNameReader = backend.ConfiguredSiteName
 
 type indexTemplateData struct {
 	CSPNonce                string
@@ -53,8 +56,11 @@ type indexTemplateData struct {
 	MainBundlePath  string
 }
 
-// getSiteName returns the configured site name, then the checkout product identity.
+// getSiteName returns the administrator-owned site name before deployment fallbacks.
 func getSiteName() string {
+	if siteName := configuredSiteNameReader(context.Background(), backend.Db); siteName != "" {
+		return siteName
+	}
 	if s := strings.TrimSpace(os.Getenv("SITE_NAME")); s != "" {
 		return s
 	}

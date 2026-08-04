@@ -284,7 +284,7 @@ const KNOWN_DEFAULTS = {
   LoginBundlePath: '/frontend/core_components/auth/login_page_builder.js',
   InstallationEnvironment: 'dev',
   InitialSection: 'settings',
-  ApplicationName: DEV_SITE_NAME,
+  FirstRunSiteName: '',
   TOTPSecret: 'JBSWY3DPEHPK3PXP',
   Username: '',
   Email: '',
@@ -299,7 +299,7 @@ const DEV_TRUE_VARS = new Set(['IsDev']);
 const KNOWN_CONDITIONAL_VARS = new Set([
   'UseMinifiedAssets', 'IsDev', 'RobotsNoIndex',
   'StandalonePage', 'ShowCloseButton', 'ShowTourScreenshots',
-  'UsernameErr', 'EmailErr', 'PasswordErr', 'GeneralErr',
+  'SiteNameErr', 'UsernameErr', 'EmailErr', 'PasswordErr', 'GeneralErr',
   'EnvironmentErr', 'VerificationErr', 'FactorErr',
 ]);
 

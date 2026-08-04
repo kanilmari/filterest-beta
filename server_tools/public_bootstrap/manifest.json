@@ -81,12 +81,12 @@
     "public.riskienhallinta_tiketit_relation": 26,
     "public.system_about": 1,
     "public.system_column_details": 29,
-    "public.system_config": 9,
+    "public.system_config": 10,
     "public.system_db_tables": 37,
     "public.system_db_version": 1,
     "public.system_functions": 15,
     "public.system_group_table_func_rights": 16,
-    "public.system_lang_keys": 466,
+    "public.system_lang_keys": 468,
     "public.system_table_folders": 14,
     "public.system_user_group_memberships": 3,
     "public.system_user_groups": 3,
@@ -98,7 +98,7 @@
       "sha256": "023f2bf9511c4636f4209e4c325ac07cfb98caf428f93153178fc511b39e1d75"
     },
     "server_tools/public_bootstrap/seed_data.sql": {
-      "sha256": "9c93097b658953e827cfbdd64ebc27e67288fe0dcb01d55dc91cf831b39d4290"
+      "sha256": "b7080ebfbecc2c6e6c16ab564beec76c60fd76dd801e8e040c17a9afbe74c9e4"
     }
   },
   "source_files": {
@@ -121,7 +121,7 @@
       "sha256": "84590332303596583554263c38679d3fcf811836832a0f1e0ebfd716679029d1"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.lang_keys.sql": {
-      "sha256": "0d19801d5c546a3513d60ce54c0c680c022ea3c7676c6d701e923e5186698191"
+      "sha256": "b679d15f4172c7274768d16af6dc788317e448f4353114d8f3c7f33384c5987b"
     },
     "server_tools/public_slice_export/public_bootstrap/fixtures/docs/first-dataset.png": {
       "sha256": "77779de3984a98e3fe7b6f0d01e3224165f707ab20796706c6b5221740dc6d22"

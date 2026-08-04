@@ -43,7 +43,8 @@ INSERT INTO public.system_config (id, key, json_value, created, updated, creatio
   (3006, 'dev_rate_limiting_off', '{"value": true}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', TRUE, 'true', NULL, 1),
   (3007, 'use_minified_js_css_in_dev_env', '{"value": false}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', FALSE, 'false', NULL, 1),
   (3008, 'first_run', '{"value": true}'::jsonb, '2026-08-03 00:00:00', '2026-08-03 00:00:00', 'Controls the one-time browser form for creating the first login-ready administrator. It is closed atomically after successful account creation.', TRUE, 'true', NULL, 1),
-  (3009, 'installation_environment', '{"value": ""}'::jsonb, '2026-08-04 00:00:00', '2026-08-04 00:00:00', 'User-facing installation purpose selected during First Run. Empty preserves the deployment-defined fallback until First Run saves an explicit choice.', NULL, '', NULL, 2);
+  (3009, 'installation_environment', '{"value": ""}'::jsonb, '2026-08-04 00:00:00', '2026-08-04 00:00:00', 'User-facing installation purpose selected during First Run. Empty preserves the deployment-defined fallback until First Run saves an explicit choice.', NULL, '', NULL, 2),
+  (3010, 'site_name', '{"value": ""}'::jsonb, '2026-08-04 00:00:00', '2026-08-04 00:00:00', 'Administrator-owned browser-facing identity selected during First Run.', NULL, '', NULL, 2);
 
 INSERT INTO public.system_functions (
   id, name, disabled, created, updated, "package", specific_table_related,
@@ -1233,7 +1234,7 @@ SET fi = EXCLUDED.fi,
 -- deterministic bootstrap works without opening the general migration gate.
 INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) VALUES
   ('first_run_admin_title', 'Luo ensimmäinen pääkäyttäjä', 'Create the first administrator', '创建首位管理员', '建立第一位管理員', 'Public first-run administrator setup label.'),
-  ('first_run_admin_description', 'Valitse tämän asennuksen pääkäyttäjän tunnukset. Sähköpostia käytetään myös tilin palautukseen ja viesteihin.', 'Choose the administrator credentials for this installation. Email is also used for account recovery and messages.', '为此安装设置管理员凭据。电子邮件也用于账户恢复和消息。', '為此安裝設定管理員登入資料。電郵亦用於帳戶復原及訊息。', 'Public first-run administrator setup label.'),
+  ('first_run_admin_description', 'Valitse tämän asennuksen sivuston nimi ja pääkäyttäjän tunnukset. Sähköpostia käytetään myös tilin palautukseen ja viesteihin.', 'Choose the site name and administrator credentials for this installation. Email is also used for account recovery and messages.', '为此安装设置站点名称和管理员凭据。电子邮件也用于账户恢复和消息。', '為此安裝設定網站名稱及管理員登入資料。電郵亦用於帳戶復原及訊息。', 'Public first-run administrator setup label.'),
   ('first_run_admin_submit', 'Luo pääkäyttäjä', 'Create administrator', '创建管理员', '建立管理員', 'Public first-run administrator setup label.'),
   ('confirm_password', 'Vahvista salasana', 'Confirm password', '确认密码', '確認密碼', 'Public first-run administrator setup label.'),
   ('first_run_username_invalid', 'Käytä 3–64 merkkiä: kirjaimia, numeroita, pisteitä, alaviivoja tai yhdysmerkkejä.', 'Use 3–64 characters: letters, numbers, dots, underscores, or hyphens.', '请输入 3–64 个字符，可使用字母、数字、句点、下划线或连字符。', '請輸入 3–64 個字元，可使用字母、數字、句號、底線或連字號。', 'Public first-run administrator validation label.'),
@@ -1246,7 +1247,9 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('next', 'Seuraava', 'Next', '下一步', '下一步', 'Public reusable form navigation label.'),
   ('back', 'Takaisin', 'Back', '返回', '返回', 'Public reusable form navigation label.'),
   ('proceed', 'Jatka', 'Proceed', '继续', '繼續', 'Public reusable form navigation label.'),
-  ('first_run_welcome', 'Tervetuloa sovellukseen $site_name', 'Welcome to $site_name', '欢迎使用 $site_name', '歡迎使用 $site_name', 'Public First Run label.'),
+  ('first_run_welcome', 'Tervetuloa Filterestiin!', 'Welcome to Filterest!', '欢迎使用 Filterest！', '歡迎使用 Filterest！', 'Public First Run label.'),
+  ('first_run_site_name', 'Sivuston nimi', 'Site name', '站点名称', '網站名稱', 'Public First Run label.'),
+  ('first_run_site_name_invalid', 'Anna sivustolle 1–100 merkkiä pitkä nimi.', 'Enter a site name containing 1–100 characters.', '请输入 1–100 个字符的站点名称。', '請輸入 1–100 個字元的網站名稱。', 'Public First Run validation label.'),
   ('first_run_section_settings', 'Ympäristö', 'Environment', '环境', '環境', 'Public First Run label.'),
   ('first_run_section_credentials', 'Tunnukset', 'Credentials', '登录凭据', '登入資料', 'Public First Run label.'),
   ('first_run_settings_title', 'Määritä työympäristö', 'Set up your workspace', '设置工作区', '設定工作區', 'Public First Run label.'),

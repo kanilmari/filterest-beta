@@ -5,6 +5,8 @@
 package router
 
 import (
+	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -38,6 +40,17 @@ func TestResolvePageSiteNameUsesForwardedHostAndStripsPort(t *testing.T) {
 
 	if got := resolvePageSiteName(req); got != "filterest.com" {
 		t.Fatalf("resolvePageSiteName() = %q, want %q", got, "filterest.com")
+	}
+}
+
+func TestResolvePageSiteNamePrefersAdministratorOwnedIdentity(t *testing.T) {
+	original := configuredSiteNameReader
+	configuredSiteNameReader = func(context.Context, *sql.DB) string { return "Customer Workspace" }
+	t.Cleanup(func() { configuredSiteNameReader = original })
+
+	req := httptest.NewRequest(http.MethodGet, "https://filterest.example/", nil)
+	if got := resolvePageSiteName(req); got != "Customer Workspace" {
+		t.Fatalf("resolvePageSiteName() = %q, want %q", got, "Customer Workspace")
 	}
 }
 

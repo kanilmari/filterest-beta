@@ -27,6 +27,7 @@ type firstRunTransactionState struct {
 	rolledBack      bool
 	credentialMade  bool
 	environmentMade bool
+	siteNameMade    bool
 	configClosed    bool
 	failCredential  bool
 }
@@ -88,7 +89,7 @@ func (c *firstRunTransactionConn) QueryContext(_ context.Context, query string, 
 	}
 }
 
-func (c *firstRunTransactionConn) ExecContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Result, error) {
+func (c *firstRunTransactionConn) ExecContext(_ context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	switch {
 	case strings.Contains(query, "system_user_group_memberships"):
 		return driver.RowsAffected(1), nil
@@ -99,7 +100,17 @@ func (c *firstRunTransactionConn) ExecContext(_ context.Context, query string, _
 		c.state.credentialMade = true
 		return driver.RowsAffected(1), nil
 	case strings.Contains(query, "text_value = $1"):
-		c.state.environmentMade = true
+		if len(args) < 2 {
+			return nil, errors.New("configuration update is missing its key")
+		}
+		switch args[1].Value {
+		case installationEnvironmentConfigKey:
+			c.state.environmentMade = true
+		case siteNameConfigKey:
+			c.state.siteNameMade = true
+		default:
+			return nil, fmt.Errorf("unexpected configuration key: %v", args[1].Value)
+		}
 		return driver.RowsAffected(1), nil
 	case strings.Contains(query, "UPDATE system_config"):
 		c.state.configClosed = true
@@ -123,6 +134,7 @@ func openFirstRunTransactionDB(t *testing.T, state *firstRunTransactionState) *s
 
 func TestValidateFirstRunAdminInputAcceptsStrongForm(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
+		SiteName:           "Example Workspace",
 		Username:           "owner.admin",
 		Email:              "owner@example.com",
 		Password:           "correct horse battery staple",
@@ -137,6 +149,7 @@ func TestValidateFirstRunAdminInputAcceptsStrongForm(t *testing.T) {
 
 func TestValidateFirstRunAdminInputAcceptsQAEnvironment(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
+		SiteName:           "QA Workspace",
 		Username:           "owner.admin",
 		Email:              "owner@example.com",
 		Password:           "correct horse battery staple",
@@ -151,6 +164,7 @@ func TestValidateFirstRunAdminInputAcceptsQAEnvironment(t *testing.T) {
 
 func TestValidateFirstRunAdminInputRejectsUnsafeValues(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
+		SiteName:           "Unsafe Test",
 		Username:           "x / admin",
 		Email:              "not-an-email",
 		Password:           "short",
@@ -165,6 +179,7 @@ func TestValidateFirstRunAdminInputRejectsUnsafeValues(t *testing.T) {
 
 func TestValidateFirstRunAdminInputRejectsPasswordMismatch(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
+		SiteName:           "Example Workspace",
 		Username:           "owner",
 		Email:              "owner@example.com",
 		Password:           "a sufficiently long password",
@@ -179,6 +194,7 @@ func TestValidateFirstRunAdminInputRejectsPasswordMismatch(t *testing.T) {
 
 func TestValidateFirstRunAdminInputRequiresAbsoluteFixedPINRules(t *testing.T) {
 	base := firstRunAdminInput{
+		SiteName: "Example Workspace",
 		Username: "owner", Email: "owner@example.com",
 		Password: "a sufficiently long password", ConfirmPassword: "a sufficiently long password",
 		Environment: "test", VerificationMethod: "fixed_pin",
@@ -204,6 +220,7 @@ func TestValidateFirstRunAdminInputConfirmsTOTPEnrollment(t *testing.T) {
 		t.Fatalf("build TOTP code: %v", err)
 	}
 	input := firstRunAdminInput{
+		SiteName: "Example Workspace",
 		Username: "owner", Email: "owner@example.com",
 		Password: "a sufficiently long password", ConfirmPassword: "a sufficiently long password",
 		Environment: "prod", VerificationMethod: "totp", TOTPSecret: secret, TOTPCode: code,
@@ -214,6 +231,25 @@ func TestValidateFirstRunAdminInputConfirmsTOTPEnrollment(t *testing.T) {
 	input.TOTPCode = "000000"
 	if errs := validateFirstRunAdminInput(input); errs.Factor != "first_run_totp_invalid" {
 		t.Fatalf("invalid TOTP factor error = %q", errs.Factor)
+	}
+}
+
+func TestValidateFirstRunAdminInputRejectsMissingOrOversizedSiteName(t *testing.T) {
+	input := firstRunAdminInput{
+		Username: "owner", Email: "owner@example.com",
+		Password: "a sufficiently long password", ConfirmPassword: "a sufficiently long password",
+		Environment: "prod", VerificationMethod: "none",
+	}
+	if errs := validateFirstRunAdminInput(input); errs.SiteName != "first_run_site_name_invalid" {
+		t.Fatalf("empty site-name error = %q, want first_run_site_name_invalid", errs.SiteName)
+	}
+	input.SiteName = strings.Repeat("界", maximumSiteName+1)
+	if errs := validateFirstRunAdminInput(input); errs.SiteName != "first_run_site_name_invalid" {
+		t.Fatalf("oversized site-name error = %q, want first_run_site_name_invalid", errs.SiteName)
+	}
+	input.SiteName = "Monikielinen 工作区"
+	if errs := validateFirstRunAdminInput(input); errs != (firstRunAdminErrors{}) {
+		t.Fatalf("multilingual site-name validation errors = %+v, want none", errs)
 	}
 }
 
@@ -252,15 +288,15 @@ func TestCreateFirstRunAdminCommitsAccountAndFlagTogether(t *testing.T) {
 	state := &firstRunTransactionState{}
 	db := openFirstRunTransactionDB(t, state)
 	input := firstRunAdminInput{
-		Username: "owner", Email: "owner@example.com", Password: "correct horse battery staple",
+		SiteName: "Owner Workspace", Username: "owner", Email: "owner@example.com", Password: "correct horse battery staple",
 		Environment: "dev", VerificationMethod: "none",
 	}
 
 	if err := createFirstRunAdmin(context.Background(), db, input); err != nil {
 		t.Fatalf("createFirstRunAdmin() error = %v", err)
 	}
-	if !state.credentialMade || !state.environmentMade || !state.configClosed || !state.committed {
-		t.Fatalf("transaction state = %+v, want credential, flag closure, and commit", state)
+	if !state.credentialMade || !state.environmentMade || !state.siteNameMade || !state.configClosed || !state.committed {
+		t.Fatalf("transaction state = %+v, want credential, environment, site identity, flag closure, and commit", state)
 	}
 }
 
@@ -268,7 +304,7 @@ func TestCreateFirstRunAdminRollsBackBeforeFlagClosureOnCredentialFailure(t *tes
 	state := &firstRunTransactionState{failCredential: true}
 	db := openFirstRunTransactionDB(t, state)
 	input := firstRunAdminInput{
-		Username: "owner", Email: "owner@example.com", Password: "correct horse battery staple",
+		SiteName: "Owner Workspace", Username: "owner", Email: "owner@example.com", Password: "correct horse battery staple",
 		Environment: "dev", VerificationMethod: "none",
 	}
 
@@ -286,10 +322,10 @@ func TestFirstRunAdminTemplateRendersBothSections(t *testing.T) {
 		t.Fatalf("parse first-run template: %v", err)
 	}
 	data := map[string]interface{}{
-		"ApplicationName": "Filterest", "InitialSection": "settings",
+		"FirstRunSiteName": "Example Workspace", "InitialSection": "settings",
 		"Environment": "test", "VerificationMethod": "totp", "TOTPSecret": "ABCDEF",
 		"Username": "", "Email": "", "CSRFToken": "csrf",
-		"UsernameErr": "", "EmailErr": "", "PasswordErr": "", "GeneralErr": "",
+		"SiteNameErr": "", "UsernameErr": "", "EmailErr": "", "PasswordErr": "", "GeneralErr": "",
 		"EnvironmentErr": "", "VerificationErr": "", "FactorErr": "",
 	}
 	var output bytes.Buffer
@@ -297,7 +333,7 @@ func TestFirstRunAdminTemplateRendersBothSections(t *testing.T) {
 		t.Fatalf("execute first-run template: %v", err)
 	}
 	markup := output.String()
-	for _, expected := range []string{"data-section-key=\"settings\"", "data-section-key=\"credentials\"", "value=\"test\" checked", "value=\"totp\" checked"} {
+	for _, expected := range []string{"Welcome to Filterest!", "data-section-key=\"settings\"", "data-section-key=\"credentials\"", "name=\"site_name\" value=\"Example Workspace\"", "value=\"test\" checked", "value=\"totp\" checked"} {
 		if !strings.Contains(markup, expected) {
 			t.Fatalf("rendered template missing %q", expected)
 		}

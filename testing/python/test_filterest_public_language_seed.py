@@ -78,7 +78,8 @@ REQUIRED_FIRST_RUN_KEYS = frozenset(
     confirm_password first_run_username_invalid first_run_email_invalid
     first_run_password_invalid first_run_password_mismatch
     first_run_admin_creation_failed form_sections previous next back proceed
-    first_run_welcome first_run_section_settings first_run_section_credentials
+    first_run_welcome first_run_site_name first_run_site_name_invalid
+    first_run_section_settings first_run_section_credentials
     first_run_settings_title first_run_settings_description
     first_run_environment_legend environment_development
     environment_development_description environment_testing

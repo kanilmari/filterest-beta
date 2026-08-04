@@ -5,6 +5,8 @@
 package middlewares
 
 import (
+	"context"
+	backend "easelect/backend/core_components"
 	_ "embed"
 	"net/http"
 	"os"
@@ -25,14 +27,19 @@ var maintenanceRendered string
 // endpoint in the future).
 var maintenanceActive atomic.Bool
 
-// InitMaintenanceMode reads MAINTENANCE_MODE and SITE_NAME from the
-// environment, caches the result, and pre-renders the HTML page.
+var configuredMaintenanceSiteNameReader = backend.ConfiguredSiteName
+
+// InitMaintenanceMode reads the maintenance toggle and resolves the saved site
+// identity before deployment fallbacks, then pre-renders the HTML page.
 // Call this once during startup (before ListenAndServe).
 func InitMaintenanceMode() {
 	val := strings.ToLower(strings.TrimSpace(os.Getenv("MAINTENANCE_MODE")))
 	maintenanceActive.Store(val == "true" || val == "1")
 
-	siteName := os.Getenv("SITE_NAME")
+	siteName := configuredMaintenanceSiteNameReader(context.Background(), backend.Db)
+	if siteName == "" {
+		siteName = os.Getenv("SITE_NAME")
+	}
 	if siteName == "" {
 		siteName = "Easelect"
 	}

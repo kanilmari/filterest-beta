@@ -27,7 +27,9 @@ The public bootstrap seed creates fixture user rows for smoke testing and UI
 metadata, but it does not ship a reusable admin password. On first browser
 access, Filterest opens a two-section form where the installation owner first
 chooses the visible environment purpose and sign-in verification method, then
-creates the administrator username, email address, and password. Email
+sets the site identity and creates the administrator username, email address,
+and password. The saved site identity replaces Filterest and deployment-domain
+defaults across normal browser-facing pages after setup. Email
 verification uses Postmark and requires a separately created free Postmark
 account; password-only, fixed-PIN, and standard TOTP authenticator methods do
 not require an email delivery provider for sign-in.
@@ -35,8 +37,8 @@ not require an email delivery provider for sign-in.
 The server-owned `first_run` setting and absence of a login-ready admin must
 both be true before the form is available. The environment purpose, selected
 user-owned verification factor, account, hashed password, administrator
-membership, and transition of `first_run` to false are committed in one
-database transaction. The visible DEV/TEST/QA purpose cannot downgrade a
+membership, saved site identity, and transition of `first_run` to false are
+committed in one database transaction. The visible DEV/TEST/QA purpose cannot downgrade a
 production-locked binary. Existing installations and completed setups fail
 closed and redirect to normal login.
 

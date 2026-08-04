@@ -42,7 +42,7 @@
                     data-section-label="Environment"
                     data-section-label-lang-key="first_run_section_settings">
                     <div class="auth-hero first-run-section-hero">
-                        <p class="first-run-welcome" data-lang-key="first_run_welcome+{{.ApplicationName}}">Welcome to {{.ApplicationName}}</p>
+                        <p class="first-run-welcome" data-lang-key="first_run_welcome">Welcome to Filterest!</p>
                         <h1 data-lang-key="first_run_settings_title">Set up your workspace</h1>
                         <div class="auth-intro-box">
                             <p data-lang-key="first_run_settings_description">Choose how this installation is used and how the first administrator verifies sign-ins.</p>
@@ -132,9 +132,13 @@
                     <div class="auth-hero first-run-section-hero">
                         <h1 data-lang-key="first_run_admin_title">Create the first administrator</h1>
                         <div class="auth-intro-box">
-                            <p data-lang-key="first_run_admin_description">Choose the administrator credentials for this installation. Email is also used for account recovery and messages.</p>
+                            <p data-lang-key="first_run_admin_description">Choose the site name and administrator credentials for this installation. Email is also used for account recovery and messages.</p>
                         </div>
                     </div>
+
+                    <label for="site_name" data-lang-key="first_run_site_name">Site name</label>
+                    <input type="text" id="site_name" name="site_name" value="{{.FirstRunSiteName}}" maxlength="100" required autocomplete="organization" data-testid="first-run-site-name">
+                    {{if .SiteNameErr}}<p class="error" data-lang-key="{{.SiteNameErr}}">{{.SiteNameErr}}</p>{{end}}
 
                     <label for="username" data-lang-key="username">Username</label>
                     <input type="text" id="username" name="username" value="{{.Username}}" minlength="3" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]*" required autocomplete="username" data-testid="first-run-admin-username">

@@ -15,26 +15,27 @@ import (
 	"html/template"
 	"net/http"
 	"net/mail"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
-
-	productidentity "easelect/backend/core_components/product_identity"
 )
 
 const (
 	firstRunConfigKey                = "first_run"
 	installationEnvironmentConfigKey = "installation_environment"
+	siteNameConfigKey                = "site_name"
 	firstRunCreationSpec             = "first-run administrator browser setup"
 	minimumAdminPassword             = 12
 	maximumAdminPassword             = 128
 	maximumAdminUsername             = 64
+	maximumSiteName                  = 100
 )
 
 var (
@@ -46,6 +47,7 @@ var (
 )
 
 type firstRunAdminInput struct {
+	SiteName           string
 	Username           string
 	Email              string
 	Password           string
@@ -59,6 +61,7 @@ type firstRunAdminInput struct {
 }
 
 type firstRunAdminErrors struct {
+	SiteName     string
 	Username     string
 	Email        string
 	Password     string
@@ -105,6 +108,7 @@ func handleFirstRunAdminPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := firstRunAdminInput{
+		SiteName:           strings.TrimSpace(r.FormValue("site_name")),
 		Username:           strings.TrimSpace(r.FormValue("username")),
 		Email:              strings.TrimSpace(r.FormValue("email")),
 		Password:           r.FormValue("password"),
@@ -162,6 +166,9 @@ func handleFirstRunAdminPost(w http.ResponseWriter, r *http.Request) {
 
 func validateFirstRunAdminInput(input firstRunAdminInput) firstRunAdminErrors {
 	var validation firstRunAdminErrors
+	if !isValidFirstRunSiteName(input.SiteName) {
+		validation.SiteName = "first_run_site_name_invalid"
+	}
 	switch input.Environment {
 	case "dev", "test", "qa", "prod":
 	default:
@@ -201,6 +208,22 @@ func validateFirstRunAdminInput(input firstRunAdminInput) firstRunAdminErrors {
 		validation.Password = "first_run_password_mismatch"
 	}
 	return validation
+}
+
+func isValidFirstRunSiteName(siteName string) bool {
+	if siteName != strings.TrimSpace(siteName) {
+		return false
+	}
+	runeCount := utf8.RuneCountInString(siteName)
+	if runeCount < 1 || runeCount > maximumSiteName {
+		return false
+	}
+	for _, value := range siteName {
+		if unicode.IsControl(value) {
+			return false
+		}
+	}
+	return true
 }
 
 // isFirstRunAdminSetupPending fails closed unless both required conditions hold.
@@ -307,6 +330,23 @@ func createFirstRunAdmin(ctx context.Context, db *sql.DB, input firstRunAdminInp
 			return rowsErr
 		}
 		return errors.New("installation environment config is unavailable")
+	}
+
+	result, err = tx.ExecContext(ctx, `
+		UPDATE system_config
+		SET text_value = $1,
+		    json_value = jsonb_build_object('value', $1::text),
+		    updated = NOW()
+		WHERE key = $2
+	`, input.SiteName, siteNameConfigKey)
+	if err != nil {
+		return err
+	}
+	if rows, rowsErr := result.RowsAffected(); rowsErr != nil || rows != 1 {
+		if rowsErr != nil {
+			return rowsErr
+		}
+		return errors.New("site name config is unavailable")
 	}
 
 	err = tx.QueryRowContext(ctx, `SELECT 1 FROM system_users WHERE lower(username) = lower($1) LIMIT 1`, input.Username).Scan(&existing)
@@ -429,17 +469,18 @@ func showFirstRunAdminForm(w http.ResponseWriter, r *http.Request, input firstRu
 		input.VerificationMethod = string(verificationNone)
 	}
 	initialSection := "settings"
-	if errs.Username != "" || errs.Email != "" || errs.Password != "" || errs.General != "" {
+	if errs.SiteName != "" || errs.Username != "" || errs.Email != "" || errs.Password != "" || errs.General != "" {
 		initialSection = "credentials"
 	}
 	data := struct {
+		FirstRunSiteName   string
 		Username           string
 		Email              string
-		ApplicationName    string
 		Environment        string
 		VerificationMethod string
 		TOTPSecret         string
 		InitialSection     string
+		SiteNameErr        string
 		UsernameErr        string
 		EmailErr           string
 		PasswordErr        string
@@ -449,10 +490,10 @@ func showFirstRunAdminForm(w http.ResponseWriter, r *http.Request, input firstRu
 		GeneralErr         string
 		CSRFToken          string
 	}{
-		Username: input.Username, Email: input.Email, ApplicationName: firstRunApplicationName(),
+		FirstRunSiteName: input.SiteName, Username: input.Username, Email: input.Email,
 		Environment: input.Environment, VerificationMethod: input.VerificationMethod,
 		TOTPSecret: totpSecret, InitialSection: initialSection,
-		UsernameErr: errs.Username, EmailErr: errs.Email,
+		SiteNameErr: errs.SiteName, UsernameErr: errs.Username, EmailErr: errs.Email,
 		PasswordErr: errs.Password, EnvironmentErr: errs.Environment,
 		VerificationErr: errs.Verification, FactorErr: errs.Factor, GeneralErr: errs.General,
 		CSRFToken: csrfToken,
@@ -460,15 +501,4 @@ func showFirstRunAdminForm(w http.ResponseWriter, r *http.Request, input firstRu
 	if err = tmpl.Execute(w, data); err != nil {
 		logging.Errorf("[showFirstRunAdminForm] template execution failed: %v", err)
 	}
-}
-
-func firstRunApplicationName() string {
-	if siteName := strings.TrimSpace(os.Getenv("SITE_NAME")); siteName != "" {
-		return siteName
-	}
-	identity := productidentity.DetectFromWorkingDirectory()
-	if strings.TrimSpace(identity.Name) != "" {
-		return identity.Name
-	}
-	return "Easelect"
 }
