@@ -294,6 +294,15 @@ function observeDomChanges() {
 
             // Jos tuli uusia puuttuvia avaimia, yritetään hakea niille käännökset
             if (globalMissingKeys.length > 0) {
+                // AI translation writes are a development-only maintenance aid.
+                // Production pages, including anonymous login, must keep their
+                // local fallback copy without calling the protected write route.
+                if (!IS_DEV_MODE) {
+                    globalMissingKeys = [];
+                    globalMissingKeySources = {};
+                    return;
+                }
+
                 // Debounce: kootaan kaikki puuttuvat avaimet yhteen ja haetaan kerran
                 if (_aiFetchDebounceTimer) clearTimeout(_aiFetchDebounceTimer);
                 _aiFetchDebounceTimer = setTimeout(() => {

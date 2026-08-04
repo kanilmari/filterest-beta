@@ -54,6 +54,23 @@ describe('translatePage', () => {
         delete window.translationPromises;
     });
 
+    test('does not call the protected AI translation writer for production-page fallbacks', async () => {
+        const { translatePage } = await import('./translation_handler.js');
+        await translatePage('en');
+        endpoint_router.mockClear();
+
+        const missingLabel = document.createElement('span');
+        missingLabel.dataset.langKey = 'missing_login_copy';
+        document.body.appendChild(missingLabel);
+
+        await new Promise((resolve) => setTimeout(resolve, 350));
+
+        expect(endpoint_router).not.toHaveBeenCalledWith(
+            'generateTranslations',
+            expect.anything(),
+        );
+    });
+
     test('updates title tooltips when the language changes without a page reload', async () => {
         const actionButton = document.createElement('button');
         actionButton.dataset.langKey = 'exclude';
