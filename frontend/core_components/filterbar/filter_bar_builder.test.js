@@ -16,6 +16,7 @@ import {
 describe('create_filter_bar inline hero mounting', () => {
     beforeEach(() => {
         resetFilterBarBuilderTestDom();
+        document.head.innerHTML = '<meta property="og:site_name" content="Filt">';
     });
 
     afterEach(() => {
@@ -51,6 +52,18 @@ describe('create_filter_bar inline hero mounting', () => {
         expect(inlineHero?.querySelector('.logo-letter-backgrounds-container')).toBeNull();
         expect(heroIcon?.getAttribute('viewBox')).toBe('0 -960 960 960');
         expect(heroIconPath?.getAttribute('d')).toBe(getTabIconPath('task'));
+    });
+
+    test('falls back to the localized dataset title when the site identity is unavailable', async () => {
+        document.head.innerHTML = '';
+        const { create_filter_bar } = await import('./filter_bar_builder.js');
+        create_filter_bar('demo', 'demo_uid', ['id'], { id: 'INTEGER' }, 1, false, 'card');
+
+        const heroTitle = document.querySelector('.morphing-title');
+        expect(heroTitle?.querySelector('.morphing-title__site-name')).toBeNull();
+        expect(heroTitle?.querySelector('.morphing-title__separator')).toBeNull();
+        expect(heroTitle?.querySelector('.morphing-title__dataset-name')?.dataset.langKey)
+            .toBe('demo_front_page');
     });
 
     test('uses the users tab icon fallback for system_users hero', async () => {
@@ -100,8 +113,14 @@ describe('create_filter_bar inline hero mounting', () => {
             '#riskienhallinta_filterBar_panel .filterbar-dataset-title-text'
         );
 
-        expect(heroTitle?.dataset.langKey).toBe('riskienhallinta_front_page');
-        expect(heroTitle?.textContent).toBe('riskienhallinta');
+        const siteName = heroTitle?.querySelector('.morphing-title__site-name');
+        expect(siteName?.textContent).toBe('Filt');
+        expect(siteName?.hasAttribute('data-lang-key')).toBe(false);
+        expect(heroTitle?.querySelector('.morphing-title__separator')?.textContent).toBe(' – ');
+        expect(heroTitle?.querySelector('.morphing-title__dataset-name')?.dataset.langKey)
+            .toBe('riskienhallinta_front_page');
+        expect(heroTitle?.querySelector('.morphing-title__dataset-name')?.textContent)
+            .toBe('riskienhallinta');
         expect(titleRowLabel?.dataset.langKey).toBe('riskienhallinta');
     });
 
@@ -127,7 +146,8 @@ describe('create_filter_bar inline hero mounting', () => {
         expect(sharedTitle?.textContent).toBe('Demo');
         expect(sharedTitle?.dataset.langKey).toBe('demo');
         expect(document.querySelector('.filterbar-dataset-title-text')?.dataset.langKey).toBe('demo');
-        expect(document.querySelector('.morphing-title')?.dataset.langKey).toBe('demo_front_page');
+        expect(document.querySelector('.morphing-title__dataset-name')?.dataset.langKey)
+            .toBe('demo_front_page');
         expect(sharedClose?.hidden).toBe(true);
 
         document.dispatchEvent(new CustomEvent('big-card-toggle', {
@@ -185,6 +205,23 @@ describe('create_filter_bar inline hero mounting', () => {
         expect(showMenuButton?.parentElement).toBe(originalMenuButtonParent);
     });
 
+    test('keeps the menu button in its navbar position when an article topbar opens on wide layout', async () => {
+        const sharedTopbarRules = await import('./shared_topbar_builder.js');
+        sharedTopbarRules.shouldShowSharedTopBar.mockReturnValue(true);
+        document.getElementById('navbar')?.classList.remove('collapsed');
+        const showMenuButton = document.getElementById('showMenuButton');
+        const originalMenuButtonParent = showMenuButton?.parentElement;
+
+        const { create_filter_bar } = await import('./filter_bar_builder.js');
+        create_filter_bar('demo', 'demo_uid', ['id'], { id: 'INTEGER' }, 1, false, 'card');
+
+        const menuSlot = document.querySelector('.dataset-shared-topbar__menu-slot');
+        expect(menuSlot?.hidden).toBe(true);
+        expect(menuSlot?.contains(showMenuButton)).toBe(false);
+        expect(showMenuButton?.parentElement).toBe(originalMenuButtonParent);
+        expect(document.querySelectorAll('#showMenuButton')).toHaveLength(1);
+    });
+
     test('keeps inline hero count-free and wires reset search to the shared filter reset', async () => {
         const topRowBuilder = await import('./top_row_buttons/top_row_builder.js');
         const { create_filter_bar } = await import('./filter_bar_builder.js');
@@ -215,7 +252,8 @@ describe('create_filter_bar inline hero mounting', () => {
 
         expect(heading).toBeTruthy();
         expect(heading.classList.contains('animated-disclosure-header')).toBe(true);
-        expect(heading.getAttribute('aria-expanded')).toBe('true');
+        expect(heading.getAttribute('aria-expanded')).toBe('false');
+        expect(contentShell?.hidden).toBe(true);
         expect(heading.getAttribute('aria-controls')).toBe(contentShell?.id);
         expect(heading.textContent).toBe('Suodattimet');
         expect(heading.querySelector('[data-lang-key="filters"]')).toBeTruthy();

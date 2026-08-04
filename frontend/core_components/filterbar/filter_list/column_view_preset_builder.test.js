@@ -186,8 +186,8 @@ describe('column_view_preset_builder', () => {
         expect(listColumnViewPresetsMock).not.toHaveBeenCalled();
         expect(row.querySelector('select')?.textContent).toContain('select_field_set');
         expect(row.querySelector('button.filterbar-section-heading')?.getAttribute('aria-expanded'))
-            .toBe('true');
-        expect(row.querySelector('.animated-disclosure-content-shell')).toBeTruthy();
+            .toBe('false');
+        expect(row.querySelector('.animated-disclosure-content-shell')?.hidden).toBe(true);
         expect(row.querySelector('.column-preset-heading-icon')?.style.maskImage)
             .toContain('/frontend/icons/general/visible-fields-icon.svg');
     });

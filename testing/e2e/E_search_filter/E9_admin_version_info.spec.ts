@@ -85,6 +85,12 @@ test.describe('E9 — Admin version info', () => {
     await indicator.click();
     await expect(indicator).toHaveAttribute('aria-expanded', 'true');
     await expect(panel).toBeVisible();
+    await expect(panel.locator('caption')).toHaveText('Version information');
+    const expectedSiteName = await page.locator('meta[property="og:site_name"]').getAttribute('content');
+    await expect(panel.locator('[data-version-info-key="site"]'))
+      .toHaveText('Site');
+    await expect(panel.locator('[data-version-info-value="site"]'))
+      .toHaveText(String(expectedSiteName || expectedProductName).trim());
     await expect(panel.locator('[data-version-info-key="application"]'))
       .toHaveText(expectedProductName);
     await expect(panel.locator('[data-version-info-value="application"]'))

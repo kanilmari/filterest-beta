@@ -33,7 +33,9 @@ cd "$PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 # Ympäristötiedostot ja niiden versionhallittavat scaffold-kohteet
 # ---------------------------------------------------------------------------
+IS_GENERATED_FILTEREST_CHECKOUT=0
 if [[ -f "$PROJECT_ROOT/VERSION_APP" && ! -f "$PROJECT_ROOT/VERSION_EASELECT" ]]; then
+  IS_GENERATED_FILTEREST_CHECKOUT=1
   ENV_SOURCE_FILES=(
     "$EASELECT_RUNTIME_ENV_FILE"
     "$EASELECT_DEV_ENV_FILE"
@@ -165,10 +167,16 @@ cmd_setup() {
     "runtime/bin"
     "runtime/logs"
     "server_tools/delivery_chain/helpers/patch_history"
-    ".queen"
     "docker/traefik/logs"
     "testing/e2e/.auth"
   )
+
+  # Queen is a private Easelect development workflow. Generated Filterest
+  # checkouts do not ship that tooling, so they should not create its runtime
+  # directory during ordinary product setup.
+  if [[ "$IS_GENERATED_FILTEREST_CHECKOUT" -eq 0 ]]; then
+    dirs+=(".queen")
+  fi
 
   for dir in "${dirs[@]}"; do
     if [[ -d "$dir" ]]; then

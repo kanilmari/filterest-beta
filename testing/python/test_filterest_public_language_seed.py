@@ -188,6 +188,38 @@ def test_four_public_app_datasets_have_complete_four_language_field_labels() -> 
         assert all(value.strip() for value in rows_by_key[lang_key][1:5])
 
 
+def test_public_dataset_titles_and_search_copy_are_curated_in_four_languages() -> None:
+    rows_by_key = {row[0]: row for row in _seed_rows()}
+    expected_titles = {
+        "palvelukatalogi_front_page": ("Palvelut", "Services", "服务", "服務"),
+        "riskienhallinta_front_page": ("Riskit", "Risks", "风险", "風險"),
+        "dokumentaatio_front_page": (
+            "Dokumentaatio",
+            "Documentation",
+            "文档",
+            "文件",
+        ),
+        "tiketit_front_page": ("Tiketit", "Tickets", "工单", "工單"),
+        "system_users_front_page": ("Käyttäjät", "Users", "用户", "用戶"),
+    }
+
+    for lang_key, expected in expected_titles.items():
+        assert rows_by_key[lang_key][1:5] == expected
+
+    for dataset in (
+        "palvelukatalogi",
+        "riskienhallinta",
+        "dokumentaatio",
+        "tiketit",
+        "system_users",
+    ):
+        slogan = rows_by_key[f"search_slogan_{dataset}"][1:5]
+        placeholder = rows_by_key[f"search_for_{dataset}"][1:5]
+        assert all(value.strip() for value in slogan)
+        assert all(value.strip() for value in placeholder)
+        assert not any("front page" in value.lower() or "etusivu" in value.lower() for value in slogan)
+
+
 def test_public_runtime_metadata_has_complete_four_language_seed_rows() -> None:
     metadata_rows = {
         row[0]: row

@@ -74,7 +74,11 @@ INSERT INTO public.system_group_table_func_rights (
 )
 SELECT group_ids.user_group_id, functions.id, 'public', 'public fixture seed', table_uids.table_uid
 FROM (VALUES (1), (2), (3)) AS group_ids(user_group_id)
-CROSS JOIN (VALUES (7), (8), (9), (10), (56), (74), (75), (76), (77), (105)) AS table_uids(table_uid)
+CROSS JOIN (VALUES
+  (7), (8), (9), (10),
+  (56), (74), (75), (76), (77), (105),
+  (300), (301), (302), (303)
+) AS table_uids(table_uid)
 JOIN public.system_functions functions
   ON functions.name IN (
     'dtt_1_row_read.GetResultsHandlerWrapper',
@@ -249,6 +253,10 @@ VALUES
   (10, 'tiketit', 'Disposable multilingual mock tickets', 10, NULL, 5, '2026-07-17 00:00:00', '2026-07-17 00:00:00', 'public fixture seed', NULL, 'public', 'Tickets', FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, 'otsikko', 'task'),
   (8, 'riskienhallinta', 'Disposable multilingual mock risks', 8, NULL, 5, '2026-07-17 00:00:00', '2026-07-17 00:00:00', 'public fixture seed', NULL, 'public', 'Risks', FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, 'riski', 'warning'),
   (9, 'dokumentaatio', 'Disposable multilingual mock documentation', 9, NULL, 5, '2026-07-17 00:00:00', '2026-07-17 00:00:00', 'public fixture seed', NULL, 'public', 'Documents', FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, 'otsikko', 'article'),
+  (300, 'palvelukatalogi_assets', 'Shared image assets for services', 300, NULL, 14, '2026-08-05 00:00:00', '2026-08-05 00:00:00', 'public fixture seed', NULL, 'public', 'Service assets', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'filename', 'image'),
+  (301, 'riskienhallinta_assets', 'Shared image assets for risks', 301, NULL, 14, '2026-08-05 00:00:00', '2026-08-05 00:00:00', 'public fixture seed', NULL, 'public', 'Risk assets', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'filename', 'image'),
+  (302, 'dokumentaatio_assets', 'Shared image assets for documentation', 302, NULL, 14, '2026-08-05 00:00:00', '2026-08-05 00:00:00', 'public fixture seed', NULL, 'public', 'Documentation assets', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'filename', 'image'),
+  (303, 'tiketit_assets', 'Shared image assets for tickets', 303, NULL, 14, '2026-08-05 00:00:00', '2026-08-05 00:00:00', 'public fixture seed', NULL, 'public', 'Ticket assets', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'filename', 'image'),
   (74, 'palvelukatalogi_riskienhallinta_relation', 'Mock service and risk links', 74, NULL, 14, '2026-07-17 00:00:00', '2026-07-17 00:00:00', 'public fixture seed', NULL, 'public', 'Services and risks', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'palvelu_id', NULL),
   (105, 'palvelukatalogi_dokumentaatio_relation', 'Mock service and documentation links', 105, NULL, 14, '2026-07-17 00:00:00', '2026-07-17 00:00:00', 'public fixture seed', NULL, 'public', 'Services and documentation', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'palvelu_id', NULL),
   (75, 'palvelukatalogi_tiketit_relation', 'Mock service and ticket links', 75, NULL, 14, '2026-07-17 00:00:00', '2026-07-17 00:00:00', 'public fixture seed', NULL, 'public', 'Services and tickets', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, 'palvelu_id', NULL),
@@ -293,43 +301,98 @@ VALUES
 INSERT INTO public.system_column_details
     (table_uid, column_name, column_label, data_type, card_element, co_number,
      fco_number, sco_number, lang_key, creation_spec, show_key_on_card,
-     show_value_on_card, hide_on_small_card, hide_in_filter_panel, is_multilingual)
+     show_value_on_card, hide_on_small_card, hide_in_filter_panel, is_multilingual,
+     card_detail_icon_key)
 VALUES
-  (101, 'full_name', 'Full name', 'text', 'header', 1, 1, 1, 'full_name', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE),
-  (101, 'username', 'Username', 'text', 'details10', 2, 2, 2, 'username', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, FALSE),
+  (101, 'full_name', 'Full name', 'text', 'header', 1, 1, 1, 'full_name', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE, NULL),
+  (101, 'username', 'Username', 'text', 'details10', 2, 2, 2, 'username', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, FALSE, 'user'),
 
-  (7, 'palvelu', 'Service', 'text', 'header', 1, 1, 1, 'palvelu', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (7, 'kuvaus', 'Description', 'text', 'description', 2, 2, 2, 'kuvaus', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (7, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE),
-  (7, 'omistava_tiimi', 'Owning team', 'text', 'details10', 4, 3, 3, 'omistava_tiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (7, 'palvelutaso', 'Service level', 'text', 'details20', 5, 4, 4, 'palvelutaso', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (7, 'tila', 'Status', 'text', 'details30', 6, 5, 5, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (7, 'vastuuhenkilo', 'Owner', 'text', 'details40', 7, 6, 6, 'vastuuhenkilo', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
+  (7, 'palvelu', 'Service', 'text', 'header', 1, 1, 1, 'palvelu', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (7, 'kuvaus', 'Description', 'text', 'description', 2, 2, 2, 'kuvaus', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (7, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE, NULL),
+  (7, 'omistava_tiimi', 'Owning team', 'text', 'details10', 4, 3, 3, 'omistava_tiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'user'),
+  (7, 'palvelutaso', 'Service level', 'text', 'details20', 5, 4, 4, 'palvelutaso', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'layers'),
+  (7, 'tila', 'Status', 'text', 'details30', 6, 5, 5, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
+  (7, 'vastuuhenkilo', 'Owner', 'text', 'details40', 7, 6, 6, 'vastuuhenkilo', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'user'),
 
-  (8, 'riski', 'Risk', 'text', 'header', 1, 1, 1, 'riski', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (8, 'alentamistoimet', 'Mitigation', 'text', 'description', 2, 2, 2, 'alentamistoimet', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (8, 'kuvaus', 'Description', 'text', 'details10', 3, 3, 3, 'kuvaus', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (8, 'vaikutus', 'Impact', 'text', 'details20', 4, 4, 4, 'vaikutus', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (8, 'riskitaso', 'Risk level', 'text', 'details30', 5, 5, 5, 'riskitaso', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (8, 'tila', 'Status', 'text', 'details40', 6, 6, 6, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (8, 'omistava_tiimi', 'Owning team', 'text', 'details', 7, 7, 7, 'omistava_tiimi', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, TRUE),
-  (8, 'todennakoisyys', 'Likelihood', 'text', 'details', 8, 8, 8, 'todennakoisyys', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, TRUE),
+  (8, 'riski', 'Risk', 'text', 'header', 1, 1, 1, 'riski', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (8, 'alentamistoimet', 'Mitigation', 'text', 'description', 2, 2, 2, 'alentamistoimet', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (8, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE, NULL),
+  (8, 'kuvaus', 'Description', 'text', 'details10', 4, 3, 3, 'kuvaus', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'file-text'),
+  (8, 'vaikutus', 'Impact', 'text', 'details20', 5, 4, 4, 'vaikutus', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'alert-circle'),
+  (8, 'riskitaso', 'Risk level', 'text', 'details30', 6, 5, 5, 'riskitaso', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'alert-circle'),
+  (8, 'tila', 'Status', 'text', 'details40', 7, 6, 6, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
+  (8, 'omistava_tiimi', 'Owning team', 'text', 'details', 8, 7, 7, 'omistava_tiimi', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, TRUE, 'user'),
+  (8, 'todennakoisyys', 'Likelihood', 'text', 'details', 9, 8, 8, 'todennakoisyys', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, TRUE, 'ruler'),
 
-  (9, 'otsikko', 'Document', 'text', 'header', 1, 1, 1, 'otsikko', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (9, 'ohje', 'Guidance', 'text', 'description', 2, 2, 2, 'ohje', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (9, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE),
-  (9, 'kohdetiimi', 'Target team', 'text', 'details10', 4, 3, 3, 'kohdetiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (9, 'voimassaolo', 'Validity', 'text', 'details20', 5, 4, 4, 'voimassaolo', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (9, 'paivitetty', 'Reviewed', 'date', 'details30', 6, 5, 5, 'paivitetty', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, FALSE),
+  (9, 'otsikko', 'Document', 'text', 'header', 1, 1, 1, 'otsikko', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (9, 'ohje', 'Guidance', 'text', 'description', 2, 2, 2, 'ohje', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (9, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE, NULL),
+  (9, 'kohdetiimi', 'Target team', 'text', 'details10', 4, 3, 3, 'kohdetiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'user'),
+  (9, 'voimassaolo', 'Validity', 'text', 'details20', 5, 4, 4, 'voimassaolo', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
+  (9, 'paivitetty', 'Reviewed', 'date', 'details30', 6, 5, 5, 'paivitetty', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, FALSE, 'calendar'),
 
-  (10, 'otsikko', 'Ticket', 'text', 'header', 1, 1, 1, 'otsikko', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (10, 'kuvaus', 'Description', 'text', 'description', 2, 2, 2, 'kuvaus', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE),
-  (10, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE),
-  (10, 'vastuutiimi', 'Responsible team', 'text', 'details10', 4, 3, 3, 'vastuutiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (10, 'tila', 'Status', 'text', 'details20', 5, 4, 4, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (10, 'prioriteetti', 'Priority', 'text', 'details30', 6, 5, 5, 'prioriteetti', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (10, 'pyyntotyyppi', 'Request type', 'text', 'details40', 7, 6, 6, 'pyyntotyyppi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE),
-  (10, 'maarapaiva', 'Due date', 'date', 'details', 8, 7, 7, 'maarapaiva', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, FALSE);
+  (10, 'otsikko', 'Ticket', 'text', 'header', 1, 1, 1, 'otsikko', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (10, 'kuvaus', 'Description', 'text', 'description', 2, 2, 2, 'kuvaus', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
+  (10, 'cached_image', 'Image', 'image', 'image', 3, NULL, NULL, 'cached_image', 'public fixture seed', FALSE, TRUE, FALSE, TRUE, FALSE, NULL),
+  (10, 'vastuutiimi', 'Responsible team', 'text', 'details10', 4, 3, 3, 'vastuutiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'user'),
+  (10, 'tila', 'Status', 'text', 'details20', 5, 4, 4, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
+  (10, 'prioriteetti', 'Priority', 'text', 'details30', 6, 5, 5, 'prioriteetti', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'alert-circle'),
+  (10, 'pyyntotyyppi', 'Request type', 'text', 'details40', 7, 6, 6, 'pyyntotyyppi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'layers'),
+  (10, 'maarapaiva', 'Due date', 'date', 'details', 8, 7, 7, 'maarapaiva', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, FALSE, 'calendar');
+
+-- The file-upload relationship uses the same metadata contract as the runtime
+-- Asset linking tool. It enables click and drag-and-drop image uploads while
+-- keeping the parent row cached_image preview in sync.
+WITH asset_relations(child_table, parent_table, fk_column, source_uid, target_uid) AS (
+  VALUES
+    ('palvelukatalogi_assets', 'palvelukatalogi', 'palvelukatalogi_id', 300, 7),
+    ('riskienhallinta_assets', 'riskienhallinta', 'riskienhallinta_id', 301, 8),
+    ('dokumentaatio_assets', 'dokumentaatio', 'dokumentaatio_id', 302, 9),
+    ('tiketit_assets', 'tiketit', 'tiketit_id', 303, 10)
+)
+INSERT INTO public.system_foreign_key_relations_1_m
+    (source_table_uid, target_table_uid, source_column_name, target_column_name,
+     reference_direction, insert_new_source_with_target, target_insert_specs)
+SELECT source_uid,
+       target_uid,
+       fk_column,
+       'id',
+       child_table || '->' || parent_table,
+       TRUE,
+       jsonb_build_object(
+         'file_upload', jsonb_build_object(
+           'enabled', TRUE,
+           'profile_key', 'asset_linking',
+           'asset_kinds', jsonb_build_array('image'),
+           'allowed_file_types', jsonb_build_array(
+             'jpg', 'jpeg', 'jfif', 'bmp', 'png', 'webp', 'avif',
+             'gif', 'ico', 'tif', 'tiff', 'heic', 'heif'
+           ),
+           'filename_column', 'filename',
+           'max_file_size_mb', 10,
+           'target_directory', 'media',
+           'cache_targets', jsonb_build_array(
+             jsonb_build_object('table', parent_table, 'column', 'cached_image')
+           ),
+           'profiles', jsonb_build_object(
+             'image', jsonb_build_object(
+               'enabled', TRUE,
+               'asset_kinds', jsonb_build_array('image'),
+               'allowed_file_types', jsonb_build_array(
+                 'jpg', 'jpeg', 'jfif', 'bmp', 'png', 'webp', 'avif',
+                 'gif', 'ico', 'tif', 'tiff', 'heic', 'heif'
+               ),
+               'max_file_size_mb', 10,
+               'target_directory', 'media',
+               'cache_targets', jsonb_build_array(
+                 jsonb_build_object('table', parent_table, 'column', 'cached_image')
+               )
+             )
+           )
+         )
+       )
+FROM asset_relations;
 
 INSERT INTO public.palvelukatalogi
     (id, palvelu, kuvaus, omistava_tiimi, palvelutaso, tila, vastuuhenkilo)
@@ -483,27 +546,27 @@ SELECT setval(pg_get_serial_sequence('public.tiketit','id'), 1, TRUE);
 
 INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) VALUES
   ('palvelukatalogi', 'Palvelut', 'Services', '服务', '服務', 'public fixture seed'),
-  ('palvelukatalogi_front_page', 'Palvelujen etusivu', 'Services front page', '服务首页', '服務首頁', 'public fixture seed'),
-  ('search_slogan_palvelukatalogi', 'Hae palveluita', 'Search services', '搜索服务', '搜尋服務', 'public fixture seed'),
-  ('search_for_palvelukatalogi', 'Hae palveluista', 'Search services', '搜索服务', '搜尋服務', 'public fixture seed'),
+  ('palvelukatalogi_front_page', 'Palvelut', 'Services', '服务', '服務', 'public fixture seed'),
+  ('search_slogan_palvelukatalogi', 'Löydä palveluja nimen, omistajan tai palvelutason perusteella.', 'Find services by name, owner, or service level.', '按名称、负责人或服务级别查找服务。', '按名稱、負責人或者服務級別搵服務。', 'public fixture seed'),
+  ('search_for_palvelukatalogi', 'Hae palveluja nimellä, omistajalla tai palvelutasolla', 'Search services by name, owner, or service level', '按名称、负责人或服务级别搜索服务', '按名稱、負責人或者服務級別搜尋服務', 'public fixture seed'),
   ('add_row_palvelukatalogi', 'Lisää palvelu', 'Add service', '添加服务', '新增服務', 'public fixture seed'),
 
   ('tiketit', 'Tiketit', 'Tickets', '工单', '工單', 'public fixture seed'),
-  ('tiketit_front_page', 'Tikettien etusivu', 'Tickets front page', '工单首页', '工單首頁', 'public fixture seed'),
-  ('search_slogan_tiketit', 'Hae tikettejä', 'Search tickets', '搜索工单', '搜尋工單', 'public fixture seed'),
-  ('search_for_tiketit', 'Hae tiketeistä', 'Search tickets', '搜索工单', '搜尋工單', 'public fixture seed'),
+  ('tiketit_front_page', 'Tiketit', 'Tickets', '工单', '工單', 'public fixture seed'),
+  ('search_slogan_tiketit', 'Löydä tikettejä otsikon, tilan, prioriteetin tai vastuutiimin perusteella.', 'Find tickets by title, status, priority, or responsible team.', '按标题、状态、优先级或负责团队查找工单。', '按標題、狀態、優先次序或者負責團隊搵工單。', 'public fixture seed'),
+  ('search_for_tiketit', 'Hae tikettejä otsikolla, tilalla, prioriteetilla tai vastuutiimillä', 'Search tickets by title, status, priority, or responsible team', '按标题、状态、优先级或负责团队搜索工单', '按標題、狀態、優先次序或者負責團隊搜尋工單', 'public fixture seed'),
   ('add_row_tiketit', 'Lisää tiketti', 'Add ticket', '添加工单', '新增工單', 'public fixture seed'),
 
   ('riskienhallinta', 'Riskit', 'Risks', '风险', '風險', 'public fixture seed'),
-  ('riskienhallinta_front_page', 'Riskien etusivu', 'Risks front page', '风险首页', '風險首頁', 'public fixture seed'),
-  ('search_slogan_riskienhallinta', 'Hae riskejä', 'Search risks', '搜索风险', '搜尋風險', 'public fixture seed'),
-  ('search_for_riskienhallinta', 'Hae riskeistä', 'Search risks', '搜索风险', '搜尋風險', 'public fixture seed'),
+  ('riskienhallinta_front_page', 'Riskit', 'Risks', '风险', '風險', 'public fixture seed'),
+  ('search_slogan_riskienhallinta', 'Löydä riskejä vaikutuksen, riskitason tai vastuutiimin perusteella.', 'Find risks by impact, risk level, or responsible team.', '按影响、风险等级或负责团队查找风险。', '按影響、風險等級或者負責團隊搵風險。', 'public fixture seed'),
+  ('search_for_riskienhallinta', 'Hae riskejä vaikutuksella, riskitasolla tai vastuutiimillä', 'Search risks by impact, risk level, or responsible team', '按影响、风险等级或负责团队搜索风险', '按影響、風險等級或者負責團隊搜尋風險', 'public fixture seed'),
   ('add_row_riskienhallinta', 'Lisää riski', 'Add risk', '添加风险', '新增風險', 'public fixture seed'),
 
-  ('dokumentaatio', 'Dokumentit', 'Documents', '文档', '文件', 'public fixture seed'),
-  ('dokumentaatio_front_page', 'Dokumenttien etusivu', 'Documents front page', '文档首页', '文件首頁', 'public fixture seed'),
-  ('search_slogan_dokumentaatio', 'Hae dokumentteja', 'Search documents', '搜索文档', '搜尋文件', 'public fixture seed'),
-  ('search_for_dokumentaatio', 'Hae dokumenteista', 'Search documents', '搜索文档', '搜尋文件', 'public fixture seed'),
+  ('dokumentaatio', 'Dokumentaatio', 'Documentation', '文档', '文件', 'public fixture seed'),
+  ('dokumentaatio_front_page', 'Dokumentaatio', 'Documentation', '文档', '文件', 'public fixture seed'),
+  ('search_slogan_dokumentaatio', 'Löydä ohjeita otsikon, kohdetiimin tai voimassaolon perusteella.', 'Find guidance by title, audience, or validity.', '按标题、目标团队或有效性查找文档。', '按標題、目標團隊或者有效性搵文件。', 'public fixture seed'),
+  ('search_for_dokumentaatio', 'Hae ohjeita otsikolla, kohdetiimillä tai voimassaololla', 'Search guidance by title, audience, or validity', '按标题、目标团队或有效性搜索文档', '按標題、目標團隊或者有效性搜尋文件', 'public fixture seed'),
   ('add_row_dokumentaatio', 'Lisää dokumentti', 'Add document', '添加文档', '新增文件', 'public fixture seed'),
 
   ('palvelu', 'Palvelu', 'Service', '服务', '服務', 'public fixture seed'),
@@ -534,6 +597,9 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('logout', 'Kirjaudu ulos', 'Logout', '退出登录', '登出', 'public fixture seed'),
   ('system_config', 'Järjestelmäasetukset', 'System configuration', '系统配置', '系統設定', 'public fixture seed'),
   ('users', 'Käyttäjät', 'Users', '用户', '用戶', 'public fixture seed'),
+  ('system_users_front_page', 'Käyttäjät', 'Users', '用户', '用戶', 'public fixture seed'),
+  ('search_slogan_system_users', 'Löydä käyttäjiä nimen, käyttäjätunnuksen tai käyttöoikeusryhmän perusteella.', 'Find users by name, username, or permission group.', '按姓名、用户名或权限组查找用户。', '按姓名、用戶名稱或者權限群組搵用戶。', 'public fixture seed'),
+  ('search_for_system_users', 'Hae käyttäjiä nimellä, käyttäjätunnuksella tai käyttöoikeusryhmällä', 'Search users by name, username, or permission group', '按姓名、用户名或权限组搜索用户', '按姓名、用戶名稱或者權限群組搜尋用戶', 'public fixture seed'),
   ('admin_and_development_tools', 'Ylläpidon ja kehityksen työkalut', 'Admin and development tools', '管理和开发工具', '管理及開發工具', 'public fixture seed'),
   ('admin_tools', 'Ylläpidon työkalut', 'Admin tools', '管理工具', '管理工具', 'public fixture seed'),
   ('permissions', 'Käyttöoikeudet', 'Permissions', '权限', '權限', 'public fixture seed'),

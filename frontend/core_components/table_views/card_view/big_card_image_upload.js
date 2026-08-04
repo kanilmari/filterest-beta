@@ -28,6 +28,12 @@ export function createImageUploadPlaceholder({ size, onFileSelected, onFilesSele
     input.accept = "image/*";
     input.multiple = multiple === true;
     input.style.display = "none";
+    // Programmatic input activation dispatches its own bubbling click event.
+    // Keep that event inside the input so it cannot re-enter the placeholder
+    // listener and interfere with the browser's native file picker.
+    input.addEventListener("click", (event) => {
+        event.stopPropagation();
+    });
     input.addEventListener("change", () => {
         const files = normalizeImageFiles(input.files, multiple);
         if (files.length > 0) {
@@ -39,20 +45,32 @@ export function createImageUploadPlaceholder({ size, onFileSelected, onFilesSele
 
     // Click to open file picker
     el.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         input.click();
     });
 
     // Drag-and-drop
-    el.addEventListener("dragover", (e) => {
+    el.addEventListener("dragenter", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         el.classList.add("drag_over");
     });
-    el.addEventListener("dragleave", () => {
+    el.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = "copy";
+        }
+        el.classList.add("drag_over");
+    });
+    el.addEventListener("dragleave", (e) => {
+        e.stopPropagation();
         el.classList.remove("drag_over");
     });
     el.addEventListener("drop", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         el.classList.remove("drag_over");
         const files = normalizeImageFiles(e.dataTransfer?.files, multiple);
         if (files.length > 0) {

@@ -6,6 +6,7 @@
 import { hasRoutePermission } from "../route_permission_checker.js";
 import { fetchAdminVersionInfo } from "../endpoints/stable_endpoint_router.js";
 import { getLanguageWithBrowserFallback } from "../state_stores/lang_preference_reader.js";
+import { getCurrentSiteName } from "../state_stores/site_identity_reader.js";
 import { getCardDetailIconSvgMarkup } from "../table_views/card_view/card_detail_icon_builder.js";
 
 export const ADMIN_VERSION_INFO_ROUTE = "/api/admin/version-info";
@@ -14,6 +15,8 @@ let versionInfoPanelSequence = 0;
 
 const VERSION_LABELS = Object.freeze({
     fi: {
+        title: "Versioinfo",
+        site: "Sivusto",
         app: "Sovellus",
         database: "Tietokanta",
         requiredDatabase: "Vaadittu tietokanta",
@@ -24,6 +27,8 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "ei yhteensopiva",
     },
     en: {
+        title: "Version information",
+        site: "Site",
         app: "Application",
         database: "Database",
         requiredDatabase: "Required database",
@@ -34,6 +39,8 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "incompatible",
     },
     ch: {
+        title: "版本信息",
+        site: "网站",
         app: "应用程序",
         database: "数据库",
         requiredDatabase: "所需数据库",
@@ -44,6 +51,8 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "不兼容",
     },
     yue: {
+        title: "版本資訊",
+        site: "網站",
         app: "應用程式",
         database: "資料庫",
         requiredDatabase: "所需資料庫",
@@ -55,7 +64,7 @@ const VERSION_LABELS = Object.freeze({
     },
 });
 
-export function buildAdminVersionInfoRows(versionInfo, language = "en") {
+export function buildAdminVersionInfoRows(versionInfo, language = "en", siteName = "") {
     const labels = VERSION_LABELS[language] || VERSION_LABELS.en;
     const productName = String(versionInfo?.product_name || labels.app).trim();
     const appVersion = String(versionInfo?.app_version || "unknown").trim();
@@ -69,7 +78,7 @@ export function buildAdminVersionInfoRows(versionInfo, language = "en") {
         ? labels.compatible
         : labels.incompatible;
 
-    return Object.freeze([
+    const rows = [
         { id: "application", label: productName, value: appVersion },
         {
             id: "database",
@@ -82,7 +91,12 @@ export function buildAdminVersionInfoRows(versionInfo, language = "en") {
             value: requiredDatabaseVersion,
         },
         { id: "runtime", label: labels.runtime, value: runtimeLabel },
-    ]);
+    ];
+    const normalizedSiteName = String(siteName || "").trim();
+    if (normalizedSiteName) {
+        rows.unshift({ id: "site", label: labels.site, value: normalizedSiteName });
+    }
+    return Object.freeze(rows);
 }
 
 export function formatAdminVersionInfoLabel(versionInfo, language = "en") {
@@ -91,7 +105,11 @@ export function formatAdminVersionInfoLabel(versionInfo, language = "en") {
         .join("\n");
 }
 
-function renderAdminVersionInfoRows(panel, rows) {
+function renderAdminVersionInfoRows(panel, rows, title) {
+    const caption = document.createElement("caption");
+    caption.classList.add("filterbar-clock-bar__version-info-title");
+    caption.textContent = title;
+
     const body = document.createElement("tbody");
     const rowElements = rows.map(({ id, label, value }) => {
         const row = document.createElement("tr");
@@ -111,7 +129,7 @@ function renderAdminVersionInfoRows(panel, rows) {
         return row;
     });
     body.append(...rowElements);
-    panel.replaceChildren(body);
+    panel.replaceChildren(caption, body);
 }
 
 export function buildAdminVersionInfoIndicator() {
@@ -186,14 +204,17 @@ async function hydrateAdminVersionInfoIndicator(shell, indicator, panel) {
     try {
         const versionInfo = await fetchAdminVersionInfo({ suppressAuthRedirect: true });
         const language = getLanguageWithBrowserFallback();
-        const rows = buildAdminVersionInfoRows(versionInfo, language);
+        const labels = VERSION_LABELS[language] || VERSION_LABELS.en;
+        const siteName = getCurrentSiteName() || String(versionInfo?.product_name || "").trim();
+        const rows = buildAdminVersionInfoRows(versionInfo, language, siteName);
         const label = formatAdminVersionInfoLabel(
             versionInfo,
             language
         );
         indicator.title = label;
         indicator.setAttribute("aria-label", label.replaceAll("\n", ". "));
-        renderAdminVersionInfoRows(panel, rows);
+        panel.setAttribute("aria-label", labels.title);
+        renderAdminVersionInfoRows(panel, rows, labels.title);
         shell.hidden = false;
     } catch {
         shell.destroy();

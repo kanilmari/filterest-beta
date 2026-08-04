@@ -26,6 +26,7 @@ describe("admin version info indicator", () => {
         hasRoutePermissionMock.mockReset();
         fetchAdminVersionInfoMock.mockReset();
         document.body.innerHTML = "";
+        document.head.innerHTML = '<meta property="og:site_name" content="Filt">';
     });
 
     test("does not render without the protected route permission", async () => {
@@ -65,7 +66,13 @@ describe("admin version info indicator", () => {
         expect(indicator.getAttribute("aria-expanded")).toBe("false");
         expect(indicator.getAttribute("aria-controls")).toBe(panel.id);
         expect(panel.tagName).toBe("TABLE");
-        expect(panel.querySelectorAll("tbody > tr")).toHaveLength(4);
+        expect(panel.getAttribute("aria-label")).toBe("Versioinfo");
+        expect(panel.querySelector("caption")?.textContent).toBe("Versioinfo");
+        expect(panel.querySelectorAll("tbody > tr")).toHaveLength(5);
+        expect(panel.querySelector('[data-version-info-key="site"]')?.textContent)
+            .toBe("Sivusto");
+        expect(panel.querySelector('[data-version-info-value="site"]')?.textContent)
+            .toBe("Filt");
         expect(panel.querySelector('[data-version-info-key="application"]')?.tagName)
             .toBe("TH");
         expect(panel.querySelector('[data-version-info-value="application"]')?.tagName)

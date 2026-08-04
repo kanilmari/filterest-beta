@@ -117,6 +117,7 @@ export function buildTopRow(
             fallbackText: "Haku ja perustoiminnot",
             contentElement: sortSearchContent,
             sectionClassNames: ["dataset-filter-query-section"],
+            startOpen: false,
         });
         sortSearchRow.dataset.filterbarSectionKey = "search_controls";
         topRow.appendChild(sortSearchRow);
@@ -135,6 +136,7 @@ export function buildTopRow(
         fallbackText: "Työkalut",
         contentElement: actionContent,
         sectionClassNames: ["dataset-filter-tools-section"],
+        startOpen: false,
     });
     actionRow.dataset.filterbarSectionKey = "tools";
 
@@ -160,6 +162,7 @@ export function buildTopRow(
         fallbackText: "Näkymät ja esitystavat",
         contentElement: viewContent,
         sectionClassNames: ["dataset-filter-views-section"],
+        startOpen: false,
     });
     viewRow.dataset.filterbarSectionKey = "views";
     topRow.appendChild(viewRow);

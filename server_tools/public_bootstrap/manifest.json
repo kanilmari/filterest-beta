@@ -1,7 +1,7 @@
 {
   "artifact": "filterest-public-bootstrap",
   "format_version": 2,
-  "app_version": "8.28.20",
+  "app_version": "8.28.21",
   "db_version": "8.0.59",
   "schema_source": "testing/essential/generated/schema.sql",
   "seed_source": "testing/essential/generated/seed.sql",
@@ -9,12 +9,15 @@
   "allowed_schema_tables": [
     "public.ai_chat_conversations",
     "public.dokumentaatio",
+    "public.dokumentaatio_assets",
     "public.dokumentaatio_tiketit_relation",
     "public.palvelukatalogi",
+    "public.palvelukatalogi_assets",
     "public.palvelukatalogi_dokumentaatio_relation",
     "public.palvelukatalogi_riskienhallinta_relation",
     "public.palvelukatalogi_tiketit_relation",
     "public.riskienhallinta",
+    "public.riskienhallinta_assets",
     "public.riskienhallinta_dokumentaatio_relation",
     "public.riskienhallinta_tiketit_relation",
     "public.system_about",
@@ -42,6 +45,7 @@
     "public.system_user_groups",
     "public.system_users",
     "public.tiketit",
+    "public.tiketit_assets",
     "restricted.otp_send_events",
     "restricted.users_restricted",
     "restricted.verification_codes"
@@ -61,6 +65,7 @@
     "public.system_config",
     "public.system_db_tables",
     "public.system_db_version",
+    "public.system_foreign_key_relations_1_m",
     "public.system_functions",
     "public.system_group_table_func_rights",
     "public.system_lang_keys",
@@ -81,13 +86,14 @@
     "public.riskienhallinta_dokumentaatio_relation": 1,
     "public.riskienhallinta_tiketit_relation": 1,
     "public.system_about": 1,
-    "public.system_column_details": 31,
+    "public.system_column_details": 32,
     "public.system_config": 9,
-    "public.system_db_tables": 37,
+    "public.system_db_tables": 41,
     "public.system_db_version": 1,
+    "public.system_foreign_key_relations_1_m": 4,
     "public.system_functions": 15,
-    "public.system_group_table_func_rights": 16,
-    "public.system_lang_keys": 468,
+    "public.system_group_table_func_rights": 20,
+    "public.system_lang_keys": 471,
     "public.system_table_folders": 14,
     "public.system_user_group_memberships": 1,
     "public.system_user_groups": 3,
@@ -96,10 +102,10 @@
   },
   "generated_files": {
     "server_tools/public_bootstrap/schema.sql": {
-      "sha256": "173709313ab88deb5a735827e30f13a379447c9ad1d80222befa015661604857"
+      "sha256": "3acbdb4b5a7b66383e6e4ca4a70eb11cb45381c075ae6341b3f67224bfda1f98"
     },
     "server_tools/public_bootstrap/seed_data.sql": {
-      "sha256": "a6af3950d07956899d6d80c676fdef27cdbf033251204d83be87cf76972bffdc"
+      "sha256": "a9c2079c2ae727c958c792048851d6da6d51abd0fd5578bc82d11bcd843f0bf6"
     }
   },
   "source_files": {
@@ -116,13 +122,13 @@
       "sha256": "76117887c4c8b95026fb604cdc7b88ab68dc492d32557c0dca1006eb0f27d904"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.schema.sql": {
-      "sha256": "02f9652ba94d7264499fab3d4ab495c4dc627643a1b37d025c047fb5093d1372"
+      "sha256": "a6d4880db9d121a1ac317c44236f9c9145fc7e18c8bb47107cacc23efad28821"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.seed.sql": {
-      "sha256": "6a3010ec436fde9f535e2658d89d81241f4e0deee52003153005ebfcedbf6f85"
+      "sha256": "0648b6bc1e2f70c206bddd0a73ae8533b08ff9c06da2df99923be6a2c669da33"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.lang_keys.sql": {
-      "sha256": "b679d15f4172c7274768d16af6dc788317e448f4353114d8f3c7f33384c5987b"
+      "sha256": "0456e91ef0bf5a3f53301726ca8ed321f4b67ad21dd102da976811e941ea8dc0"
     },
     "server_tools/public_slice_export/public_bootstrap/fixtures/docs/first-dataset.png": {
       "sha256": "77779de3984a98e3fe7b6f0d01e3224165f707ab20796706c6b5221740dc6d22"

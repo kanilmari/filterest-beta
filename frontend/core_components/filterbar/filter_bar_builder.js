@@ -45,6 +45,7 @@ import { createSortDropdown } from "./top_row_buttons/sort_dropdown_builder.js";
 import { getAllSpecs } from "../state_stores/table_specs_reader.js";
 import { createMaskIconSpan } from "../../icons/icon_mask_builder.js";
 import { getLanguageWithBrowserFallback } from "../state_stores/lang_preference_reader.js";
+import { getCurrentSiteName } from "../state_stores/site_identity_reader.js";
 import { buildCalendarPopup } from "./filterbar_calendar.js";
 import {
     NAVBAR_VISIBILITY_CHANGED_EVENT,
@@ -399,8 +400,23 @@ function buildFilterbarHeroHeader(tableName, {
 
     const titleEl = document.createElement("h1");
     titleEl.classList.add("morphing-title");
-    titleEl.dataset.langKey = `${tableName}_front_page`;
-    titleEl.textContent = headerTitleOverride || tableName;
+    const datasetTitle = document.createElement("span");
+    datasetTitle.classList.add("morphing-title__dataset-name");
+    datasetTitle.dataset.langKey = `${tableName}_front_page`;
+    datasetTitle.textContent = headerTitleOverride || tableName;
+
+    const siteName = getCurrentSiteName();
+    if (siteName) {
+        const siteTitle = document.createElement("span");
+        siteTitle.classList.add("morphing-title__site-name");
+        siteTitle.textContent = siteName;
+
+        const titleSeparator = document.createElement("span");
+        titleSeparator.classList.add("morphing-title__separator");
+        titleSeparator.textContent = " – ";
+        titleEl.append(siteTitle, titleSeparator);
+    }
+    titleEl.appendChild(datasetTitle);
 
     const subtitleEl = document.createElement("p");
     subtitleEl.classList.add("morphing-subtitle");
@@ -707,6 +723,7 @@ export function createFilterBarContent(container, {
         sectionElement: secondaryFilterBar,
         sectionClassNames: ["filterbar-filters-section"],
         contentClassNames: ["favefox-filterbar-disclosure-content"],
+        startOpen: false,
     });
     secondaryFilterBar.dataset.filterbarSectionKey = "filters";
     container.appendChild(secondaryFilterBar);
@@ -848,6 +865,7 @@ export function create_filter_bar(
             fallbackText: "Haku ja yleiskuva",
             contentElement: contentInner,
             sectionClassNames: ["filterbar-overview-section"],
+            startOpen: false,
         });
         overviewSection.dataset.filterbarSectionKey = "search_overview";
         panelBody.appendChild(overviewSection);
@@ -1150,7 +1168,8 @@ export function create_filter_bar(
         restoreButtonFromSharedTopBar(hideMenuButton, sharedTopBarOwner);
         restoreButtonFromSharedTopBar(showMenuButton, sharedTopBarOwner);
 
-        const shouldShowMenuButton = shouldShowBar && Boolean(showMenuButton);
+        const shouldShowMenuButton =
+            shouldShowBar && !navbarVisible && Boolean(showMenuButton);
         sharedTopBarMenuSlot.hidden = !shouldShowMenuButton;
         if (shouldShowMenuButton) {
             dockButtonIntoSharedTopBar(

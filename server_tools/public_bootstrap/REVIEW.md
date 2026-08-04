@@ -1,8 +1,8 @@
 # Filterest Public Bootstrap Audit
 
 - Target: `Filterest public bootstrap`
-- Schema tables: `38`
-- Seed tables: `22`
+- Schema tables: `42`
+- Seed tables: `23`
 - Example emails: `0`
 - Manifest format: `2`
 - Manifest source files: `10`
@@ -16,12 +16,15 @@ PASS
 
 - `public.ai_chat_conversations`
 - `public.dokumentaatio`
+- `public.dokumentaatio_assets`
 - `public.dokumentaatio_tiketit_relation`
 - `public.palvelukatalogi`
+- `public.palvelukatalogi_assets`
 - `public.palvelukatalogi_dokumentaatio_relation`
 - `public.palvelukatalogi_riskienhallinta_relation`
 - `public.palvelukatalogi_tiketit_relation`
 - `public.riskienhallinta`
+- `public.riskienhallinta_assets`
 - `public.riskienhallinta_dokumentaatio_relation`
 - `public.riskienhallinta_tiketit_relation`
 - `public.system_about`
@@ -49,6 +52,7 @@ PASS
 - `public.system_user_groups`
 - `public.system_users`
 - `public.tiketit`
+- `public.tiketit_assets`
 - `restricted.otp_send_events`
 - `restricted.users_restricted`
 - `restricted.verification_codes`
@@ -69,6 +73,7 @@ PASS
 - `public.system_config`
 - `public.system_db_tables`
 - `public.system_db_version`
+- `public.system_foreign_key_relations_1_m`
 - `public.system_functions`
 - `public.system_group_table_func_rights`
 - `public.system_lang_keys`
@@ -90,13 +95,14 @@ PASS
 - `public.riskienhallinta_dokumentaatio_relation`: 1
 - `public.riskienhallinta_tiketit_relation`: 1
 - `public.system_about`: 1
-- `public.system_column_details`: 31
+- `public.system_column_details`: 32
 - `public.system_config`: 9
-- `public.system_db_tables`: 37
+- `public.system_db_tables`: 41
 - `public.system_db_version`: 1
+- `public.system_foreign_key_relations_1_m`: 4
 - `public.system_functions`: 15
-- `public.system_group_table_func_rights`: 16
-- `public.system_lang_keys`: 468
+- `public.system_group_table_func_rights`: 20
+- `public.system_lang_keys`: 471
 - `public.system_table_folders`: 14
 - `public.system_user_group_memberships`: 1
 - `public.system_user_groups`: 3

@@ -42,6 +42,7 @@ export function buildColumnViewPresetSelector(tableName, columns = []) {
         contentElement: content,
         sectionElement: document.createElement("div"),
         sectionClassNames: ["column-preset-row"],
+        startOpen: false,
     });
     row.dataset.testid = "column-view-preset-selector";
     row.dataset.filterbarSectionKey = "field_sets";

@@ -52,14 +52,18 @@ test.describe('Feature Tests', () => {
     
     // Navbar should not be collapsed anymore
     await expect(navbar).not.toHaveClass(/collapsed/);
-    
-    // Close menu
-    // Wait for hide button to be visible/clickable
-    await expect(hideMenuBtn).toBeVisible();
-    await hideMenuBtn.click();
+    await expect(showMenuBtn).toBeVisible();
+    await expect(showMenuBtn).toHaveAttribute('aria-expanded', 'true');
+    await expect(hideMenuBtn).toBeHidden();
+
+    // The same canonical top-left button closes the menu. The legacy
+    // in-navbar duplicate remains outside the visual and accessibility trees.
+    await showMenuBtn.click();
     
     // Navbar should be collapsed again
     await expect(navbar).toHaveClass(/collapsed/);
+    await expect(showMenuBtn).toHaveAttribute('aria-expanded', 'false');
+    await expect(showMenuBtn).toBeVisible();
   });
 
 });
