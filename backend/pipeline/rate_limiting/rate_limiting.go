@@ -172,11 +172,12 @@ const rateLimitHTML = `<!DOCTYPE html>
 </html>`
 
 // noRateLimitFunctions lists functions that should NEVER be rate limited.
-// These are critical recovery endpoints that must always be accessible,
-// even when the user is stuck in an infinite loop due to corrupted sessions.
+// These are critical recovery endpoints and public static assets that must
+// remain accessible even when the user has exhausted an API request quota.
 var noRateLimitFunctions = map[string]bool{
 	"e_sessions.ResetSessionHandler": true,
 	"auth.LogoutHandler":             true,
+	"router.handleFrontend":          true,
 }
 
 // WithFunctionRateLimiting hakee funktiolta rate_limit_amount, rate_limit_minutes
