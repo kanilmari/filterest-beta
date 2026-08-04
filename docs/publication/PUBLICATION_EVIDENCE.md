@@ -3,7 +3,7 @@
 This file is generated from the Filterest public-slice candidate flow.
 It is evidence for review, not approval to publish.
 
-- Generated at: `2026-08-04T11:55:16Z`
+- Generated at: `2026-08-04T11:57:27Z`
 - Release source commit used by the generator: `0c34cb13fa9ce6dde657ea0ecf2787638c2f40f2`
 - Generated Filterest commit: this repository commit; run `git log -1 --oneline`
 - Filterest app version: `8.28.12`
