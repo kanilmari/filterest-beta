@@ -3,27 +3,32 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 var firstRunTransactionDriverCounter int64
 
 type firstRunTransactionState struct {
-	committed      bool
-	rolledBack     bool
-	credentialMade bool
-	configClosed   bool
-	failCredential bool
+	committed       bool
+	rolledBack      bool
+	credentialMade  bool
+	environmentMade bool
+	configClosed    bool
+	failCredential  bool
 }
 
 type firstRunTransactionDriver struct{ state *firstRunTransactionState }
@@ -93,6 +98,9 @@ func (c *firstRunTransactionConn) ExecContext(_ context.Context, query string, _
 		}
 		c.state.credentialMade = true
 		return driver.RowsAffected(1), nil
+	case strings.Contains(query, "text_value = $1"):
+		c.state.environmentMade = true
+		return driver.RowsAffected(1), nil
 	case strings.Contains(query, "UPDATE system_config"):
 		c.state.configClosed = true
 		return driver.RowsAffected(1), nil
@@ -115,22 +123,40 @@ func openFirstRunTransactionDB(t *testing.T, state *firstRunTransactionState) *s
 
 func TestValidateFirstRunAdminInputAcceptsStrongForm(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
-		Username:        "owner.admin",
-		Email:           "owner@example.com",
-		Password:        "correct horse battery staple",
-		ConfirmPassword: "correct horse battery staple",
+		Username:           "owner.admin",
+		Email:              "owner@example.com",
+		Password:           "correct horse battery staple",
+		ConfirmPassword:    "correct horse battery staple",
+		Environment:        "dev",
+		VerificationMethod: "none",
 	})
 	if errs != (firstRunAdminErrors{}) {
 		t.Fatalf("validation errors = %+v, want none", errs)
 	}
 }
 
+func TestValidateFirstRunAdminInputAcceptsQAEnvironment(t *testing.T) {
+	errs := validateFirstRunAdminInput(firstRunAdminInput{
+		Username:           "owner.admin",
+		Email:              "owner@example.com",
+		Password:           "correct horse battery staple",
+		ConfirmPassword:    "correct horse battery staple",
+		Environment:        "qa",
+		VerificationMethod: "none",
+	})
+	if errs != (firstRunAdminErrors{}) {
+		t.Fatalf("QA environment validation errors = %+v, want none", errs)
+	}
+}
+
 func TestValidateFirstRunAdminInputRejectsUnsafeValues(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
-		Username:        "x / admin",
-		Email:           "not-an-email",
-		Password:        "short",
-		ConfirmPassword: "different",
+		Username:           "x / admin",
+		Email:              "not-an-email",
+		Password:           "short",
+		ConfirmPassword:    "different",
+		Environment:        "dev",
+		VerificationMethod: "none",
 	})
 	if errs.Username == "" || errs.Email == "" || errs.Password == "" {
 		t.Fatalf("validation errors = %+v, want username, email, and password errors", errs)
@@ -139,13 +165,55 @@ func TestValidateFirstRunAdminInputRejectsUnsafeValues(t *testing.T) {
 
 func TestValidateFirstRunAdminInputRejectsPasswordMismatch(t *testing.T) {
 	errs := validateFirstRunAdminInput(firstRunAdminInput{
-		Username:        "owner",
-		Email:           "owner@example.com",
-		Password:        "a sufficiently long password",
-		ConfirmPassword: "a different long password",
+		Username:           "owner",
+		Email:              "owner@example.com",
+		Password:           "a sufficiently long password",
+		ConfirmPassword:    "a different long password",
+		Environment:        "dev",
+		VerificationMethod: "none",
 	})
 	if errs.Password != "first_run_password_mismatch" {
 		t.Fatalf("password error = %q, want mismatch", errs.Password)
+	}
+}
+
+func TestValidateFirstRunAdminInputRequiresAbsoluteFixedPINRules(t *testing.T) {
+	base := firstRunAdminInput{
+		Username: "owner", Email: "owner@example.com",
+		Password: "a sufficiently long password", ConfirmPassword: "a sufficiently long password",
+		Environment: "test", VerificationMethod: "fixed_pin",
+	}
+	base.FixedPIN, base.ConfirmFixedPIN = "1234", "1234"
+	if errs := validateFirstRunAdminInput(base); errs != (firstRunAdminErrors{}) {
+		t.Fatalf("four-digit PIN validation errors = %+v", errs)
+	}
+	base.FixedPIN, base.ConfirmFixedPIN = "123", "123"
+	if errs := validateFirstRunAdminInput(base); errs.Factor != "first_run_fixed_pin_invalid" {
+		t.Fatalf("short PIN factor error = %q", errs.Factor)
+	}
+	base.FixedPIN, base.ConfirmFixedPIN = "12345", "54321"
+	if errs := validateFirstRunAdminInput(base); errs.Factor != "first_run_fixed_pin_mismatch" {
+		t.Fatalf("mismatched PIN factor error = %q", errs.Factor)
+	}
+}
+
+func TestValidateFirstRunAdminInputConfirmsTOTPEnrollment(t *testing.T) {
+	const secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+	code, err := totpCodeForCounter(secret, uint64(time.Now().Unix()/totpPeriod))
+	if err != nil {
+		t.Fatalf("build TOTP code: %v", err)
+	}
+	input := firstRunAdminInput{
+		Username: "owner", Email: "owner@example.com",
+		Password: "a sufficiently long password", ConfirmPassword: "a sufficiently long password",
+		Environment: "prod", VerificationMethod: "totp", TOTPSecret: secret, TOTPCode: code,
+	}
+	if errs := validateFirstRunAdminInput(input); errs != (firstRunAdminErrors{}) {
+		t.Fatalf("valid TOTP enrollment errors = %+v", errs)
+	}
+	input.TOTPCode = "000000"
+	if errs := validateFirstRunAdminInput(input); errs.Factor != "first_run_totp_invalid" {
+		t.Fatalf("invalid TOTP factor error = %q", errs.Factor)
 	}
 }
 
@@ -185,12 +253,13 @@ func TestCreateFirstRunAdminCommitsAccountAndFlagTogether(t *testing.T) {
 	db := openFirstRunTransactionDB(t, state)
 	input := firstRunAdminInput{
 		Username: "owner", Email: "owner@example.com", Password: "correct horse battery staple",
+		Environment: "dev", VerificationMethod: "none",
 	}
 
 	if err := createFirstRunAdmin(context.Background(), db, input); err != nil {
 		t.Fatalf("createFirstRunAdmin() error = %v", err)
 	}
-	if !state.credentialMade || !state.configClosed || !state.committed {
+	if !state.credentialMade || !state.environmentMade || !state.configClosed || !state.committed {
 		t.Fatalf("transaction state = %+v, want credential, flag closure, and commit", state)
 	}
 }
@@ -200,6 +269,7 @@ func TestCreateFirstRunAdminRollsBackBeforeFlagClosureOnCredentialFailure(t *tes
 	db := openFirstRunTransactionDB(t, state)
 	input := firstRunAdminInput{
 		Username: "owner", Email: "owner@example.com", Password: "correct horse battery staple",
+		Environment: "dev", VerificationMethod: "none",
 	}
 
 	if err := createFirstRunAdmin(context.Background(), db, input); err == nil {
@@ -207,5 +277,29 @@ func TestCreateFirstRunAdminRollsBackBeforeFlagClosureOnCredentialFailure(t *tes
 	}
 	if state.committed || state.configClosed || !state.rolledBack {
 		t.Fatalf("transaction state = %+v, want rollback without flag closure", state)
+	}
+}
+
+func TestFirstRunAdminTemplateRendersBothSections(t *testing.T) {
+	tmpl, err := template.ParseFiles(filepath.Join("..", "..", "..", "frontend", "templates", "first_run_admin.html"))
+	if err != nil {
+		t.Fatalf("parse first-run template: %v", err)
+	}
+	data := map[string]interface{}{
+		"ApplicationName": "Filterest", "InitialSection": "settings",
+		"Environment": "test", "VerificationMethod": "totp", "TOTPSecret": "ABCDEF",
+		"Username": "", "Email": "", "CSRFToken": "csrf",
+		"UsernameErr": "", "EmailErr": "", "PasswordErr": "", "GeneralErr": "",
+		"EnvironmentErr": "", "VerificationErr": "", "FactorErr": "",
+	}
+	var output bytes.Buffer
+	if err = tmpl.Execute(&output, data); err != nil {
+		t.Fatalf("execute first-run template: %v", err)
+	}
+	markup := output.String()
+	for _, expected := range []string{"data-section-key=\"settings\"", "data-section-key=\"credentials\"", "value=\"test\" checked", "value=\"totp\" checked"} {
+		if !strings.Contains(markup, expected) {
+			t.Fatalf("rendered template missing %q", expected)
+		}
 	}
 }

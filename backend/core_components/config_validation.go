@@ -24,7 +24,6 @@ func firstConfiguredOptionalEnv(keys ...string) string {
 
 // logOptionalPostmarkWarnings surfaces incomplete outbound email config early without blocking startup.
 func logOptionalPostmarkWarnings() {
-	envType := strings.TrimSpace(os.Getenv("ENVIRONMENT_TYPE"))
 	postmarkToken := firstConfiguredOptionalEnv("POSTMARK_API_KEY", "POSTMARK_SERVER_TOKEN")
 	postmarkFrom := firstConfiguredOptionalEnv("EMAIL_FROM_ADDRESS", "POSTMARK_FROM_ADDRESS")
 	usesLegacyToken := strings.TrimSpace(os.Getenv("POSTMARK_API_KEY")) == "" &&
@@ -34,9 +33,7 @@ func logOptionalPostmarkWarnings() {
 
 	switch {
 	case postmarkToken == "" && postmarkFrom == "":
-		if envType != "dev" {
-			log.Println("⚠ Postmark outbound email not configured — login/profile/password-reset OTP delivery and Tukisuu outbound replies will fail outside explicit dev mode")
-		}
+		log.Println("⚠ Postmark outbound email not configured — email sign-in verification, password recovery, profile email verification, and outbound replies will fail; password-only, fixed-PIN, and authenticator sign-in remain available")
 	case postmarkToken == "" || postmarkFrom == "":
 		log.Println("⚠ Postmark config incomplete — set both POSTMARK_API_KEY and EMAIL_FROM_ADDRESS (legacy POSTMARK_SERVER_TOKEN / POSTMARK_FROM_ADDRESS are still accepted)")
 	case usesLegacyToken || usesLegacyFrom:

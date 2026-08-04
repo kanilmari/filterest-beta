@@ -59,6 +59,26 @@ func TestGetProjectLogoPathSupportsNonPngExtensions(t *testing.T) {
 	}
 }
 
+func TestResolveInstallationEnvironmentUsesExplicitFirstRunChoice(t *testing.T) {
+	for _, environment := range []string{"dev", "test", "qa", "prod"} {
+		if got := resolveInstallationEnvironment(environment, "prod"); got != environment {
+			t.Fatalf("resolveInstallationEnvironment(%q, prod) = %q", environment, got)
+		}
+	}
+}
+
+func TestResolveInstallationEnvironmentPreservesRuntimeFallbackBeforeFirstRunChoice(t *testing.T) {
+	if got := resolveInstallationEnvironment("", "dev"); got != "dev" {
+		t.Fatalf("empty stored environment in dev runtime = %q, want dev", got)
+	}
+	if got := resolveInstallationEnvironment("", "prod"); got != "prod" {
+		t.Fatalf("empty stored environment in prod runtime = %q, want prod", got)
+	}
+	if got := resolveInstallationEnvironment("unexpected", "dev"); got != "dev" {
+		t.Fatalf("invalid stored environment in dev runtime = %q, want dev", got)
+	}
+}
+
 func TestDefaultSpecificTableRelatedForMixedFolderRoutes(t *testing.T) {
 	if !defaultSpecificTableRelated("dtt_system_table_folders.HandleUpdateTableFolder") {
 		t.Fatal("HandleUpdateTableFolder should default to table-specific permissions")

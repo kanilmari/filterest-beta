@@ -42,7 +42,8 @@ INSERT INTO public.system_config (id, key, json_value, created, updated, creatio
   (3005, 'overwrite_possible', '{"value": true}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', TRUE, 'true', NULL, 1),
   (3006, 'dev_rate_limiting_off', '{"value": true}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', TRUE, 'true', NULL, 1),
   (3007, 'use_minified_js_css_in_dev_env', '{"value": false}'::jsonb, '2026-05-21 00:00:00', '2026-05-21 00:00:00', 'public fixture seed', FALSE, 'false', NULL, 1),
-  (3008, 'first_run', '{"value": true}'::jsonb, '2026-08-03 00:00:00', '2026-08-03 00:00:00', 'Controls the one-time browser form for creating the first login-ready administrator. It is closed atomically after successful account creation.', TRUE, 'true', NULL, 1);
+  (3008, 'first_run', '{"value": true}'::jsonb, '2026-08-03 00:00:00', '2026-08-03 00:00:00', 'Controls the one-time browser form for creating the first login-ready administrator. It is closed atomically after successful account creation.', TRUE, 'true', NULL, 1),
+  (3009, 'installation_environment', '{"value": ""}'::jsonb, '2026-08-04 00:00:00', '2026-08-04 00:00:00', 'User-facing installation purpose selected during First Run. Empty preserves the deployment-defined fallback until First Run saves an explicit choice.', NULL, '', NULL, 2);
 
 INSERT INTO public.system_functions (
   id, name, disabled, created, updated, "package", specific_table_related,
@@ -200,7 +201,7 @@ VALUES (
 );
 
 INSERT INTO public.system_db_version (version, description)
-VALUES ('8.0.57', 'Filterest generated public bootstrap');
+VALUES ('8.0.58', 'Filterest generated public bootstrap');
 -- Filterest public bootstrap: metadata and multilingual content for the
 -- established mock services, risks, documentation, and tickets workspace.
 
@@ -1232,14 +1233,55 @@ SET fi = EXCLUDED.fi,
 -- deterministic bootstrap works without opening the general migration gate.
 INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) VALUES
   ('first_run_admin_title', 'Luo ensimmäinen pääkäyttäjä', 'Create the first administrator', '创建首位管理员', '建立第一位管理員', 'Public first-run administrator setup label.'),
-  ('first_run_admin_description', 'Valitse tämän asennuksen pääkäyttäjän tunnukset. Sähköpostiosoitetta käytetään kirjautumisen vahvistamiseen ja käyttäjätilin viesteihin.', 'Choose the administrator credentials for this installation. The email address will be used for sign-in verification and account messages.', '请为此安装设置管理员凭据。该电子邮件地址将用于登录验证和账户通知。', '請為此安裝設定管理員登入資料。電郵地址會用於登入驗證及帳戶通知。', 'Public first-run administrator setup label.'),
+  ('first_run_admin_description', 'Valitse tämän asennuksen pääkäyttäjän tunnukset. Sähköpostia käytetään myös tilin palautukseen ja viesteihin.', 'Choose the administrator credentials for this installation. Email is also used for account recovery and messages.', '为此安装设置管理员凭据。电子邮件也用于账户恢复和消息。', '為此安裝設定管理員登入資料。電郵亦用於帳戶復原及訊息。', 'Public first-run administrator setup label.'),
   ('first_run_admin_submit', 'Luo pääkäyttäjä', 'Create administrator', '创建管理员', '建立管理員', 'Public first-run administrator setup label.'),
   ('confirm_password', 'Vahvista salasana', 'Confirm password', '确认密码', '確認密碼', 'Public first-run administrator setup label.'),
   ('first_run_username_invalid', 'Käytä 3–64 merkkiä: kirjaimia, numeroita, pisteitä, alaviivoja tai yhdysmerkkejä.', 'Use 3–64 characters: letters, numbers, dots, underscores, or hyphens.', '请输入 3–64 个字符，可使用字母、数字、句点、下划线或连字符。', '請輸入 3–64 個字元，可使用字母、數字、句號、底線或連字號。', 'Public first-run administrator validation label.'),
   ('first_run_email_invalid', 'Anna kelvollinen sähköpostiosoite.', 'Enter a valid email address.', '请输入有效的电子邮件地址。', '請輸入有效的電郵地址。', 'Public first-run administrator validation label.'),
   ('first_run_password_invalid', 'Käytä 12–128 merkin pituista salasanaa.', 'Use a password containing 12–128 characters.', '密码长度须为 12–128 个字符。', '密碼長度須為 12–128 個字元。', 'Public first-run administrator validation label.'),
   ('first_run_password_mismatch', 'Salasanat eivät täsmää.', 'The passwords do not match.', '两次输入的密码不一致。', '兩次輸入的密碼不一致。', 'Public first-run administrator validation label.'),
-  ('first_run_admin_creation_failed', 'Pääkäyttäjää ei voitu luoda. Mitään asetusmuutoksia ei tallennettu.', 'The administrator could not be created. No setup changes were saved.', '无法创建管理员，未保存任何设置更改。', '無法建立管理員，未儲存任何設定變更。', 'Public first-run administrator failure label.')
+  ('first_run_admin_creation_failed', 'Pääkäyttäjää ei voitu luoda. Mitään asetusmuutoksia ei tallennettu.', 'The administrator could not be created. No setup changes were saved.', '无法创建管理员，未保存任何设置更改。', '無法建立管理員，未儲存任何設定變更。', 'Public first-run administrator failure label.'),
+  ('form_sections', 'Lomakkeen osiot', 'Form sections', '表单部分', '表格部分', 'Public reusable form navigation label.'),
+  ('previous', 'Edellinen', 'Previous', '上一步', '上一步', 'Public reusable form navigation label.'),
+  ('next', 'Seuraava', 'Next', '下一步', '下一步', 'Public reusable form navigation label.'),
+  ('back', 'Takaisin', 'Back', '返回', '返回', 'Public reusable form navigation label.'),
+  ('proceed', 'Jatka', 'Proceed', '继续', '繼續', 'Public reusable form navigation label.'),
+  ('first_run_welcome', 'Tervetuloa sovellukseen $site_name', 'Welcome to $site_name', '欢迎使用 $site_name', '歡迎使用 $site_name', 'Public First Run label.'),
+  ('first_run_section_settings', 'Ympäristö', 'Environment', '环境', '環境', 'Public First Run label.'),
+  ('first_run_section_credentials', 'Tunnukset', 'Credentials', '登录凭据', '登入資料', 'Public First Run label.'),
+  ('first_run_settings_title', 'Määritä työympäristö', 'Set up your workspace', '设置工作区', '設定工作區', 'Public First Run label.'),
+  ('first_run_settings_description', 'Valitse asennuksen käyttötarkoitus ja tapa, jolla ensimmäinen pääkäyttäjä varmentaa kirjautumiset.', 'Choose how this installation is used and how the first administrator verifies sign-ins.', '选择此安装的用途以及首位管理员验证登录的方式。', '選擇此安裝的用途，以及首位管理員驗證登入的方式。', 'Public First Run label.'),
+  ('first_run_environment_legend', 'Ympäristö', 'Environment', '环境', '環境', 'Public First Run label.'),
+  ('environment_development', 'Devaus', 'Development', '开发', '開發', 'Public First Run label.'),
+  ('environment_development_description', 'Sovelluksen kehittämiseen ja muuttamiseen.', 'For building and changing the application.', '用于构建和修改应用程序。', '用於建構及修改應用程式。', 'Public First Run label.'),
+  ('environment_testing', 'Testaus', 'Testing', '测试', '測試', 'Public First Run label.'),
+  ('environment_testing_description', 'Devausta vastaavaan testaukseen.', 'For testing in a development-like environment.', '用于类似开发环境的测试。', '用於類似開發環境的測試。', 'Public First Run label.'),
+  ('environment_qa', 'QA', 'QA', 'QA', 'QA', 'Public First Run label.'),
+  ('environment_qa_description', 'Laadunvarmistukseen ja julkaisujen tarkistukseen.', 'For quality assurance and release verification.', '用于质量保证和发布验证。', '用於品質保證及發佈驗證。', 'Public First Run label.'),
+  ('environment_production', 'Tuotanto', 'Production', '生产', '正式環境', 'Public First Run label.'),
+  ('environment_production_description', 'Oikeille käyttäjille ja tuotantodatalle.', 'For real users and live data.', '用于真实用户和正式数据。', '用於真實使用者及正式資料。', 'Public First Run label.'),
+  ('first_run_verification_legend', 'Kirjautumisen varmennus', 'Sign-in verification', '登录验证', '登入驗證', 'Public First Run label.'),
+  ('verification_none', 'Ei lisävarmennusta', 'No additional verification', '无额外验证', '不作額外驗證', 'Public First Run label.'),
+  ('verification_none_description', 'Kirjaudu vain käyttäjätunnuksella ja salasanalla.', 'Sign in with username and password only.', '仅使用用户名和密码登录。', '只使用使用者名稱及密碼登入。', 'Public First Run label.'),
+  ('verification_fixed_pin', 'Kiinteä PIN', 'Fixed PIN', '固定 PIN', '固定 PIN', 'Public First Run label.'),
+  ('verification_fixed_pin_description', 'Käytä samaa yksityistä 4–8 numeron PIN-koodia jokaisella kirjautumisella.', 'Use the same private 4–8 digit PIN at every sign-in.', '每次登录都使用同一个私密的 4–8 位数字 PIN。', '每次登入都使用同一個私密的 4–8 位數字 PIN。', 'Public First Run label.'),
+  ('verification_authenticator', 'Autentikaattorisovellus', 'Authenticator app', '身份验证器应用', '驗證器應用程式', 'Public First Run label.'),
+  ('verification_authenticator_description', 'Toimii standardia TOTP:tä tukevilla sovelluksilla, myös Google Authenticatorilla.', 'Works with standard TOTP apps, including Google Authenticator.', '适用于标准 TOTP 应用，包括 Google Authenticator。', '適用於標準 TOTP 應用程式，包括 Google Authenticator。', 'Public First Run label.'),
+  ('verification_email', 'Sähköposti', 'Email', '电子邮件', '電郵', 'Public First Run label.'),
+  ('verification_email_description', 'Lähettää kertakäyttökoodin Postmarkin kautta. Vaatii ilmaisen ulkoisen Postmark-tilin.', 'Sends a one-time code through Postmark. Requires a free external Postmark account.', '通过 Postmark 发送一次性代码。需要免费的外部 Postmark 账户。', '透過 Postmark 傳送一次性驗證碼。需要免費的外部 Postmark 帳戶。', 'Public First Run label.'),
+  ('fixed_pin', 'Kiinteä PIN', 'Fixed PIN', '固定 PIN', '固定 PIN', 'Public First Run label.'),
+  ('confirm_fixed_pin', 'Vahvista kiinteä PIN', 'Confirm fixed PIN', '确认固定 PIN', '確認固定 PIN', 'Public First Run label.'),
+  ('authenticator_setup_key', 'Lisää tämä käyttöönottoavain autentikaattorisovellukseesi:', 'Add this setup key to your authenticator app:', '将此设置密钥添加到身份验证器应用中：', '將此設定密鑰加入驗證器應用程式：', 'Public First Run label.'),
+  ('authenticator_confirmation_code', 'Vahvista käyttöönotto syöttämällä nykyinen 6-numeroinen koodi', 'Enter the current 6-digit code to confirm setup', '输入当前的 6 位代码以确认设置', '輸入目前的 6 位驗證碼以確認設定', 'Public First Run label.'),
+  ('verification_fixed_pin_prompt', 'Syötä kiinteä PIN-koodisi.', 'Enter your fixed PIN.', '输入固定 PIN。', '輸入固定 PIN。', 'Public login verification prompt.'),
+  ('verification_authenticator_prompt', 'Syötä autentikaattorisovelluksen nykyinen koodi.', 'Enter the current code from your authenticator app.', '输入身份验证器应用中的当前代码。', '輸入驗證器應用程式中的目前驗證碼。', 'Public login verification prompt.'),
+  ('verification_email_prompt', 'Vahvistuskoodi lähetetty: $site_name', 'Verification code sent: $site_name', '验证代码已发送：$site_name', '驗證碼已傳送：$site_name', 'Public login verification prompt.'),
+  ('first_run_environment_invalid', 'Valitse ympäristö.', 'Choose an environment.', '请选择环境。', '請選擇環境。', 'Public First Run validation label.'),
+  ('first_run_verification_invalid', 'Valitse kirjautumisen varmennustapa.', 'Choose a sign-in verification method.', '请选择登录验证方式。', '請選擇登入驗證方式。', 'Public First Run validation label.'),
+  ('first_run_fixed_pin_invalid', 'Käytä kiinteässä PIN-koodissa 4–8 numeroa.', 'Use 4–8 digits for the fixed PIN.', '固定 PIN 需使用 4–8 位数字。', '固定 PIN 需使用 4–8 位數字。', 'Public First Run validation label.'),
+  ('first_run_fixed_pin_mismatch', 'Kiinteät PIN-koodit eivät täsmää.', 'The fixed PIN values do not match.', '两次输入的固定 PIN 不一致。', '兩次輸入的固定 PIN 不一致。', 'Public First Run validation label.'),
+  ('first_run_totp_invalid', 'Vahvista autentikaattorin käyttöönotto kelvollisella nykyisellä koodilla.', 'Confirm the authenticator setup with a valid current code.', '请使用有效的当前代码确认身份验证器设置。', '請使用有效的目前驗證碼確認驗證器設定。', 'Public First Run validation label.'),
+  ('first_run_postmark_required', 'Sähköpostivarmennus vaatii suojattuun ympäristötiedostoon POSTMARK_API_KEY- ja EMAIL_FROM_ADDRESS-arvot.', 'Email verification requires POSTMARK_API_KEY and EMAIL_FROM_ADDRESS in the protected environment file.', '电子邮件验证需要在受保护的环境文件中设置 POSTMARK_API_KEY 和 EMAIL_FROM_ADDRESS。', '電郵驗證需要在受保護的環境檔案中設定 POSTMARK_API_KEY 及 EMAIL_FROM_ADDRESS。', 'Public First Run validation label.')
 ON CONFLICT (lang_key) DO UPDATE
 SET fi = EXCLUDED.fi,
     en = EXCLUDED.en,

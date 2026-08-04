@@ -335,3 +335,18 @@ func TestSetAuthenticatedSessionIdentityStoresResolvedUserRole(t *testing.T) {
 		t.Fatalf("user_role = %#v, want admin", got)
 	}
 }
+
+func TestLocalLoginFactorAttemptsAreEnvironmentIndependent(t *testing.T) {
+	t.Setenv("ENVIRONMENT_TYPE", "dev")
+	session := &sessions.Session{Values: map[interface{}]interface{}{}}
+	setPendingLoginState(session, 42, "alice", "fingerprint")
+
+	for expected := 4; expected >= 0; expected-- {
+		if got := localLoginFactorAttemptsRemaining(session, false); got != expected {
+			t.Fatalf("attempts remaining = %d, want %d", got, expected)
+		}
+	}
+	if got := localLoginFactorAttemptsRemaining(session, false); got != 0 {
+		t.Fatalf("attempts remaining after lock = %d, want 0", got)
+	}
+}

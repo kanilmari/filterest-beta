@@ -72,6 +72,32 @@ REQUIRED_APP_DATASET_FIELD_KEYS = frozenset(
     """.split()
 )
 
+REQUIRED_FIRST_RUN_KEYS = frozenset(
+    """
+    first_run_admin_title first_run_admin_description first_run_admin_submit
+    confirm_password first_run_username_invalid first_run_email_invalid
+    first_run_password_invalid first_run_password_mismatch
+    first_run_admin_creation_failed form_sections previous next back proceed
+    first_run_welcome first_run_section_settings first_run_section_credentials
+    first_run_settings_title first_run_settings_description
+    first_run_environment_legend environment_development
+    environment_development_description environment_testing
+    environment_testing_description environment_qa
+    environment_qa_description environment_production
+    environment_production_description first_run_verification_legend
+    verification_none verification_none_description verification_fixed_pin
+    verification_fixed_pin_description verification_authenticator
+    verification_authenticator_description verification_email
+    verification_email_description fixed_pin confirm_fixed_pin
+    authenticator_setup_key authenticator_confirmation_code
+    verification_fixed_pin_prompt verification_authenticator_prompt
+    verification_email_prompt first_run_environment_invalid
+    first_run_verification_invalid first_run_fixed_pin_invalid
+    first_run_fixed_pin_mismatch first_run_totp_invalid
+    first_run_postmark_required
+    """.split()
+)
+
 REQUIRED_METADATA_SEED_KEYS = frozenset(
     """
     id created updated admin_access_allowed admin_approved admin_user_id
@@ -145,6 +171,14 @@ def test_public_app_language_seed_does_not_duplicate_keys() -> None:
     assert len(lang_keys) == len(set(lang_keys))
 
 
+def test_first_run_has_complete_four_language_seed_rows() -> None:
+    rows_by_key = {row[0]: row for row in _seed_rows()}
+
+    assert REQUIRED_FIRST_RUN_KEYS <= rows_by_key.keys()
+    for lang_key in REQUIRED_FIRST_RUN_KEYS:
+        assert all(value.strip() for value in rows_by_key[lang_key][1:5])
+
+
 def test_four_public_app_datasets_have_complete_four_language_field_labels() -> None:
     rows_by_key = {row[0]: row for row in _seed_rows()}
 
@@ -158,6 +192,7 @@ def test_public_runtime_metadata_has_complete_four_language_seed_rows() -> None:
         row[0]: row
         for row in _seed_rows()
         if row[5] == "public fixture metadata seed"
+        and row[0] not in {"email", "password"}
     }
 
     assert len(REQUIRED_METADATA_SEED_KEYS) == 168

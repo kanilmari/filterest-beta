@@ -1,59 +1,30 @@
-// otp_mode_checker_test.go
-// Covers environment gating for the static OTP development fallback.
-// Bridges auth env configuration and the login/password-reset OTP entry points.
-// Exists to stop production-like configs from silently re-enabling static OTP.
+// Covers shared authentication environment and Postmark readiness helpers.
+// Exists to keep external-email aliases and explicit development detection stable.
 
 package auth
 
 import "testing"
 
-func TestIsStaticOTPDevMode_TrueOnlyInExplicitDevMode(t *testing.T) {
+func TestIsExplicitDevEnvironment(t *testing.T) {
 	t.Setenv("ENVIRONMENT_TYPE", "dev")
-	t.Setenv("LOGIN_OTP_CODE", "334726")
+	if !isExplicitDevEnvironment() {
+		t.Fatal("explicit dev environment was not recognized")
+	}
+	t.Setenv("ENVIRONMENT_TYPE", "prod")
+	if isExplicitDevEnvironment() {
+		t.Fatal("production environment was treated as development")
+	}
+}
+
+func TestPostmarkDeliveryConfigurationAcceptsCanonicalAndLegacyToken(t *testing.T) {
+	t.Setenv("POSTMARK_API_KEY", "canonical-key")
+	t.Setenv("POSTMARK_SERVER_TOKEN", "")
+	if !isPostmarkDeliveryConfiguredForAuth() {
+		t.Fatal("canonical Postmark token was not recognized")
+	}
 	t.Setenv("POSTMARK_API_KEY", "")
-
-	if !isStaticOTPDevMode() {
-		t.Fatal("expected static OTP dev mode to be enabled in explicit dev configuration")
-	}
-}
-
-func TestIsStaticOTPDevMode_FalseOutsideDevMode(t *testing.T) {
-	t.Setenv("ENVIRONMENT_TYPE", "production")
-	t.Setenv("LOGIN_OTP_CODE", "334726")
-	t.Setenv("POSTMARK_API_KEY", "")
-
-	if isStaticOTPDevMode() {
-		t.Fatal("expected static OTP dev mode to stay disabled outside explicit dev mode")
-	}
-}
-
-func TestIsStaticOTPDevMode_TrueWhenPostmarkConfiguredInDev(t *testing.T) {
-	t.Setenv("ENVIRONMENT_TYPE", "dev")
-	t.Setenv("LOGIN_OTP_CODE", "334726")
-	t.Setenv("POSTMARK_API_KEY", "postmark-live-key")
-
-	if !isStaticOTPDevMode() {
-		t.Fatal("expected static OTP dev mode to stay enabled in explicit dev mode even when Postmark is configured")
-	}
-}
-
-func TestIsStaticOTPDevMode_TrueWhenLegacyPostmarkConfiguredInDev(t *testing.T) {
-	t.Setenv("ENVIRONMENT_TYPE", "dev")
-	t.Setenv("LOGIN_OTP_CODE", "334726")
-	t.Setenv("POSTMARK_API_KEY", "")
-	t.Setenv("POSTMARK_SERVER_TOKEN", "legacy-live-key")
-
-	if !isStaticOTPDevMode() {
-		t.Fatal("expected static OTP dev mode to stay enabled in explicit dev mode even when legacy Postmark config is present")
-	}
-}
-
-func TestIsStaticOTPDevMode_FalseWithoutStaticCode(t *testing.T) {
-	t.Setenv("ENVIRONMENT_TYPE", "dev")
-	t.Setenv("LOGIN_OTP_CODE", "")
-	t.Setenv("POSTMARK_API_KEY", "postmark-live-key")
-
-	if isStaticOTPDevMode() {
-		t.Fatal("expected static OTP dev mode to stay disabled when LOGIN_OTP_CODE is empty")
+	t.Setenv("POSTMARK_SERVER_TOKEN", "legacy-key")
+	if !isPostmarkDeliveryConfiguredForAuth() {
+		t.Fatal("legacy Postmark token was not recognized")
 	}
 }

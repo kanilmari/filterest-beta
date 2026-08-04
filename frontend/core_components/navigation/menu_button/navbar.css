@@ -729,10 +729,10 @@ body.light-mode #nav_tree .tree-current-project-badge {
 }
 
 /* ============================================
-   DEV Environment Badge
-   Shows orange "DEV" label on menu buttons in development
+   Environment Badge
+   Shows the user-selected non-production label on menu buttons
    ============================================ */
-.dev-environment-badge {
+.environment-badge {
     position: absolute;
     top: -6px;
     right: -6px;
@@ -746,6 +746,14 @@ body.light-mode #nav_tree .tree-current-project-badge {
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.3);
     pointer-events: none;
     z-index: 1;
+}
+
+.environment-badge--test {
+  right: -3px;
+}
+
+.environment-badge--qa {
+  right: 3px;
 }
 
 /* Removed duplicate hover rule that was overriding the specific one */

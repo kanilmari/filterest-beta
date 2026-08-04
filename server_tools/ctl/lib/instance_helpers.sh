@@ -210,7 +210,7 @@ validate_docker_runtime_identity() {
 # Between the instance env file, the root dev env, and docker compose it keeps
 # local derivative containers aligned with the intended dev/prod auth behavior.
 # Why: local instance refreshes should honor ENVIRONMENT_TYPE for the binary
-# build, and dev instances need LOGIN_OTP_CODE when the root dev env provides it.
+# build, and reserved dev fixtures reuse LOGIN_OTP_CODE when the root dev env provides it.
 # ------------------------------------------------------------------------------
 prepare_instance_compose_env() {
     local env_file="$1"

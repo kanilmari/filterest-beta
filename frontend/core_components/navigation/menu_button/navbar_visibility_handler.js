@@ -304,8 +304,8 @@ export function initNavbar() {
       isActive: () => !navbar.classList.contains("collapsed"),
   });
 
-  // Add DEV badge if in development environment
-  addDevBadgeIfNeeded();
+  // Add the user-selected non-production environment badge.
+  addEnvironmentBadgeIfNeeded();
 }
 
 // Funktio, joka tarkistaa ruudun leveyden ja päivittää navigaatiopalkin
@@ -331,12 +331,14 @@ function checkWindowWidth() {
 }
 
 /**
- * Adds DEV badge to menu buttons if running in development environment.
- * Uses app-env meta tag injected by backend template.
+ * Adds the user-facing DEV/TEST/QA badge selected during First Run.
+ * Uses a display-only meta tag; app-env remains the runtime capability boundary.
  */
-function addDevBadgeIfNeeded() {
-  const envType = document.querySelector('meta[name="app-env"]')?.content;
-  if (envType !== 'dev') {
+export function addEnvironmentBadgeIfNeeded() {
+  const environment = document.querySelector('meta[name="installation-environment"]')?.content;
+  const labels = { dev: 'DEV', test: 'TEST', qa: 'QA' };
+  const label = labels[environment] || '';
+  if (!label) {
     return;
   }
 
@@ -344,10 +346,10 @@ function addDevBadgeIfNeeded() {
   const hideButton = document.getElementById('hideMenuButton');
 
   [showButton, hideButton].forEach(button => {
-    if (button && !button.querySelector('.dev-environment-badge')) {
+    if (button && !button.querySelector('.environment-badge')) {
       const badge = document.createElement('span');
-      badge.className = 'dev-environment-badge';
-      badge.textContent = 'DEV';
+      badge.className = `environment-badge environment-badge--${environment}`;
+      badge.textContent = label;
       button.appendChild(badge);
     }
   });

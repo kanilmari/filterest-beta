@@ -25,14 +25,19 @@ local database as durable source changes.
 
 The public bootstrap seed creates fixture user rows for smoke testing and UI
 metadata, but it does not ship a reusable admin password. On first browser
-access, Filterest opens a one-time form where the installation owner chooses
-the administrator username, email address, and password. The email address is
-stored as the account's verification and notification address.
+access, Filterest opens a two-section form where the installation owner first
+chooses the visible environment purpose and sign-in verification method, then
+creates the administrator username, email address, and password. Email
+verification uses Postmark and requires a separately created free Postmark
+account; password-only, fixed-PIN, and standard TOTP authenticator methods do
+not require an email delivery provider for sign-in.
 
 The server-owned `first_run` setting and absence of a login-ready admin must
-both be true before the form is available. The account, hashed password,
-administrator membership, and transition of `first_run` to false are committed
-in one database transaction. Existing installations and completed setups fail
+both be true before the form is available. The environment purpose, selected
+user-owned verification factor, account, hashed password, administrator
+membership, and transition of `first_run` to false are committed in one
+database transaction. The visible DEV/TEST/QA purpose cannot downgrade a
+production-locked binary. Existing installations and completed setups fail
 closed and redirect to normal login.
 
 The generated-credential helper remains available only to the isolated,

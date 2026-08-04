@@ -8,31 +8,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	backend "easelect/backend/core_components"
 	dtt_system_table_folders "easelect/backend/core_components/dynamic_table_tools/dtt_table_folders"
-	"easelect/backend/core_components/migrations"
 	"easelect/backend/core_components/system_table_tools"
 )
 
 // RunOptionalTasks executes optional startup tasks.
 func RunOptionalTasks(exeDir string) {
 	projectRoot := resolveProjectRoot(exeDir)
-
-	// SQL migrations are gated by ENABLE_SQL_MIGRATIONS env var.
-	// Default is OFF — migrations should only run when explicitly enabled.
-	// Set ENABLE_SQL_MIGRATIONS=true in .env or docker-compose to enable.
-	enableMigrations := strings.ToLower(os.Getenv("ENABLE_SQL_MIGRATIONS"))
-	if enableMigrations == "true" || enableMigrations == "1" {
-		log.Println("[MIGRATIONS] ENABLE_SQL_MIGRATIONS=true — running SQL migrations...")
-		migDir := filepath.Join(projectRoot, "server_tools", "migrations")
-		if err := migrations.RunMigrations(backend.Db, migDir); err != nil {
-			log.Printf("\033[31merror: [MIGRATIONS] migration failed: %v\033[0m", err)
-		}
-	} else {
-		log.Println("[MIGRATIONS] SQL migrations disabled (ENABLE_SQL_MIGRATIONS not set or false). Use API routes to manage schema.")
-	}
 
 	// Heal an inconsistent bootstrap (anonymous browsing on, but guest has no
 	// dataset-read rights) before serving requests, so a fresh machine does not

@@ -136,4 +136,26 @@ describe("navbar_visibility_handler", () => {
 
         expect(navbar.classList.contains("navbar-collapse-complete")).toBe(true);
     });
+
+    test.each([
+        ["dev", "DEV", "environment-badge--dev"],
+        ["test", "TEST", "environment-badge--test"],
+        ["qa", "QA", "environment-badge--qa"],
+    ])("adds the selected %s environment badge once", async (environment, label, modifier) => {
+        document.head.innerHTML = `<meta name="installation-environment" content="${environment}">`;
+        const { addEnvironmentBadgeIfNeeded } = await loadModule();
+        addEnvironmentBadgeIfNeeded();
+        addEnvironmentBadgeIfNeeded();
+        const badges = document.querySelectorAll(".environment-badge");
+        expect(badges).toHaveLength(2);
+        expect(badges[0].textContent).toBe(label);
+        expect(badges[0].classList.contains(modifier)).toBe(true);
+    });
+
+    test("does not add an environment badge in production", async () => {
+        document.head.innerHTML = '<meta name="installation-environment" content="prod">';
+        const { addEnvironmentBadgeIfNeeded } = await loadModule();
+        addEnvironmentBadgeIfNeeded();
+        expect(document.querySelector(".environment-badge")).toBeNull();
+    });
 });

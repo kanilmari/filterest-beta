@@ -15,21 +15,26 @@ import (
 	"html/template"
 	"net/http"
 	"net/mail"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
+
+	productidentity "easelect/backend/core_components/product_identity"
 )
 
 const (
-	firstRunConfigKey    = "first_run"
-	firstRunCreationSpec = "first-run administrator browser setup"
-	minimumAdminPassword = 12
-	maximumAdminPassword = 128
-	maximumAdminUsername = 64
+	firstRunConfigKey                = "first_run"
+	installationEnvironmentConfigKey = "installation_environment"
+	firstRunCreationSpec             = "first-run administrator browser setup"
+	minimumAdminPassword             = 12
+	maximumAdminPassword             = 128
+	maximumAdminUsername             = 64
 )
 
 var (
@@ -41,17 +46,26 @@ var (
 )
 
 type firstRunAdminInput struct {
-	Username        string
-	Email           string
-	Password        string
-	ConfirmPassword string
+	Username           string
+	Email              string
+	Password           string
+	ConfirmPassword    string
+	Environment        string
+	VerificationMethod string
+	FixedPIN           string
+	ConfirmFixedPIN    string
+	TOTPCode           string
+	TOTPSecret         string
 }
 
 type firstRunAdminErrors struct {
-	Username string
-	Email    string
-	Password string
-	General  string
+	Username     string
+	Email        string
+	Password     string
+	Environment  string
+	Verification string
+	Factor       string
+	General      string
 }
 
 // FirstRunAdminHandler serves and submits the one-time administrator form.
@@ -91,10 +105,15 @@ func handleFirstRunAdminPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	input := firstRunAdminInput{
-		Username:        strings.TrimSpace(r.FormValue("username")),
-		Email:           strings.TrimSpace(r.FormValue("email")),
-		Password:        r.FormValue("password"),
-		ConfirmPassword: r.FormValue("confirm_password"),
+		Username:           strings.TrimSpace(r.FormValue("username")),
+		Email:              strings.TrimSpace(r.FormValue("email")),
+		Password:           r.FormValue("password"),
+		ConfirmPassword:    r.FormValue("confirm_password"),
+		Environment:        strings.ToLower(strings.TrimSpace(r.FormValue("installation_environment"))),
+		VerificationMethod: strings.ToLower(strings.TrimSpace(r.FormValue("verification_method"))),
+		FixedPIN:           strings.TrimSpace(r.FormValue("fixed_pin")),
+		ConfirmFixedPIN:    strings.TrimSpace(r.FormValue("confirm_fixed_pin")),
+		TOTPCode:           strings.TrimSpace(r.FormValue("totp_code")),
 	}
 
 	session, err := e_sessions.GetOrCreateSession(w, r)
@@ -108,6 +127,7 @@ func handleFirstRunAdminPost(w http.ResponseWriter, r *http.Request) {
 		showFirstRunAdminForm(w, r, input, firstRunAdminErrors{General: "csrf_token_invalid"}, http.StatusForbidden)
 		return
 	}
+	input.TOTPSecret, _ = session.Values["first_run_totp_secret"].(string)
 
 	validationErrors := validateFirstRunAdminInput(input)
 	if validationErrors != (firstRunAdminErrors{}) {
@@ -130,11 +150,44 @@ func handleFirstRunAdminPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	delete(session.Values, "first_run_totp_secret")
+	if err = saveSession(w, r, session); err != nil {
+		logging.Errorf("[FirstRunAdminHandler] failed to clear enrollment secret from session: %v", err)
+		httpresponse.RespondWithError(w, http.StatusInternalServerError, "session_error")
+		return
+	}
+
 	http.Redirect(w, r, "/login?first-run-complete=1", http.StatusSeeOther)
 }
 
 func validateFirstRunAdminInput(input firstRunAdminInput) firstRunAdminErrors {
 	var validation firstRunAdminErrors
+	switch input.Environment {
+	case "dev", "test", "qa", "prod":
+	default:
+		validation.Environment = "first_run_environment_invalid"
+	}
+	method, methodErr := parseLoginVerificationMethod(input.VerificationMethod)
+	if methodErr != nil {
+		validation.Verification = "first_run_verification_invalid"
+	} else {
+		switch method {
+		case verificationFixedPIN:
+			if !isValidFixedPIN(input.FixedPIN) {
+				validation.Factor = "first_run_fixed_pin_invalid"
+			} else if input.FixedPIN != input.ConfirmFixedPIN {
+				validation.Factor = "first_run_fixed_pin_mismatch"
+			}
+		case verificationTOTP:
+			if input.TOTPSecret == "" || !verifyTOTPAt(input.TOTPSecret, input.TOTPCode, time.Now()) {
+				validation.Factor = "first_run_totp_invalid"
+			}
+		case verificationEmail:
+			if !isPostmarkDeliveryConfiguredForAuth() || firstConfiguredAuthEnv("EMAIL_FROM_ADDRESS", "POSTMARK_FROM_ADDRESS") == "" {
+				validation.Factor = "first_run_postmark_required"
+			}
+		}
+	}
 	if len(input.Username) < 3 || len(input.Username) > maximumAdminUsername || !firstRunUsernamePattern.MatchString(input.Username) {
 		validation.Username = "first_run_username_invalid"
 	}
@@ -183,6 +236,21 @@ func createFirstRunAdmin(ctx context.Context, db *sql.DB, input firstRunAdminInp
 	if err != nil {
 		return err
 	}
+	method, err := parseLoginVerificationMethod(input.VerificationMethod)
+	if err != nil {
+		return err
+	}
+	var fixedPINHash string
+	if method == verificationFixedPIN {
+		fixedPINHash, err = hashFixedPIN(input.FixedPIN)
+		if err != nil {
+			return err
+		}
+	}
+	var totpSecret string
+	if method == verificationTOTP {
+		totpSecret = normalizeTOTPSecret(input.TOTPSecret)
+	}
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -224,6 +292,23 @@ func createFirstRunAdmin(ctx context.Context, db *sql.DB, input firstRunAdminInp
 		return err
 	}
 
+	result, err := tx.ExecContext(ctx, `
+		UPDATE system_config
+		SET text_value = $1,
+		    json_value = jsonb_build_object('value', $1::text),
+		    updated = NOW()
+		WHERE key = $2
+	`, input.Environment, installationEnvironmentConfigKey)
+	if err != nil {
+		return err
+	}
+	if rows, rowsErr := result.RowsAffected(); rowsErr != nil || rows != 1 {
+		if rowsErr != nil {
+			return rowsErr
+		}
+		return errors.New("installation environment config is unavailable")
+	}
+
 	err = tx.QueryRowContext(ctx, `SELECT 1 FROM system_users WHERE lower(username) = lower($1) LIMIT 1`, input.Username).Scan(&existing)
 	if err == nil {
 		return errFirstRunUsernameTaken
@@ -263,12 +348,14 @@ func createFirstRunAdmin(ctx context.Context, db *sql.DB, input firstRunAdminInp
 		return err
 	}
 	if _, err = tx.ExecContext(ctx, `
-		INSERT INTO restricted.users_restricted (id, password, email)
-		VALUES ($1, $2, $3)
-	`, userID, string(hashedPassword), input.Email); err != nil {
+		INSERT INTO restricted.users_restricted (
+			id, password, email, login_verification_method, fixed_pin_hash, totp_secret
+		)
+		VALUES ($1, $2, $3, $4, NULLIF($5, ''), NULLIF($6, ''))
+	`, userID, string(hashedPassword), input.Email, string(method), fixedPINHash, totpSecret); err != nil {
 		return err
 	}
-	result, err := tx.ExecContext(ctx, `
+	result, err = tx.ExecContext(ctx, `
 		UPDATE system_config
 		SET boolean_value = FALSE,
 		    json_value = jsonb_set(COALESCE(json_value, '{}'::jsonb), '{value}', 'false'::jsonb, TRUE),
@@ -296,9 +383,23 @@ func showFirstRunAdminForm(w http.ResponseWriter, r *http.Request, input firstRu
 	}
 
 	csrfToken, _ := session.Values["csrf_token"].(string)
+	sessionChanged := false
 	if csrfToken == "" {
 		csrfToken = uuid.NewString()
 		session.Values["csrf_token"] = csrfToken
+		sessionChanged = true
+	}
+	totpSecret, _ := session.Values["first_run_totp_secret"].(string)
+	if totpSecret == "" {
+		totpSecret, err = generateTOTPSecret()
+		if err != nil {
+			httpresponse.RespondWithError(w, http.StatusInternalServerError, "Internal server error")
+			return
+		}
+		session.Values["first_run_totp_secret"] = totpSecret
+		sessionChanged = true
+	}
+	if sessionChanged {
 		if err = saveSession(w, r, session); err != nil {
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "Internal server error")
 			return
@@ -317,21 +418,57 @@ func showFirstRunAdminForm(w http.ResponseWriter, r *http.Request, input firstRu
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
+	if input.Environment == "" {
+		if isExplicitDevEnvironment() {
+			input.Environment = "dev"
+		} else {
+			input.Environment = "prod"
+		}
+	}
+	if input.VerificationMethod == "" {
+		input.VerificationMethod = string(verificationNone)
+	}
+	initialSection := "settings"
+	if errs.Username != "" || errs.Email != "" || errs.Password != "" || errs.General != "" {
+		initialSection = "credentials"
+	}
 	data := struct {
-		Username    string
-		Email       string
-		UsernameErr string
-		EmailErr    string
-		PasswordErr string
-		GeneralErr  string
-		CSRFToken   string
+		Username           string
+		Email              string
+		ApplicationName    string
+		Environment        string
+		VerificationMethod string
+		TOTPSecret         string
+		InitialSection     string
+		UsernameErr        string
+		EmailErr           string
+		PasswordErr        string
+		EnvironmentErr     string
+		VerificationErr    string
+		FactorErr          string
+		GeneralErr         string
+		CSRFToken          string
 	}{
-		Username: input.Username, Email: input.Email,
+		Username: input.Username, Email: input.Email, ApplicationName: firstRunApplicationName(),
+		Environment: input.Environment, VerificationMethod: input.VerificationMethod,
+		TOTPSecret: totpSecret, InitialSection: initialSection,
 		UsernameErr: errs.Username, EmailErr: errs.Email,
-		PasswordErr: errs.Password, GeneralErr: errs.General,
+		PasswordErr: errs.Password, EnvironmentErr: errs.Environment,
+		VerificationErr: errs.Verification, FactorErr: errs.Factor, GeneralErr: errs.General,
 		CSRFToken: csrfToken,
 	}
 	if err = tmpl.Execute(w, data); err != nil {
 		logging.Errorf("[showFirstRunAdminForm] template execution failed: %v", err)
 	}
+}
+
+func firstRunApplicationName() string {
+	if siteName := strings.TrimSpace(os.Getenv("SITE_NAME")); siteName != "" {
+		return siteName
+	}
+	identity := productidentity.DetectFromWorkingDirectory()
+	if strings.TrimSpace(identity.Name) != "" {
+		return identity.Name
+	}
+	return "Easelect"
 }

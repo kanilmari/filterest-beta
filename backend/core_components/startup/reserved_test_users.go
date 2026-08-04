@@ -230,11 +230,26 @@ func ensureReservedTestUserCredentials(confidentialStore reservedTestUserExecuto
 	if err != nil {
 		return fmt.Errorf("hash reserved test password: %w", err)
 	}
+	verificationMethod := "none"
+	fixedPINHash := ""
+	if fixedPIN := strings.TrimSpace(os.Getenv("LOGIN_OTP_CODE")); isReservedTestFixedPIN(fixedPIN) {
+		hashedPIN, hashErr := bcrypt.GenerateFromPassword([]byte(fixedPIN), bcrypt.DefaultCost)
+		if hashErr != nil {
+			return fmt.Errorf("hash reserved test fixed PIN: %w", hashErr)
+		}
+		verificationMethod = "fixed_pin"
+		fixedPINHash = string(hashedPIN)
+	}
 
 	result, err := confidentialStore.Exec(
-		`UPDATE restricted.users_restricted SET password = $1, email = $2 WHERE id = $3`,
+		`UPDATE restricted.users_restricted
+		 SET password = $1, email = $2, login_verification_method = $3,
+		     fixed_pin_hash = NULLIF($4, ''), totp_secret = NULL
+		 WHERE id = $5`,
 		string(hashedPassword),
 		fixture.email,
+		verificationMethod,
+		fixedPINHash,
 		userID,
 	)
 	if err != nil {
@@ -249,14 +264,25 @@ func ensureReservedTestUserCredentials(confidentialStore reservedTestUserExecuto
 	}
 
 	if _, err := confidentialStore.Exec(
-		`INSERT INTO restricted.users_restricted (id, password, email) VALUES ($1, $2, $3)`,
+		`INSERT INTO restricted.users_restricted (
+			id, password, email, login_verification_method, fixed_pin_hash
+		) VALUES ($1, $2, $3, $4, NULLIF($5, ''))`,
 		userID,
 		string(hashedPassword),
 		fixture.email,
+		verificationMethod,
+		fixedPINHash,
 	); err != nil {
 		return fmt.Errorf("insert restricted credentials: %w", err)
 	}
 	return nil
+}
+
+func isReservedTestFixedPIN(value string) bool {
+	if len(value) < 4 || len(value) > 8 {
+		return false
+	}
+	return strings.Trim(value, "0123456789") == ""
 }
 
 func reservedTestPassword(envName string) string {

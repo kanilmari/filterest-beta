@@ -90,12 +90,12 @@ PASS
 - `public.riskienhallinta_tiketit_relation`: 26
 - `public.system_about`: 1
 - `public.system_column_details`: 29
-- `public.system_config`: 8
+- `public.system_config`: 9
 - `public.system_db_tables`: 37
 - `public.system_db_version`: 1
 - `public.system_functions`: 15
 - `public.system_group_table_func_rights`: 16
-- `public.system_lang_keys`: 425
+- `public.system_lang_keys`: 466
 - `public.system_table_folders`: 14
 - `public.system_user_group_memberships`: 3
 - `public.system_user_groups`: 3

@@ -275,16 +275,25 @@ function setupFormInteractions(form) {
                 otpMessage.setAttribute("role", "status");
                 otpMessage.setAttribute("aria-live", "polite");
                 otpMessage.setAttribute("aria-atomic", "true");
-                const emailInfo = data.masked_email === 'dev-mode' ? 'DEV-MODE' : data.masked_email;
-                otpMessage.textContent = `${getTranslationForKey("otp_sent") || "Verification code sent"}: ${emailInfo}`;
+                if (data.verification_method === 'fixed_pin') {
+                    otpMessage.textContent = getTranslationForKey("verification_fixed_pin_prompt") || "Enter your fixed PIN.";
+                } else if (data.verification_method === 'totp') {
+                    otpMessage.textContent = getTranslationForKey("verification_authenticator_prompt") || "Enter the current code from your authenticator app.";
+                } else {
+                    otpMessage.textContent = `${getTranslationForKey("otp_sent") || "Verification code sent"}: ${data.masked_email || ''}`;
+                }
             }
-            if (resendLink) resendLink.style.display = 'inline';
+            if (resendLink) resendLink.style.display = data.verification_method === 'email' ? 'inline' : 'none';
             if (submitBtn) {
                 submitBtn.value = getTranslationForKey("verify") || 'Verify';
                 submitBtn.disabled = false;
             }
             const otpInput = form.querySelector("#otp");
-            if (otpInput) otpInput.focus();
+            if (otpInput) {
+                otpInput.inputMode = data.verification_method === 'email' ? 'text' : 'numeric';
+                otpInput.maxLength = data.verification_method === 'fixed_pin' ? 8 : data.verification_method === 'totp' ? 6 : 32;
+                otpInput.focus();
+            }
             clearFormError(form);
             return;
         }

@@ -30,12 +30,13 @@ import (
 )
 
 type indexTemplateData struct {
-	CSPNonce          string
-	UseMinifiedAssets bool
-	IsDev             bool
-	SiteName          string
-	ProductName       string
-	ProjectLogoPath   string
+	CSPNonce                string
+	UseMinifiedAssets       bool
+	IsDev                   bool
+	InstallationEnvironment string
+	SiteName                string
+	ProductName             string
+	ProjectLogoPath         string
 	// SEO / Open Graph fields (populated by resolvePageMeta)
 	PageTitle       string
 	MetaDescription string
@@ -82,6 +83,36 @@ func getProjectLogoPath() string {
 	return ""
 }
 
+// getInstallationEnvironment returns the user-facing purpose selected during First Run.
+// The process capability still comes from ENVIRONMENT_TYPE/buildEnv and is never downgraded here.
+func getInstallationEnvironment() string {
+	runtimeEnvironment := os.Getenv("ENVIRONMENT_TYPE")
+	if backend.Db == nil {
+		return resolveInstallationEnvironment("", runtimeEnvironment)
+	}
+	var environment string
+	err := backend.Db.QueryRow(`
+		SELECT COALESCE(NULLIF(text_value, ''), json_value->>'value', '')
+		FROM system_config
+		WHERE key = 'installation_environment'
+    `).Scan(&environment)
+	if err != nil {
+		return resolveInstallationEnvironment("", runtimeEnvironment)
+	}
+	return resolveInstallationEnvironment(environment, runtimeEnvironment)
+}
+
+func resolveInstallationEnvironment(storedEnvironment, runtimeEnvironment string) string {
+	switch strings.ToLower(strings.TrimSpace(storedEnvironment)) {
+	case "dev", "test", "qa", "prod":
+		return strings.ToLower(strings.TrimSpace(storedEnvironment))
+	}
+	if strings.EqualFold(strings.TrimSpace(runtimeEnvironment), "dev") {
+		return "dev"
+	}
+	return "prod"
+}
+
 func tablesHandler(w http.ResponseWriter, r *http.Request, loginToBrowse bool) {
 	log.Printf("tablesHandler: user requested URL: %s", r.URL.String())
 	setAuthShellNoStoreHeaders(w, loginToBrowse)
@@ -112,7 +143,8 @@ func tablesHandler(w http.ResponseWriter, r *http.Request, loginToBrowse bool) {
 	noIndex := !isIndexingAllowed()
 	assetPaths := frontendassets.Resolve(localFrontendDir, useMinified)
 	data := indexTemplateData{
-		CSPNonce: nonce, UseMinifiedAssets: useMinified, IsDev: isDev, SiteName: siteName,
+		CSPNonce: nonce, UseMinifiedAssets: useMinified, IsDev: isDev,
+		InstallationEnvironment: getInstallationEnvironment(), SiteName: siteName,
 		ProductName:     getSiteName(),
 		ProjectLogoPath: getProjectLogoPath(),
 		PageTitle:       meta.PageTitle, MetaDescription: meta.MetaDescription,
@@ -152,7 +184,8 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	meta := resolvePageMeta(r)
 	assetPaths := frontendassets.Resolve(localFrontendDir, useMinified)
 	data := indexTemplateData{
-		CSPNonce: nonce, UseMinifiedAssets: useMinified, SiteName: meta.SiteName,
+		CSPNonce: nonce, UseMinifiedAssets: useMinified,
+		InstallationEnvironment: getInstallationEnvironment(), SiteName: meta.SiteName,
 		ProductName:     getSiteName(),
 		ProjectLogoPath: getProjectLogoPath(),
 		PageTitle:       meta.PageTitle, MetaDescription: meta.MetaDescription,
@@ -422,7 +455,8 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		meta := resolvePageMeta(r)
 		assetPaths := frontendassets.Resolve(localFrontendDir, useMinified)
 		data := indexTemplateData{
-			CSPNonce: nonce, UseMinifiedAssets: useMinified, SiteName: meta.SiteName,
+			CSPNonce: nonce, UseMinifiedAssets: useMinified,
+			InstallationEnvironment: getInstallationEnvironment(), SiteName: meta.SiteName,
 			ProductName:     getSiteName(),
 			ProjectLogoPath: getProjectLogoPath(),
 			PageTitle:       meta.PageTitle, MetaDescription: meta.MetaDescription,

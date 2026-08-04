@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (data.otp_required) {
             // Transition to OTP phase
             loginPhase = 'otp';
-            showOTPPhase(data.masked_email);
+            showOTPPhase(data);
             if (submitBtn) submitBtn.disabled = false;
             return;
         }
@@ -239,7 +239,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (submitBtn) submitBtn.disabled = false;
     }
 
-    function showOTPPhase(maskedEmail) {
+    function showOTPPhase(data) {
         // Hide credentials section
         const usernameLabel = document.querySelector('label[for="username"]');
         const usernameInput = document.getElementById("username");
@@ -262,15 +262,28 @@ document.addEventListener("DOMContentLoaded", async () => {
             otpMessage.setAttribute("role", "status");
             otpMessage.setAttribute("aria-live", "polite");
             otpMessage.setAttribute("aria-atomic", "true");
-            const emailInfo = maskedEmail === 'dev-mode' ? 'DEV-MODE' : maskedEmail;
-            otpMessage.textContent = `Vahvistuskoodi lähetetty: ${emailInfo}`;
+            const method = data.verification_method;
+            if (method === 'fixed_pin') {
+                otpMessage.dataset.langKey = 'verification_fixed_pin_prompt';
+                otpMessage.textContent = 'Enter your fixed PIN.';
+            } else if (method === 'totp') {
+                otpMessage.dataset.langKey = 'verification_authenticator_prompt';
+                otpMessage.textContent = 'Enter the current code from your authenticator app.';
+            } else {
+                otpMessage.dataset.langKey = `verification_email_prompt+${data.masked_email || ''}`;
+                otpMessage.textContent = `Verification code sent: ${data.masked_email || ''}`;
+            }
         }
-        if (resendLink) resendLink.style.display = 'inline';
+        if (resendLink) resendLink.style.display = data.verification_method === 'email' ? 'inline' : 'none';
         if (submitBtn) submitBtn.value = 'Vahvista';
 
         // Focus OTP input
         const otpInput = document.getElementById("otp");
-        if (otpInput) otpInput.focus();
+        if (otpInput) {
+            otpInput.inputMode = data.verification_method === 'email' ? 'text' : 'numeric';
+            otpInput.maxLength = data.verification_method === 'fixed_pin' ? 8 : data.verification_method === 'totp' ? 6 : 32;
+            otpInput.focus();
+        }
 
         // Clear any previous error
         clearLoginError();

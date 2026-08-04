@@ -89,8 +89,8 @@ run_setup_before_first_start() {
     profile="$(installed_profile)"
     [[ -n "$profile" ]] || profile="$(completed_setup_profile)"
 
-    printf 'Filterest setup has not completed in this checkout.\n'
-    printf 'Starting the guided setup before the application...\n\n'
+    printf 'Welcome to Filterest!\n'
+    printf "Let's complete the guided setup, then start the application.\n\n"
     if [[ -n "$profile" ]]; then
         exec "$PROJECT_ROOT/server_tools/install_filterest.sh" --profile "$profile"
     fi

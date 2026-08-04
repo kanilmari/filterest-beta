@@ -25,6 +25,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const localLoginFactorMaxAttempts = 5
+
 func LoginAPIHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		httpresponse.RespondWithError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -89,7 +91,7 @@ func handleLoginJSON(w http.ResponseWriter, r *http.Request) {
 	handleLoginCredentials(w, r, session, req)
 }
 
-// handleLoginCredentials verifies username+password and sends OTP.
+// handleLoginCredentials verifies username+password and follows the user's configured factor.
 func handleLoginCredentials(w http.ResponseWriter, r *http.Request, session *sessions.Session, req loginJSONRequest) {
 	if req.Username == "" || req.Password == "" {
 		respondJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "username_and_password_required"})
@@ -122,23 +124,36 @@ func handleLoginCredentials(w http.ResponseWriter, r *http.Request, session *ses
 	}
 	log.Printf("[login-json] credentials OK for user %s (id=%d) 🔑", req.Username, userID)
 
-	// Dev-mode fallback: static OTP code from env var
-	if isStaticOTPDevMode() {
-		log.Printf("[login-json] DEV-MODE: using static LOGIN_OTP_CODE for user %d", userID)
+	verification, err := loadLoginVerificationRecord(userID)
+	if err != nil {
+		logging.Errorf("[login-json] failed to load login verification for user %d: %v", userID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "verification_method_unavailable"})
+		return
+	}
+
+	switch verification.Method {
+	case verificationNone:
+		completeLoginJSON(w, r, session, userID, req.Username, req.Fingerprint)
+		return
+	case verificationFixedPIN, verificationTOTP:
 		setPendingLoginState(session, userID, req.Username, req.Fingerprint)
 		if err = saveSession(w, r, session); err != nil {
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "session_error"})
 			return
 		}
 		respondJSON(w, http.StatusOK, map[string]interface{}{
-			"otp_required": true,
-			"masked_email": "dev-mode",
+			"otp_required":        true,
+			"verification_method": string(verification.Method),
 		})
+		return
+	case verificationEmail:
+		// Continue below through the rate-limited email challenge pipeline.
+	default:
+		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "verification_method_unavailable"})
 		return
 	}
 
-	// Production: generate and send OTP via email
-	// Rate limit OTP requests
+	// Email verification: generate and send a rate-limited one-time code.
 	reservation, err := otp.ReserveSend(userID, otp.ProfileLogin)
 	if err != nil {
 		logging.Errorf("[login-json] rate limit check error: %v", err)
@@ -152,19 +167,14 @@ func handleLoginCredentials(w http.ResponseWriter, r *http.Request, session *ses
 		return
 	}
 
-	// Get user email
-	var userEmail string
-	err = backend.DbConfidential.QueryRow(
-		`SELECT email FROM restricted.users_restricted WHERE id = $1`, userID,
-	).Scan(&userEmail)
-	if err != nil || userEmail == "" {
-		logging.Errorf("[login-json] failed to fetch email for user %d: %v", userID, err)
+	if verification.Email == "" {
+		logging.Errorf("[login-json] no email configured for user %d", userID)
 		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "email_not_found"})
 		return
 	}
 
 	// Create OTP (5 minutes TTL)
-	code, err := otp.CreateOTP(userID, otp.ProfileLogin, userEmail)
+	code, err := otp.CreateOTP(userID, otp.ProfileLogin, verification.Email)
 	if err != nil {
 		logging.Errorf("[login-json] OTP creation failed: %v", err)
 		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "otp_creation_failed"})
@@ -173,7 +183,7 @@ func handleLoginCredentials(w http.ResponseWriter, r *http.Request, session *ses
 
 	// Send OTP email
 	formattedCode := otp.FormatCode(code)
-	if err = email.SendOTPEmail(userEmail, formattedCode, "login"); err != nil {
+	if err = email.SendOTPEmail(verification.Email, formattedCode, "login"); err != nil {
 		logging.Errorf("[login-json] email send failed: %v", err)
 		if revokeErr := otp.RevokeOTP(userID, otp.ProfileLogin, code); revokeErr != nil {
 			logging.Errorf("[login-json] failed to revoke undelivered OTP: %v", revokeErr)
@@ -189,8 +199,9 @@ func handleLoginCredentials(w http.ResponseWriter, r *http.Request, session *ses
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"otp_required": true,
-		"masked_email": maskEmail(userEmail),
+		"otp_required":        true,
+		"verification_method": string(verificationEmail),
+		"masked_email":        maskEmail(verification.Email),
 	})
 }
 
@@ -204,39 +215,60 @@ func handleLoginOTPVerify(w http.ResponseWriter, r *http.Request, session *sessi
 	username, _ := session.Values["otp_pending_username"].(string)
 	fingerprint, _ := session.Values["otp_pending_fingerprint"].(string)
 
-	// Dev-mode: verify against static LOGIN_OTP_CODE
-	if isStaticOTPDevMode() {
-		if req.OTPCode != os.Getenv("LOGIN_OTP_CODE") {
-			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
-				"error":              "wrong_otp",
-				"attempts_remaining": -1,
-			})
-			return
-		}
-		log.Printf("[login-json] DEV-MODE: static OTP verified for user %d 🔐", userID)
-	} else {
-		// Production: verify against DB
+	verificationRecord, err := loadLoginVerificationRecord(userID)
+	if err != nil {
+		logging.Errorf("[login-json] failed to load pending verification for user %d: %v", userID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "verification_method_unavailable"})
+		return
+	}
+
+	verified := false
+	attemptsRemaining := -1
+	switch verificationRecord.Method {
+	case verificationFixedPIN:
+		verified = verifyFixedPIN(verificationRecord.PINHash, req.OTPCode)
+		attemptsRemaining = localLoginFactorAttemptsRemaining(session, verified)
+	case verificationTOTP:
+		verified = verifyTOTPAt(verificationRecord.TOTPSecret, req.OTPCode, time.Now())
+		attemptsRemaining = localLoginFactorAttemptsRemaining(session, verified)
+	case verificationEmail:
 		verification, err := otp.VerifyOTP(userID, otp.ProfileLogin, req.OTPCode)
 		if err != nil {
 			logging.Errorf("[login-json] OTP verify error: %v", err)
 			respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "otp_verify_error"})
 			return
 		}
-		if !verification.IsVerified() {
-			respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
-				"error":              "wrong_otp",
-				"attempts_remaining": verification.AttemptsRemaining,
-			})
-			return
+		verified = verification.IsVerified()
+		attemptsRemaining = verification.AttemptsRemaining
+	case verificationNone:
+		respondJSON(w, http.StatusUnauthorized, map[string]interface{}{"error": "no_pending_otp"})
+		return
+	}
+	if !verified {
+		if attemptsRemaining == 0 {
+			clearPendingLoginState(session)
 		}
+		if verificationRecord.Method != verificationEmail {
+			if saveErr := saveSession(w, r, session); saveErr != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "session_error"})
+				return
+			}
+		}
+		respondJSON(w, http.StatusUnauthorized, map[string]interface{}{
+			"error":              "wrong_otp",
+			"attempts_remaining": attemptsRemaining,
+		})
+		return
 	}
 
 	// Clean up pending values
-	delete(session.Values, "otp_pending_user_id")
-	delete(session.Values, "otp_pending_username")
-	delete(session.Values, "otp_pending_fingerprint")
+	clearPendingLoginState(session)
 
-	// --- Session regeneration (same logic as handleLoginPost) ---
+	completeLoginJSON(w, r, session, userID, username, fingerprint)
+}
+
+// completeLoginJSON regenerates and persists an authenticated session after all configured checks pass.
+func completeLoginJSON(w http.ResponseWriter, r *http.Request, session *sessions.Session, userID int, username, fingerprint string) {
 	session.Options.MaxAge = -1
 	if err := session.Save(r, w); err != nil {
 		log.Printf("session invalidation warning: %s", err.Error())
@@ -312,6 +344,28 @@ func setPendingLoginState(session *sessions.Session, userID int, username, finge
 	session.Values["otp_pending_user_id"] = userID
 	session.Values["otp_pending_username"] = username
 	session.Values["otp_pending_fingerprint"] = fingerprint
+	session.Values["otp_pending_attempts"] = 0
+}
+
+func clearPendingLoginState(session *sessions.Session) {
+	delete(session.Values, "otp_pending_user_id")
+	delete(session.Values, "otp_pending_username")
+	delete(session.Values, "otp_pending_fingerprint")
+	delete(session.Values, "otp_pending_attempts")
+}
+
+func localLoginFactorAttemptsRemaining(session *sessions.Session, verified bool) int {
+	if verified {
+		return localLoginFactorMaxAttempts
+	}
+	attempts, _ := session.Values["otp_pending_attempts"].(int)
+	attempts++
+	session.Values["otp_pending_attempts"] = attempts
+	remaining := localLoginFactorMaxAttempts - attempts
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
 }
 
 // respondJSON writes a JSON response with the given status code.

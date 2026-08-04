@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 
 	backend "easelect/backend/core_components"
@@ -88,20 +87,16 @@ func RequestPasswordResetOTPHandler(w http.ResponseWriter, r *http.Request) {
 		if limitErr != nil {
 			logging.Errorf("[RequestPasswordResetOTPHandler] rate limit check failed: %v", limitErr)
 		} else if reservation.Allowed {
-			if isStaticOTPDevMode() {
-				setPendingPasswordResetState(session, userID)
-			} else {
-				code, createErr := otp.CreateOTP(userID, otp.ProfilePasswordReset, userEmail)
-				if createErr != nil {
-					logging.Errorf("[RequestPasswordResetOTPHandler] OTP creation failed: %v", createErr)
-				} else if sendErr := email.SendOTPEmail(userEmail, otp.FormatCode(code), passwordResetPurpose); sendErr != nil {
-					logging.Errorf("[RequestPasswordResetOTPHandler] email send failed: %v", sendErr)
-					if revokeErr := otp.RevokeOTP(userID, otp.ProfilePasswordReset, code); revokeErr != nil {
-						logging.Errorf("[RequestPasswordResetOTPHandler] failed to revoke undelivered OTP: %v", revokeErr)
-					}
-				} else {
-					setPendingPasswordResetState(session, userID)
+			code, createErr := otp.CreateOTP(userID, otp.ProfilePasswordReset, userEmail)
+			if createErr != nil {
+				logging.Errorf("[RequestPasswordResetOTPHandler] OTP creation failed: %v", createErr)
+			} else if sendErr := email.SendOTPEmail(userEmail, otp.FormatCode(code), passwordResetPurpose); sendErr != nil {
+				logging.Errorf("[RequestPasswordResetOTPHandler] email send failed: %v", sendErr)
+				if revokeErr := otp.RevokeOTP(userID, otp.ProfilePasswordReset, code); revokeErr != nil {
+					logging.Errorf("[RequestPasswordResetOTPHandler] failed to revoke undelivered OTP: %v", revokeErr)
 				}
+			} else {
+				setPendingPasswordResetState(session, userID)
 			}
 		}
 	}
@@ -150,22 +145,15 @@ func ResetPasswordWithOTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isStaticOTPDevMode() {
-		if req.OTPCode != os.Getenv("LOGIN_OTP_CODE") {
-			httpresponse.RespondWithError(w, http.StatusUnauthorized, "wrong_otp")
-			return
-		}
-	} else {
-		verification, verifyErr := otp.VerifyOTP(userID, otp.ProfilePasswordReset, req.OTPCode)
-		if verifyErr != nil {
-			logging.Errorf("[ResetPasswordWithOTPHandler] OTP verify failed: %v", verifyErr)
-			httpresponse.RespondWithError(w, http.StatusInternalServerError, "otp_verify_error")
-			return
-		}
-		if !verification.IsVerified() {
-			httpresponse.RespondWithError(w, http.StatusUnauthorized, "wrong_otp")
-			return
-		}
+	verification, verifyErr := otp.VerifyOTP(userID, otp.ProfilePasswordReset, req.OTPCode)
+	if verifyErr != nil {
+		logging.Errorf("[ResetPasswordWithOTPHandler] OTP verify failed: %v", verifyErr)
+		httpresponse.RespondWithError(w, http.StatusInternalServerError, "otp_verify_error")
+		return
+	}
+	if !verification.IsVerified() {
+		httpresponse.RespondWithError(w, http.StatusUnauthorized, "wrong_otp")
+		return
 	}
 
 	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)

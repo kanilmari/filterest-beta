@@ -172,7 +172,7 @@ func TestRequestPasswordResetOTPHandler_UnknownIdentifierStillReturnsGenericSucc
 	}
 }
 
-func TestResetPasswordWithOTPHandler_StaticOTPUpdatesPassword(t *testing.T) {
+func TestResetPasswordWithOTPHandler_DoesNotAcceptLegacyStaticCode(t *testing.T) {
 	t.Setenv("ENVIRONMENT_TYPE", "dev")
 	t.Setenv("LOGIN_OTP_CODE", "334726")
 	t.Setenv("POSTMARK_API_KEY", "")
@@ -194,11 +194,7 @@ func TestResetPasswordWithOTPHandler_StaticOTPUpdatesPassword(t *testing.T) {
 
 	ResetPasswordWithOTPHandler(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("status: got %d, want %d", rr.Code, http.StatusOK)
-	}
-	body := decodeAuthJSONBody(t, rr)
-	if body["password_reset"] != true {
-		t.Fatalf("unexpected body: %#v", body)
+	if rr.Code == http.StatusOK {
+		t.Fatalf("legacy LOGIN_OTP_CODE must not reset a password without an email challenge: %#v", decodeAuthJSONBody(t, rr))
 	}
 }

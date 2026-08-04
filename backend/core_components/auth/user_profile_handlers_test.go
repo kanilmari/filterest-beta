@@ -97,13 +97,3 @@ func TestUserProfileFetchHandlerRejectsGuestSession(t *testing.T) {
 		t.Fatalf("body = %q, want not_authenticated", rr.Body.String())
 	}
 }
-
-func TestIsOTPDevBypassTrueInExplicitDevModeEvenWhenLegacyPostmarkConfigured(t *testing.T) {
-	t.Setenv("ENVIRONMENT_TYPE", "dev")
-	t.Setenv("POSTMARK_API_KEY", "")
-	t.Setenv("POSTMARK_SERVER_TOKEN", "legacy-live-key")
-
-	if !isOTPDevBypass() {
-		t.Fatal("expected profile OTP dev bypass to stay enabled in explicit dev mode even when legacy Postmark config is present")
-	}
-}

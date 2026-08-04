@@ -137,9 +137,18 @@ CREATE TABLE IF NOT EXISTS restricted.users_restricted (
     id integer NOT NULL,
     password text NOT NULL,
     email text NOT NULL,
+    login_verification_method text NOT NULL DEFAULT 'email'
+        CHECK (login_verification_method IN ('none', 'fixed_pin', 'totp', 'email')),
+    fixed_pin_hash text,
+    totp_secret text,
     CONSTRAINT user_data_pk PRIMARY KEY (id),
     CONSTRAINT uq_users_restricted_email UNIQUE (email),
-    CONSTRAINT user_data_fk FOREIGN KEY (id) REFERENCES public.system_users(id) ON DELETE CASCADE
+    CONSTRAINT user_data_fk FOREIGN KEY (id) REFERENCES public.system_users(id) ON DELETE CASCADE,
+    CONSTRAINT users_restricted_login_factor_shape_check CHECK (
+        (login_verification_method = 'fixed_pin' AND fixed_pin_hash IS NOT NULL AND totp_secret IS NULL)
+        OR (login_verification_method = 'totp' AND totp_secret IS NOT NULL AND fixed_pin_hash IS NULL)
+        OR (login_verification_method IN ('none', 'email') AND fixed_pin_hash IS NULL AND totp_secret IS NULL)
+    )
 );
 
 CREATE TABLE IF NOT EXISTS restricted.verification_codes (

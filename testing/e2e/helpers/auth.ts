@@ -54,20 +54,28 @@ export function sessionMatchesExpectedIdentity(
 export async function readSessionInfo(page: Page): Promise<SessionInfo> {
   // The browser-context request client shares the page's cookie jar but is not
   // destroyed when login/logout replaces the page's JavaScript execution context.
+  // A successful SPA login can rotate the session cookie while its post-auth
+  // bootstrap is still settling, so retry a short-lived 401 instead of reading
+  // the superseded guest cookie as the final identity.
   const profileUrl = new URL('/api/user-profile', page.url()).toString();
-  const response = await page.request.get(profileUrl);
-  if (!response.ok()) {
-    return {};
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await page.request.get(profileUrl);
+    const contentType = response.headers()['content-type'] || '';
+    if (response.ok() && contentType.includes('application/json')) {
+      try {
+        const sessionInfo = await response.json();
+        if (sessionInfo && typeof sessionInfo === 'object') {
+          return sessionInfo;
+        }
+      } catch {
+        // Retry malformed transient responses during the same short window.
+      }
+    }
+    if (attempt < 4) {
+      await page.waitForTimeout(100);
+    }
   }
-  const contentType = response.headers()['content-type'] || '';
-  if (!contentType.includes('application/json')) {
-    return {};
-  }
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
+  return {};
 }
 
 export function buildLoginEntryPath(redirectUrl = ''): string {

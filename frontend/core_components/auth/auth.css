@@ -547,6 +547,202 @@ h1.site_name {
 
 .first-run-admin-page .auth-form {
     display: grid;
+    width: min(600px, 100%);
+    gap: 22px;
+}
+
+.first-run-form-section {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 16px;
+}
+
+.first-run-section-hero {
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.first-run-welcome {
+    margin: 0;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-align: center;
+}
+
+.first-run-choice-group {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.first-run-choice-group legend {
+    margin-bottom: 10px;
+    color: var(--text_color);
+    font-weight: 650;
+}
+
+.first-run-choice-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 11px;
+}
+
+.first-run-choice-card {
+    --first-run-choice-background: var(--button_bg_color);
+
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: start;
+    gap: 3px 9px;
+    min-width: 0;
+    margin: 0;
+    padding: 13px;
+    border: 1px solid var(--auth-card-border, var(--border_color));
+    border-radius: 12px;
+    background: var(--first-run-choice-background);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.first-run-choice-card:has(input:checked) {
+    --first-run-choice-background: color-mix(
+        in srgb,
+        var(--button_bg_color) 88%,
+        var(--auth-focus-color, var(--border_color)) 12%
+    );
+
+    border-color: var(--auth-focus-color, var(--border_color));
+    background: var(--first-run-choice-background);
+    box-shadow: 0 0 0 2px var(--auth-focus-ring, transparent);
+}
+
+.first-run-choice-card:has(input:focus-visible) {
+    outline: 2px solid var(--auth-focus-color, var(--border_color));
+    outline-offset: 2px;
+}
+
+.first-run-choice-card input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--auth-focus-color, var(--primary_color));
+}
+
+.first-run-choice-card input[type="radio"]:focus {
+    outline: none !important;
+    box-shadow: none;
+}
+
+.first-run-choice-title {
+    min-width: 0;
+    color: var(--text_color);
+    font-weight: 650;
+    line-height: 1.25;
+}
+
+.first-run-choice-description {
+    grid-column: 2;
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.first-run-environment-label {
+    position: absolute;
+    top: -7px;
+    right: 18px;
+    z-index: 1;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #8f6042, #94532f);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+    color: rgb(255 255 255 / 90%);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+body.light-mode .first-run-choice-card {
+    --first-run-choice-background: color-mix(
+        in srgb,
+        var(--button_bg_color) 96%,
+        var(--text_color) 4%
+    );
+
+    border-color: color-mix(
+        in srgb,
+        var(--auth-card-border, var(--border_color)) 55%,
+        var(--border_color) 45%
+    );
+}
+
+body.light-mode .first-run-choice-card:has(input:checked) {
+    --first-run-choice-background: color-mix(
+        in srgb,
+        var(--button_bg_color) 94%,
+        var(--auth-focus-color, var(--border_color)) 6%
+    );
+}
+
+@media (prefers-color-scheme: light) {
+    body:not(.light-mode):not(.dark-mode) .first-run-choice-card {
+        --first-run-choice-background: color-mix(
+            in srgb,
+            var(--button_bg_color) 96%,
+            var(--text_color) 4%
+        );
+
+        border-color: color-mix(
+            in srgb,
+            var(--auth-card-border, var(--border_color)) 55%,
+            var(--border_color) 45%
+        );
+    }
+
+    body:not(.light-mode):not(.dark-mode) .first-run-choice-card:has(input:checked) {
+        --first-run-choice-background: color-mix(
+            in srgb,
+            var(--button_bg_color) 94%,
+            var(--auth-focus-color, var(--border_color)) 6%
+        );
+    }
+}
+
+.first-run-method-fields {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--auth-card-border, var(--border_color));
+    border-radius: 12px;
+    background: var(--bg_color_2);
+}
+
+.first-run-method-fields[hidden] {
+    display: none;
+}
+
+.first-run-setup-key-label {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.first-run-setup-key {
+    display: block;
+    overflow-wrap: anywhere;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--input_bg_color);
+    color: var(--text_color);
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    user-select: all;
 }
 
 .privacy-notice-link {

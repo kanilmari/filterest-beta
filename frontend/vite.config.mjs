@@ -240,7 +240,7 @@ export function devForcedLoginRootRedirect() {
 function scanGoTemplateVars(dir) {
   const vars = new Set();
   const scalarRe = /{{\s*\.(\w+)\s*}}/g;
-  const condRe = /{{\s*(?:if|if not)\s+\.(\w+)\s*}}/g;
+  const condRe = /{{\s*(?:if|if not|if eq)\s+\.(\w+)(?:\s+"[^"]*")?\s*}}/g;
 
   function walk(d) {
     for (const entry of readdirSync(d)) {
@@ -282,6 +282,14 @@ const KNOWN_DEFAULTS = {
   ImportsCSSPath: '/frontend/styles/imports.css',
   MainBundlePath: '/frontend/main.js',
   LoginBundlePath: '/frontend/core_components/auth/login_page_builder.js',
+  InstallationEnvironment: 'dev',
+  InitialSection: 'settings',
+  ApplicationName: DEV_SITE_NAME,
+  TOTPSecret: 'JBSWY3DPEHPK3PXP',
+  Username: '',
+  Email: '',
+  Environment: 'dev',
+  VerificationMethod: 'none',
 };
 
 // Conditional vars that evaluate to TRUE in dev mode
@@ -291,13 +299,34 @@ const DEV_TRUE_VARS = new Set(['IsDev']);
 const KNOWN_CONDITIONAL_VARS = new Set([
   'UseMinifiedAssets', 'IsDev', 'RobotsNoIndex',
   'StandalonePage', 'ShowCloseButton', 'ShowTourScreenshots',
-  'UsernameErr', 'EmailErr', 'GeneralErr',
+  'UsernameErr', 'EmailErr', 'PasswordErr', 'GeneralErr',
+  'EnvironmentErr', 'VerificationErr', 'FactorErr',
 ]);
 
 // ---------------------------------------------------------------------------
 // Go Template Transform Plugin
 // Converts Go template syntax in index.html to dev-friendly static HTML.
 // ---------------------------------------------------------------------------
+
+export function renderGoTemplateForDev(html) {
+  let h = html;
+
+  // Equality conditionals provide deterministic radio/select defaults in previews.
+  h = h.replace(
+    /{{if eq\s+\.(\w+)\s+"([^"]*)"}}((?:(?!{{end}})[\s\S])*?){{else}}([\s\S]*?){{end}}/g,
+    (_, variable, expected, ifBlock, elseBlock) => (
+      String(KNOWN_DEFAULTS[variable] ?? '') === expected ? ifBlock : elseBlock
+    ),
+  );
+  h = h.replace(
+    /{{if eq\s+\.(\w+)\s+"([^"]*)"}}([\s\S]*?){{end}}/g,
+    (_, variable, expected, content) => (
+      String(KNOWN_DEFAULTS[variable] ?? '') === expected ? content : ''
+    ),
+  );
+
+  return h;
+}
 
 function goTemplateTransform() {
   // Scan all HTML files at plugin init and warn about unknowns
@@ -316,7 +345,7 @@ function goTemplateTransform() {
     transformIndexHtml: {
       order: 'pre',
       handler(html) {
-        let h = html;
+        let h = renderGoTemplateForDev(html);
 
         // 1. Remove Go template comments {{/* ... */}}
         h = h.replace(/{{\/\*[\s\S]*?\*\/}}/g, '');

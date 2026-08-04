@@ -89,6 +89,7 @@ services:
       - APP_PORT=${APP_PORT:-8090}
       # OpenAI API key for AI features
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Optional fixed PIN for reserved development test users only.
       - LOGIN_OTP_CODE=${LOGIN_OTP_CODE:-}
       - LOGIN_PAGE_TOUR_SCREENSHOTS_ENABLED=${LOGIN_PAGE_TOUR_SCREENSHOTS_ENABLED:-}
       # Management-Easelect cloud view / instance-control-agent integration

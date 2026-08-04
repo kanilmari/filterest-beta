@@ -237,6 +237,14 @@ func ensureInitialAdmin(ctx context.Context, db *sql.DB, cfg initialAdminConfig)
 	if err != nil {
 		return initialAdminResult{}, fmt.Errorf("hash password: %w", err)
 	}
+	previewPIN := strings.TrimSpace(os.Getenv("LOGIN_OTP_CODE"))
+	if len(previewPIN) < 4 || len(previewPIN) > 8 || strings.Trim(previewPIN, "0123456789") != "" {
+		return initialAdminResult{}, errors.New("automated preview LOGIN_OTP_CODE must contain 4-8 digits")
+	}
+	hashedPIN, err := bcrypt.GenerateFromPassword([]byte(previewPIN), bcrypt.DefaultCost)
+	if err != nil {
+		return initialAdminResult{}, fmt.Errorf("hash preview PIN: %w", err)
+	}
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -283,9 +291,11 @@ func ensureInitialAdmin(ctx context.Context, db *sql.DB, cfg initialAdminConfig)
 	}
 
 	if _, err = tx.ExecContext(ctx, `
-		INSERT INTO restricted.users_restricted (id, password, email)
-		VALUES ($1, $2, $3)
-	`, userID, string(hashedPassword), cfg.email); err != nil {
+		INSERT INTO restricted.users_restricted (
+			id, password, email, login_verification_method, fixed_pin_hash
+		)
+		VALUES ($1, $2, $3, 'fixed_pin', $4)
+	`, userID, string(hashedPassword), cfg.email, string(hashedPIN)); err != nil {
 		return initialAdminResult{}, fmt.Errorf("insert restricted credentials: %w", err)
 	}
 

@@ -147,7 +147,15 @@ func main() {
 	defer backend.CloseDB()
 
 	//-----------------------------------------------------------------
-	// 3a) Varmistetaan restricted-skeeman oikeudet ennen dev-startupin
+	// 3a) Ajetaan erikseen sallitut migraatiot ennen kuin käynnistyksen
+	//     muut vaiheet käyttävät mahdollisesti muuttunutta skeemaa.
+	//-----------------------------------------------------------------
+	if err := startup.RunEnabledMigrations(backend.Db, cwd); err != nil {
+		log.Fatalf("[MIGRATIONS] migration failed: %v", err)
+	}
+
+	//-----------------------------------------------------------------
+	// 3b) Varmistetaan restricted-skeeman oikeudet ennen dev-startupin
 	//     reserved test user -täsmäytystä, jotta shared-dev-kannat eivät
 	//     kaadu kesken käynnistyksen puuttuviin confidential-grantteihin.
 	//-----------------------------------------------------------------
@@ -156,26 +164,26 @@ func main() {
 	}
 
 	//-----------------------------------------------------------------
-	// 3b) Täsmäytetään varatut testi-käyttäjät ennen liikenteen avaamista
+	// 3c) Täsmäytetään varatut testi-käyttäjät ennen liikenteen avaamista
 	//-----------------------------------------------------------------
 	if err := startup.ReconcileReservedTestUsers(backend.Db, backend.DbConfidential, envType); err != nil {
 		log.Fatalf("Reserved test user reconcile failed: %v", err)
 	}
 
 	//-----------------------------------------------------------------
-	// 3c) Tarkistetaan kantaversio
+	// 3d) Tarkistetaan kantaversio
 	//-----------------------------------------------------------------
 	if err := startup.CheckDatabaseVersion(backend.Db, cwd); err != nil {
 		log.Printf("\033[33m⚠ %v\033[0m", err)
 	}
 
 	//-----------------------------------------------------------------
-	// 3d) Käynnistetään sovellukset
+	// 3e) Käynnistetään sovellukset
 	//-----------------------------------------------------------------
 	StartApps(port, envType)
 
 	//-----------------------------------------------------------------
-	// 3e) Ajetaan ei-välttämättömät käynnistystehtävät
+	// 3f) Selvitetään polku ei-välttämättömiä käynnistystehtäviä varten
 	//-----------------------------------------------------------------
 	exePath, err := os.Executable()
 	if err != nil {
@@ -183,7 +191,7 @@ func main() {
 	}
 	exeDir := filepath.Dir(exePath)
 	//-----------------------------------------------------------------
-	// 3f) Ajetaan ei-välttämättömät käynnistystehtävät
+	// 3g) Ajetaan ei-välttämättömät käynnistystehtävät
 	//-----------------------------------------------------------------
 	startup.RunOptionalTasks(exeDir)
 

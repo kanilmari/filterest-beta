@@ -135,19 +135,28 @@ func handleLoginPost(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("password verification OK 🔑")
 
-	// OTP check — allow the static fallback only in explicit dev mode.
-	// TODO: replace with dynamic per-login TOTP (e.g. RFC 6238)
-	if isStaticOTPDevMode() {
-		expectedOTP := os.Getenv("LOGIN_OTP_CODE")
-		otp := r.FormValue("otp")
-		if otp != expectedOTP {
-			log.Println("otp: wrong code ❌")
-			showLoginForm(w, r, "Virheellinen OTP-koodi.")
+	verification, err := loadLoginVerificationRecord(userID)
+	if err != nil {
+		log.Printf("login verification unavailable for user %d: %v", userID, err)
+		showLoginForm(w, r, "Kirjautumisen varmennustapaa ei voitu lukea.")
+		return
+	}
+	submittedCode := strings.TrimSpace(r.FormValue("otp"))
+	switch verification.Method {
+	case verificationNone:
+	case verificationFixedPIN:
+		if !verifyFixedPIN(verification.PINHash, submittedCode) {
+			showLoginForm(w, r, "Virheellinen vahvistuskoodi.")
 			return
 		}
-		log.Println("otp OK 🔐")
-	} else {
-		log.Println("otp: static dev OTP disabled outside explicit dev mode ⚠️")
+	case verificationTOTP:
+		if !verifyTOTPAt(verification.TOTPSecret, submittedCode, time.Now()) {
+			showLoginForm(w, r, "Virheellinen vahvistuskoodi.")
+			return
+		}
+	case verificationEmail:
+		showLoginForm(w, r, "Sähköpostivarmennus edellyttää tavallista kaksivaiheista kirjautumista.")
+		return
 	}
 
 	// --- Session regeneration (defense-in-depth against session fixation) ---

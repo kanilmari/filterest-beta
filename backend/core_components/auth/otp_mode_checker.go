@@ -1,7 +1,7 @@
 // otp_mode_checker.go
-// Resolves which OTP fallback mode is allowed for auth flows.
-// Bridges environment configuration and the login/password-reset handlers.
-// Exists to keep static OTP dev fallback impossible outside explicit dev mode.
+// Resolves shared environment and outbound-email readiness for authentication flows.
+// Bridges environment configuration and setup/login handlers.
+// Exists so runtime readiness checks stay centralized without selecting auth by environment.
 
 package auth
 
@@ -29,9 +29,4 @@ func firstConfiguredAuthEnv(keys ...string) string {
 // isPostmarkDeliveryConfiguredForAuth keeps auth OTP gating aligned with both canonical and legacy Postmark env names.
 func isPostmarkDeliveryConfiguredForAuth() bool {
 	return firstConfiguredAuthEnv("POSTMARK_API_KEY", "POSTMARK_SERVER_TOKEN") != ""
-}
-
-// isStaticOTPDevMode returns true only for explicit dev-mode static OTP fallback.
-func isStaticOTPDevMode() bool {
-	return strings.TrimSpace(os.Getenv("LOGIN_OTP_CODE")) != "" && isExplicitDevEnvironment()
 }

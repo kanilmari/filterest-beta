@@ -42,6 +42,8 @@
     <meta name="csp-nonce" content="{{ .CSPNonce }}">
     <!-- Ympäristötieto frontille (dev/prod) -->
     <meta name="app-env" content="{{if .IsDev}}dev{{else}}prod{{end}}">
+    <!-- First Runissa valittu käyttötarkoitus; ei muuta prosessin turvallisuustasoa. -->
+    <meta name="installation-environment" content="{{.InstallationEnvironment}}">
 
     <link rel="icon" href="/frontend/favicon4S.png">
     {{/* dev_error_forwarder is now loaded as ES module import in main.js */}}

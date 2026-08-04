@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   isRootDocumentRequest,
+  renderGoTemplateForDev,
   shouldRedirectDevRootToStandaloneLogin,
 } from './vite.config.mjs';
 
@@ -42,5 +43,23 @@ describe('vite forced-login root redirect helpers', () => {
       needs_button: 'login',
     })).toBe(false);
     expect(shouldRedirectDevRootToStandaloneLogin(null)).toBe(false);
+  });
+});
+
+describe('vite Go-template development rendering', () => {
+  test('selects only matching equality-conditional defaults', () => {
+    const html = [
+      '<input value="dev" {{if eq .Environment "dev"}}checked{{end}}>',
+      '<input value="test" {{if eq .Environment "test"}}checked{{end}}>',
+      '<input value="none" {{if eq .VerificationMethod "none"}}checked{{end}}>',
+      '<input value="email" {{if eq .VerificationMethod "email"}}checked{{end}}>',
+    ].join('');
+
+    expect(renderGoTemplateForDev(html)).toBe([
+      '<input value="dev" checked>',
+      '<input value="test" >',
+      '<input value="none" checked>',
+      '<input value="email" >',
+    ].join(''));
   });
 });

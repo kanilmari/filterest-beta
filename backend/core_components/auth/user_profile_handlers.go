@@ -188,22 +188,20 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// OTP is required for email change (skip in explicit dev mode).
-		if !isOTPDevBypass() {
-			if req.EmailOTP == "" {
-				httpresponse.RespondWithError(w, http.StatusBadRequest, "email_otp_required")
-				return
-			}
-			verification, verifyErr := otp.VerifyOTPForTarget(userID, otp.ProfileEmailChange, req.Email, req.EmailOTP)
-			if verifyErr != nil {
-				logging.Errorf("[UserProfileUpdateHandler] email OTP verify error: %v", verifyErr)
-				httpresponse.RespondWithError(w, http.StatusInternalServerError, "otp_verify_error")
-				return
-			}
-			if !verification.IsVerified() {
-				httpresponse.RespondWithError(w, http.StatusUnauthorized, "email_otp_invalid")
-				return
-			}
+		// Email ownership verification is required in every environment.
+		if req.EmailOTP == "" {
+			httpresponse.RespondWithError(w, http.StatusBadRequest, "email_otp_required")
+			return
+		}
+		verification, verifyErr := otp.VerifyOTPForTarget(userID, otp.ProfileEmailChange, req.Email, req.EmailOTP)
+		if verifyErr != nil {
+			logging.Errorf("[UserProfileUpdateHandler] email OTP verify error: %v", verifyErr)
+			httpresponse.RespondWithError(w, http.StatusInternalServerError, "otp_verify_error")
+			return
+		}
+		if !verification.IsVerified() {
+			httpresponse.RespondWithError(w, http.StatusUnauthorized, "email_otp_invalid")
+			return
 		}
 
 		var existingID int
@@ -247,22 +245,20 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// OTP is required for password change (skip in explicit dev mode).
-		if !isOTPDevBypass() {
-			if req.PasswordOTP == "" {
-				httpresponse.RespondWithError(w, http.StatusBadRequest, "password_otp_required")
-				return
-			}
-			verification, verifyErr := otp.VerifyOTP(userID, otp.ProfilePasswordChange, req.PasswordOTP)
-			if verifyErr != nil {
-				logging.Errorf("[UserProfileUpdateHandler] password OTP verify error: %v", verifyErr)
-				httpresponse.RespondWithError(w, http.StatusInternalServerError, "otp_verify_error")
-				return
-			}
-			if !verification.IsVerified() {
-				httpresponse.RespondWithError(w, http.StatusUnauthorized, "password_otp_invalid")
-				return
-			}
+		// Password-change verification is required in every environment.
+		if req.PasswordOTP == "" {
+			httpresponse.RespondWithError(w, http.StatusBadRequest, "password_otp_required")
+			return
+		}
+		verification, verifyErr := otp.VerifyOTP(userID, otp.ProfilePasswordChange, req.PasswordOTP)
+		if verifyErr != nil {
+			logging.Errorf("[UserProfileUpdateHandler] password OTP verify error: %v", verifyErr)
+			httpresponse.RespondWithError(w, http.StatusInternalServerError, "otp_verify_error")
+			return
+		}
+		if !verification.IsVerified() {
+			httpresponse.RespondWithError(w, http.StatusUnauthorized, "password_otp_invalid")
+			return
 		}
 
 		newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
@@ -285,11 +281,6 @@ func UserProfileUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"message": "profile_updated",
 	})
-}
-
-// isOTPDevBypass returns true when OTP verification should be skipped in explicit dev mode.
-func isOTPDevBypass() bool {
-	return isExplicitDevEnvironment()
 }
 
 // --- OTP request endpoints for profile changes ---

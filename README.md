@@ -126,11 +126,19 @@ sessions. Use the explicit setup commands
 `./filterest setup --profile development --yes` for an explicit unattended
 profile choice.
 
-On first browser access, Filterest opens a one-time form where you choose the
-administrator username, email address, and password. The form is available only
-while the server-owned first-run setting is pending and no login-ready admin
-exists. A successful submission creates the account and closes first-run mode
-as one transaction; later visits go to normal login.
+On first browser access, Filterest opens a two-section form. First choose the
+visible development, testing, quality-assurance, or production purpose and the first
+administrator's sign-in verification method; then create the administrator
+username, email address, and password. Email verification uses Postmark and
+requires a free external Postmark account. Password-only, fixed-PIN, and
+standard TOTP authenticator sign-in do not require an email provider.
+
+The form is available only while the server-owned first-run setting is pending
+and no login-ready admin exists. A successful submission saves the environment
+purpose, verification factor, account, and first-run closure as one
+transaction; later visits go to normal login. A DEV/TEST/QA purpose changes the
+visible label but cannot downgrade the security boundary of the production-
+locked admin binary.
 
 The bundled public seed contains synthetic multilingual example datasets and
 media only. See `server_tools/public_bootstrap/README.md` for the seed and
