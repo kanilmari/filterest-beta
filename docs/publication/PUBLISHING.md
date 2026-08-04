@@ -49,14 +49,27 @@ separate human-approved source-repository action:
 ./filterest_release publish --yes
 ```
 
-The approved publish command pushes the reviewed `main` commit and its matching
-`v<VERSION_APP>` tag. The generated repository's GitHub workflow then builds
-Linux `amd64` and `arm64` binaries plus SHA-256 checksum files for the admin
-installation profile. Do not create or move these version tags by hand.
+The approved publish command builds Linux `amd64` and `arm64` binaries plus
+SHA-256 checksum files on the maintainer machine, pushes the reviewed `main`
+commit and matching `v<VERSION_APP>` tag, and uploads those reviewed local
+assets directly to GitHub Release storage. GitHub Actions must remain disabled;
+GitHub stores the release but does not execute it. Do not create or move these
+version tags by hand.
 
-The command re-verifies both clean repositories, source evidence, and the
-approved `origin/main` contract before pushing beta. No generation command
-adds, replaces, or pushes a remote.
+The command re-verifies both clean repositories, source evidence, the approved
+`origin/main` contract, the local cross-compilation toolchain, and the account
+Actions-disable policy before pushing beta. No generation command adds,
+replaces, or pushes a remote.
+
+The maintainer machine needs Go, `gcc`, and the ARM64 cross-compiler. On
+Ubuntu-family systems the one-time ARM64 prerequisite is:
+
+```bash
+sudo apt install gcc-aarch64-linux-gnu
+```
+
+The resulting binaries keep WebP support but are statically linked, so an
+administrator does not inherit the maintainer machine's Linux library version.
 
 ## Updating Later Releases
 

@@ -92,3 +92,6 @@ from a clean release-source checkout without `--allow-dirty`.
 
 The wrapper fixes the target to the active `filterest-beta` channel. Publishing
 remains a separate human-approved `./filterest_release publish --yes` action.
+That command must build both administrator binaries locally and must fail before
+any push if GitHub Actions is enabled outside the approved `try_it_html`
+exception. GitHub only stores the reviewed commit, tag, and release files.
