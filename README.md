@@ -7,6 +7,14 @@ applications or purpose-built custom applications.
 
 ## From Data To Applications
 
+### Quick Start
+
+```bash
+./filterest start  # First start
+./ctl              # Start again later
+./ctl --stop       # Stop
+```
+
 Every dataset can become a usable application without a separate frontend:
 
 - **Table view** is for scanning, comparing, selecting, and editing records.
@@ -103,7 +111,7 @@ when host packages or the initial PostgreSQL administrator role are missing.
 Normal Filterest use after installation runs as the current user and does not
 require `sudo`.
 
-## Quick Start
+## Installation And First Start
 
 ```bash
 git clone https://github.com/kanilmari/filterest-beta.git

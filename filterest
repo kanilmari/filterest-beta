@@ -97,6 +97,17 @@ run_setup_before_first_start() {
     exec "$PROJECT_ROOT/server_tools/install_filterest.sh"
 }
 
+# Checks the development profile's configured application port before ctl can
+# build the server or perform database-backed startup work.
+preflight_development_start_port() {
+    local port=""
+    resolve_environment
+    # shellcheck source=server_tools/lib/filterest_port_preflight.sh
+    source "$PROJECT_ROOT/server_tools/lib/filterest_port_preflight.sh"
+    port="$(filterest_configured_port 8100 "$EASELECT_DEV_ENV_FILE" "$EASELECT_RUNTIME_ENV_FILE")"
+    filterest_preflight_port "$port"
+}
+
 # Distinguishes application startup from compatibility actions such as --stop or --help.
 # Between the public command arguments and automatic setup it prevents a maintenance action
 # from unexpectedly installing packages or creating local runtime state.
@@ -117,6 +128,9 @@ case "$command_name" in
         fi
         if [[ "$(installed_profile)" == "admin" ]]; then
             exec "$PROJECT_ROOT/server_tools/run_filterest_admin.sh" "$@"
+        fi
+        if start_action_was_requested "$@"; then
+            preflight_development_start_port
         fi
         exec "$PROJECT_ROOT/ctl" "$@"
         ;;

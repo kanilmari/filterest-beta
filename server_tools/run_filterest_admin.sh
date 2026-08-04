@@ -12,6 +12,8 @@ cd "$PROJECT_ROOT"
 # shellcheck source=server_tools/lib/easelect_private_paths.sh
 source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
 easelect_resolve_private_paths "$PROJECT_ROOT"
+# shellcheck source=server_tools/lib/filterest_port_preflight.sh
+source "$PROJECT_ROOT/server_tools/lib/filterest_port_preflight.sh"
 
 BINARY="$PROJECT_ROOT/runtime/bin/filterest-server"
 PID_FILE="$PROJECT_ROOT/runtime/filterest-admin.pid"
@@ -97,6 +99,8 @@ start_runtime() {
         show_status
         return
     fi
+    port="$(configured_port)"
+    filterest_preflight_port "$port"
 
     mkdir -p "$(dirname "$LOG_FILE")"
     if command -v setsid >/dev/null 2>&1; then
@@ -106,7 +110,6 @@ start_runtime() {
     fi
     pid="$!"
     printf '%s\n' "$pid" > "$PID_FILE"
-    port="$(configured_port)"
     for _ in $(seq 1 300); do
         if curl --insecure --silent --fail --max-time 1 "https://localhost:${port}/system/ready" >/dev/null; then
             printf 'Filterest is ready: https://localhost:%s/first-run\n' "$port"

@@ -728,6 +728,7 @@ bootstrap_database_and_dependencies() {
 }
 
 start_installed_filterest() {
+    local port=""
     [[ "$NO_START" -eq 0 ]] || return
     if [[ "$DRY_RUN" -eq 1 ]]; then
         printf '  [dry-run] start Filterest and verify the first-run browser address\n'
@@ -736,7 +737,16 @@ start_installed_filterest() {
     if [[ "$PROFILE" == "admin" ]]; then
         "$PROJECT_ROOT/server_tools/run_filterest_admin.sh"
     else
-        "$PROJECT_ROOT/ctl" -p 8100
+        # The installer reaches ctl directly after a first development setup,
+        # so it owns the same early port preflight as later ./filterest starts.
+        # shellcheck source=server_tools/lib/easelect_private_paths.sh
+        source "$PROJECT_ROOT/server_tools/lib/easelect_private_paths.sh"
+        # shellcheck source=server_tools/lib/filterest_port_preflight.sh
+        source "$PROJECT_ROOT/server_tools/lib/filterest_port_preflight.sh"
+        easelect_resolve_private_paths "$PROJECT_ROOT"
+        port="$(filterest_configured_port 8100 "$EASELECT_DEV_ENV_FILE" "$EASELECT_RUNTIME_ENV_FILE")"
+        filterest_preflight_port "$port"
+        "$PROJECT_ROOT/ctl" -p "$port"
     fi
 }
 
