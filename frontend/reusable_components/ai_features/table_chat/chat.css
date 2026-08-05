@@ -1,4 +1,8 @@
-/* chat.css */
+/* chat.css
+ * Styles the reusable dataset-chat panel, messages, composer, and inline setup forms.
+ * Bridges chat DOM structures with the shared light/dark design variables.
+ * Exists to keep chat interactions readable and contained at every sidebar width.
+ */
 
 :root {
   --chat-user-bg: hsl(207deg 100% 40%);
@@ -334,7 +338,10 @@ body.dark-mode {
 .chat-openai-key-setup {
   display: grid;
   gap: 0.55rem;
-  min-width: min(28rem, 72vw);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .chat-openai-key-setup__title {
@@ -348,8 +355,10 @@ body.dark-mode {
 }
 
 .chat-openai-key-setup input {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--border_color);
   border-radius: var(--border_radius_small, 4px);
@@ -362,6 +371,13 @@ body.dark-mode {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
+}
+
+.chat-openai-key-setup__actions > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .chat-openai-key-setup__status {

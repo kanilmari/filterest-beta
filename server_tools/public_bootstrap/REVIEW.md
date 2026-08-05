@@ -1,7 +1,7 @@
 # Filterest Public Bootstrap Audit
 
 - Target: `Filterest public bootstrap`
-- Schema tables: `42`
+- Schema tables: `43`
 - Seed tables: `26`
 - Example emails: `0`
 - Manifest format: `2`
@@ -33,6 +33,7 @@ PASS
 - `public.system_column_control`
 - `public.system_column_details`
 - `public.system_column_view_presets`
+- `public.system_comments`
 - `public.system_config`
 - `public.system_db_tables`
 - `public.system_db_version`

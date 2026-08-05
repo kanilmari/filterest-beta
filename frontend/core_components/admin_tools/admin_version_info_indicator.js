@@ -67,12 +67,28 @@ const VERSION_LABELS = Object.freeze({
     },
 });
 
+function resolveVersionInfoLabels(language = "en") {
+    const normalizedLanguage = String(language || "en")
+        .trim()
+        .toLowerCase()
+        .replaceAll("_", "-");
+    if (normalizedLanguage === "yue" || normalizedLanguage.startsWith("yue-")
+        || normalizedLanguage === "zh-hk" || normalizedLanguage.startsWith("zh-hant")) {
+        return VERSION_LABELS.yue;
+    }
+    if (normalizedLanguage === "ch" || normalizedLanguage.startsWith("ch-")
+        || normalizedLanguage === "zh" || normalizedLanguage.startsWith("zh-")) {
+        return VERSION_LABELS.ch;
+    }
+    return VERSION_LABELS[normalizedLanguage.split("-")[0]] || VERSION_LABELS.en;
+}
+
 export function getAdminSiteInfoTitle(language = "en") {
-    return (VERSION_LABELS[language] || VERSION_LABELS.en).title;
+    return resolveVersionInfoLabels(language).title;
 }
 
 export function buildAdminVersionInfoRows(versionInfo, language = "en", siteName = "") {
-    const labels = VERSION_LABELS[language] || VERSION_LABELS.en;
+    const labels = resolveVersionInfoLabels(language);
     const productName = String(versionInfo?.product_name || labels.app).trim();
     const appVersion = String(versionInfo?.app_version || "unknown").trim();
     const databaseVersion = String(versionInfo?.db_version || "unknown").trim();
@@ -208,27 +224,40 @@ export function buildAdminVersionInfoIndicator() {
         closePanel();
     };
 
-    void hydrateAdminVersionInfoIndicator(shell, indicator, panel);
+    void hydrateAdminVersionInfoIndicator(shell, indicator, panel, signal);
     return shell;
 }
 
-async function hydrateAdminVersionInfoIndicator(shell, indicator, panel) {
+async function hydrateAdminVersionInfoIndicator(shell, indicator, panel, signal) {
     try {
         const versionInfo = await fetchAdminVersionInfo({ suppressAuthRedirect: true });
-        const language = getLanguageWithBrowserFallback();
+        if (signal.aborted) return;
         const siteName = formatSiteNameForDisplay(
             getCurrentSiteName() || String(versionInfo?.product_name || "").trim()
         );
-        const rows = buildAdminVersionInfoRows(versionInfo, language, siteName);
-        const label = formatAdminVersionInfoLabel(
-            versionInfo,
-            language
-        );
-        indicator.title = label;
-        indicator.setAttribute("aria-label", label.replaceAll("\n", ". "));
-        const panelTitle = getAdminSiteInfoTitle(language);
-        panel.setAttribute("aria-label", panelTitle);
-        renderAdminVersionInfoRows(panel, rows, panelTitle);
+        const renderLanguage = (language) => {
+            const rows = buildAdminVersionInfoRows(versionInfo, language, siteName);
+            const label = formatAdminVersionInfoLabel(versionInfo, language);
+            indicator.title = label;
+            indicator.setAttribute("aria-label", label.replaceAll("\n", ". "));
+            const panelTitle = getAdminSiteInfoTitle(language);
+            panel.setAttribute("aria-label", panelTitle);
+            renderAdminVersionInfoRows(panel, rows, panelTitle);
+        };
+
+        renderLanguage(getLanguageWithBrowserFallback());
+
+        const languageObserver = new MutationObserver(() => {
+            renderLanguage(
+                document.documentElement.getAttribute("lang")
+                || getLanguageWithBrowserFallback()
+            );
+        });
+        languageObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["lang"],
+        });
+        signal.addEventListener("abort", () => languageObserver.disconnect(), { once: true });
         shell.hidden = false;
     } catch {
         shell.destroy();

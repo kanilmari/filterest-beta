@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const hasRoutePermissionMock = vi.fn();
 const fetchAdminVersionInfoMock = vi.fn();
+const getLanguageWithBrowserFallbackMock = vi.fn();
 
 vi.mock("../route_permission_checker.js", () => ({
     hasRoutePermission: hasRoutePermissionMock,
@@ -18,15 +19,18 @@ vi.mock("../endpoints/stable_endpoint_router.js", () => ({
 }));
 
 vi.mock("../state_stores/lang_preference_reader.js", () => ({
-    getLanguageWithBrowserFallback: vi.fn(() => "fi"),
+    getLanguageWithBrowserFallback: getLanguageWithBrowserFallbackMock,
 }));
 
 describe("admin version info indicator", () => {
     beforeEach(() => {
         hasRoutePermissionMock.mockReset();
         fetchAdminVersionInfoMock.mockReset();
+        getLanguageWithBrowserFallbackMock.mockReset();
+        getLanguageWithBrowserFallbackMock.mockReturnValue("fi");
         document.body.innerHTML = "";
         document.head.innerHTML = '<meta property="og:site_name" content="filt">';
+        document.documentElement.removeAttribute("lang");
     });
 
     test("does not render without the protected route permission", async () => {
@@ -111,6 +115,51 @@ describe("admin version info indicator", () => {
         shell.destroy();
     });
 
+    test("updates the open panel immediately when the active page language changes", async () => {
+        hasRoutePermissionMock.mockReturnValue(true);
+        fetchAdminVersionInfoMock.mockResolvedValue({
+            product_name: "Filterest",
+            app_version: "8.27.99",
+            db_version: "8.0.55",
+            required_db_version: "8.0.55",
+            db_compatible: true,
+            runtime_mode: "native",
+        });
+        const { buildAdminVersionInfoIndicator } = await import("./admin_version_info_indicator.js");
+
+        const shell = buildAdminVersionInfoIndicator();
+        document.body.appendChild(shell);
+        await vi.waitFor(() => expect(shell.hidden).toBe(false));
+
+        const indicator = shell.querySelector('[data-testid="filterbar-admin-version-info"]');
+        const panel = shell.querySelector('[data-testid="filterbar-admin-version-info-panel"]');
+        indicator.click();
+        expect(panel.querySelector("thead th")?.textContent).toBe("Sivustotiedot");
+
+        document.documentElement.setAttribute("lang", "en");
+        await vi.waitFor(() => {
+            expect(panel.querySelector("thead th")?.textContent).toBe("Site information");
+        });
+        expect(panel.hidden).toBe(false);
+        expect(panel.getAttribute("aria-label")).toBe("Site information");
+        expect(panel.querySelector('[data-version-info-key="site"]')?.textContent).toBe("Site");
+        expect(panel.querySelector('[data-version-info-key="database"]')?.textContent).toBe("Database");
+        expect(panel.querySelector('[data-version-info-key="required-database"]')?.textContent)
+            .toBe("Required database");
+        expect(panel.querySelector('[data-version-info-key="runtime"]')?.textContent).toBe("Runtime");
+        expect(indicator.title).toContain("Database v. 8.0.55 (compatible)");
+        expect(indicator.title).toContain("Runtime Native");
+
+        document.documentElement.setAttribute("lang", "zh-CN");
+        await vi.waitFor(() => {
+            expect(panel.querySelector("thead th")?.textContent).toBe("站点信息");
+        });
+        expect(panel.querySelector('[data-version-info-key="site"]')?.textContent).toBe("网站");
+        expect(panel.querySelector('[data-version-info-key="runtime"]')?.textContent).toBe("运行方式");
+
+        shell.destroy();
+    });
+
     test.each([
         ["fi", "Ajotapa Tavallinen"],
         ["en", "Runtime Native"],
@@ -129,7 +178,10 @@ describe("admin version info indicator", () => {
         ["fi", "Sivustotiedot"],
         ["en", "Site information"],
         ["ch", "站点信息"],
+        ["zh", "站点信息"],
+        ["zh-CN", "站点信息"],
         ["yue", "網站資訊"],
+        ["zh-HK", "網站資訊"],
         ["unsupported", "Site information"],
     ])("localizes the site information title for %s", async (language, expected) => {
         const { getAdminSiteInfoTitle } = await import("./admin_version_info_indicator.js");

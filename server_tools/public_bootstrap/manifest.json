@@ -1,7 +1,7 @@
 {
   "artifact": "filterest-public-bootstrap",
   "format_version": 2,
-  "app_version": "8.28.27",
+  "app_version": "8.28.28",
   "db_version": "8.0.59",
   "schema_source": "testing/essential/generated/schema.sql",
   "seed_source": "testing/essential/generated/seed.sql",
@@ -26,6 +26,7 @@
     "public.system_column_control",
     "public.system_column_details",
     "public.system_column_view_presets",
+    "public.system_comments",
     "public.system_config",
     "public.system_db_tables",
     "public.system_db_version",
@@ -108,10 +109,10 @@
   },
   "generated_files": {
     "server_tools/public_bootstrap/schema.sql": {
-      "sha256": "7f8311c035f0ffeab1795770f15c2856e55eb808d977b35e8a07384d9653e694"
+      "sha256": "cea04eb7ce202978d1ac2972fd6a47e23bcf3d3f7975da55bb6c99c4e3292d98"
     },
     "server_tools/public_bootstrap/seed_data.sql": {
-      "sha256": "e669d42629949dd139c7bd4963a24b0bda7dbcca9d092217d7b187b345051061"
+      "sha256": "7c9b58e249e9b407681cc67fb97c9e8e73ebcf9b66edcd518e2653ad029ca238"
     }
   },
   "source_files": {
@@ -122,7 +123,7 @@
       "sha256": "f91192e8fb91e56a7d069dad0dc4c333dc213cfb9607af5adde9dffe209dc51a"
     },
     "server_tools/public_slice_export/public_bootstrap/runtime.schema.sql": {
-      "sha256": "386536f64351a852edc41daed6618ddbbefdea68d87fbf18e7c18a800a45e238"
+      "sha256": "5966af3a41c8d855cb2020ca4f0338ece1171dfc0b73967ceae2a2fc7e923d9b"
     },
     "server_tools/public_slice_export/public_bootstrap/runtime.seed.sql": {
       "sha256": "76117887c4c8b95026fb604cdc7b88ab68dc492d32557c0dca1006eb0f27d904"
@@ -131,7 +132,7 @@
       "sha256": "e7d93194c36e209253016c50c3a78b84a6a6ea17e438b4600981133514d4b47f"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.seed.sql": {
-      "sha256": "99dc56d7e44da45c2fa4da345d6df01430a93916a99141ad9ddebd26b42211a6"
+      "sha256": "aaf570d04873e24d9e822d57243a06dcd871df2499c1a36f029fa51c3e33b88a"
     },
     "server_tools/public_slice_export/public_bootstrap/app_tables.lang_keys.sql": {
       "sha256": "cd988a9903a7f3b2b3e5e6dc4af33d21afacfdfcb604b8a184b9a05216e2b3a9"
