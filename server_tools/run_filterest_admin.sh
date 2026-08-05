@@ -110,13 +110,15 @@ start_runtime() {
     fi
     pid="$!"
     printf '%s\n' "$pid" > "$PID_FILE"
-    for _ in $(seq 1 300); do
+    # Poll slowly enough that the readiness probe cannot trip the application's
+    # own per-IP rate limiter during first-start metadata maintenance.
+    for _ in $(seq 1 60); do
         if curl --insecure --silent --fail --max-time 1 "https://localhost:${port}/system/ready" >/dev/null; then
             printf 'Filterest is ready: https://localhost:%s/first-run\n' "$port"
             return
         fi
         kill -0 "$pid" 2>/dev/null || break
-        sleep 0.1
+        sleep 1
     done
     printf 'error: Filterest did not become ready; see %s\n' "$LOG_FILE" >&2
     tail -n 30 "$LOG_FILE" || true

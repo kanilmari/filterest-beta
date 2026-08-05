@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -31,9 +32,15 @@ func RunMigrations(db *sql.DB, dir string) error {
 		return err
 	}
 	sort.Strings(files)
+	allowedFiles := configuredMigrationFileAllowlist()
 
 	for _, f := range files {
 		base := filepath.Base(f)
+		if len(allowedFiles) > 0 {
+			if _, allowed := allowedFiles[base]; !allowed {
+				continue
+			}
+		}
 		var exists bool
 		if err := db.QueryRow(`SELECT EXISTS (SELECT 1 FROM system_schema_migrations WHERE filename = $1)`, base).Scan(&exists); err != nil {
 			return err
@@ -96,6 +103,21 @@ func RunMigrations(db *sql.DB, dir string) error {
 		log.Printf("Applied migration %s", base)
 	}
 	return nil
+}
+
+// configuredMigrationFileAllowlist returns an optional exact filename filter.
+// An empty filter preserves the historical behavior of running every pending
+// migration. Generated Filterest launchers use the filter for narrowly scoped
+// compatibility repairs without exposing the private migration chain.
+func configuredMigrationFileAllowlist() map[string]struct{} {
+	configured := make(map[string]struct{})
+	for _, filename := range strings.Split(os.Getenv("EASELECT_MIGRATION_FILE_ALLOWLIST"), ",") {
+		filename = strings.TrimSpace(filename)
+		if filename != "" {
+			configured[filename] = struct{}{}
+		}
+	}
+	return configured
 }
 
 // startsWithSelfManagedBegin detects migrations that manage their own transaction.

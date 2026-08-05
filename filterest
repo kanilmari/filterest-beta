@@ -97,6 +97,7 @@ enable_local_public_schema_repairs() {
     case "${database_host,,}" in
         localhost|127.0.0.1|::1)
             export ENABLE_SQL_MIGRATIONS=true
+            export EASELECT_MIGRATION_FILE_ALLOWLIST="20260307_create_system_comments.sql,20260805000001_restore_filterest_public_version_head.sql"
             printf 'Applying pending local Filterest schema repairs before startup.\n'
             ;;
     esac

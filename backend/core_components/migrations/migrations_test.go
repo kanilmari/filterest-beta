@@ -323,6 +323,27 @@ func TestRunMigrationsAppliesTransactionalFilesInSortedOrderAndSkipsExisting(t *
 	}
 }
 
+func TestRunMigrationsHonorsExactFilenameAllowlist(t *testing.T) {
+	dir := t.TempDir()
+	writeMigrationFile(t, dir, "001_private.sql", "SELECT 1;")
+	writeMigrationFile(t, dir, "002_public_repair.sql", "SELECT 2;")
+	writeMigrationFile(t, dir, "003_private.sql", "SELECT 3;")
+	t.Setenv("EASELECT_MIGRATION_FILE_ALLOWLIST", " 002_public_repair.sql ")
+
+	db, state := openMigrationMockDB(t, migrationMockConfig{})
+	if err := RunMigrations(db, dir); err != nil {
+		t.Fatalf("RunMigrations() returned error: %v", err)
+	}
+
+	if got := existsChecks(state); strings.Join(got, ",") != "002_public_repair.sql" {
+		t.Fatalf("exists checks = %v, want only the allowlisted migration", got)
+	}
+	gotTx := txQueries(state)
+	if len(gotTx) != 2 || gotTx[0] != "SELECT 2;" {
+		t.Fatalf("tx queries = %v, want only the allowlisted migration and tracking insert", gotTx)
+	}
+}
+
 func TestRunMigrationsExecutesSelfManagedMigrationDirectly(t *testing.T) {
 	dir := t.TempDir()
 	content := "-- migration header\n-- more context\n\nBEGIN;\nSELECT 1;\nCOMMIT;"
