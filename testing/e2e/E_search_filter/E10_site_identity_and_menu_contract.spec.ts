@@ -81,6 +81,15 @@ test.describe('E10 — Site identity and menu contract', () => {
     await expect(page.locator('#hideMenuButton')).toBeHidden();
     await expect(page.locator('#showMenuButton')).toHaveCount(1);
 
+    const wideBadge = page.locator('#showMenuButton .environment-badge');
+    await expect(wideBadge).toBeVisible();
+    const wideBadgeBounds = await wideBadge.evaluate((element) => {
+      const badge = element.getBoundingClientRect();
+      const bodyContent = element.closest('.body_content')?.getBoundingClientRect();
+      return { badgeTop: badge.top, bodyTop: bodyContent?.top ?? 0 };
+    });
+    expect(wideBadgeBounds.badgeTop).toBeGreaterThanOrEqual(wideBadgeBounds.bodyTop);
+
     const widePosition = await menuButton.evaluate((element) => {
       const rect = element.getBoundingClientRect();
       return { left: rect.left, top: rect.top };
@@ -101,6 +110,23 @@ test.describe('E10 — Site identity and menu contract', () => {
       .toBeVisible();
     await expect(page.locator('#showMenuButton')).toHaveCount(1);
     await expect(page.locator('#hideMenuButton')).toBeHidden();
+
+    const narrowBadge = menuButton.locator('.environment-badge');
+    await expect(narrowBadge).toBeVisible();
+    const narrowBadgeBounds = await narrowBadge.evaluate((element) => {
+      const badge = element.getBoundingClientRect();
+      const topbarInner = element
+        .closest('.dataset-shared-topbar__inner')
+        ?.getBoundingClientRect();
+      return {
+        badgeTop: badge.top,
+        badgeBottom: badge.bottom,
+        topbarTop: topbarInner?.top ?? Number.POSITIVE_INFINITY,
+        topbarBottom: topbarInner?.bottom ?? Number.NEGATIVE_INFINITY,
+      };
+    });
+    expect(narrowBadgeBounds.badgeTop).toBeGreaterThanOrEqual(narrowBadgeBounds.topbarTop);
+    expect(narrowBadgeBounds.badgeBottom).toBeLessThanOrEqual(narrowBadgeBounds.topbarBottom);
 
     const narrowPosition = await menuButton.evaluate((element) => {
       const rect = element.getBoundingClientRect();
