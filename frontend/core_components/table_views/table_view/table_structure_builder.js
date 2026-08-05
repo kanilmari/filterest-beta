@@ -22,6 +22,12 @@ import {
     shouldRenderCompactCellValue,
 } from './table_structure_builder_helpers.js';
 import { formatTimestampDisplayParts } from '../timestamp_display_formatter.js';
+import {
+    bindDatasetLanguageRenderer,
+    refreshLocalizedDatasetValues,
+    resolveDatasetDisplayValue,
+    setLocalizedDatasetText,
+} from '../dataset_value_localizer.js';
 
 /* ===========================================================
  *  Column Width Preservation
@@ -322,6 +328,17 @@ export function createCheckboxCell(row, _table_name) {
     return checkbox_td;
 }
 
+/**
+ * Refreshes already rendered table cells after the user changes the UI language.
+ * Operates between raw multilingual values retained on table cells and their visible text.
+ * Exists so language switching does not require a data refetch or expose JSON payloads.
+ *
+ * @param {string} chosenLanguage - Active UI language code.
+ */
+export function refreshTableLanguages(chosenLanguage) {
+    return refreshLocalizedDatasetValues(chosenLanguage, document);
+}
+
 function resolveResizableCellContents(scopeElement) {
     if (!(scopeElement instanceof HTMLElement)) {
         return [];
@@ -516,19 +533,33 @@ export function createDataCell(item, column, columns, rowIndex, colIndex, table_
     // console.log('calling makeColumnClass with table_name:', table_name, 'and column:', column);
     td.classList.add(makeColumnClass(table_name, column)); // ★
 
-    let value = item[column];
-    let displayValue = '';
+    const value = item[column];
+    const columnMetadata = dataTypes?.[column] || {};
+    let displayValue = resolveDatasetDisplayValue(value, columnMetadata);
 
     const foreignKeyColumn = column.replace('_name', '_id');
 
     if (columns.includes(foreignKeyColumn)) {
-        displayValue = formatValue(value);
+        displayValue = formatValue(displayValue);
     } else if (columns.includes(`${column}_name`)) {
-        td.title = (item[`${column}_name`] == null) ? 'Tuntematon'
-                                                    : item[`${column}_name`];
-        displayValue = formatValue(value);
+        const foreignDisplayColumn = `${column}_name`;
+        const foreignDisplayValue = item[foreignDisplayColumn];
+        const foreignDisplayMetadata = dataTypes?.[foreignDisplayColumn] || null;
+        td.title = (item[foreignDisplayColumn] == null)
+            ? 'Tuntematon'
+            : resolveDatasetDisplayValue(foreignDisplayValue, foreignDisplayMetadata);
+        if (item[foreignDisplayColumn] != null) {
+            bindDatasetLanguageRenderer(td, (chosenLanguage) => {
+                td.title = resolveDatasetDisplayValue(
+                    foreignDisplayValue,
+                    foreignDisplayMetadata,
+                    chosenLanguage
+                );
+            });
+        }
+        displayValue = formatValue(displayValue);
     } else {
-        displayValue = formatValue(value);
+        displayValue = formatValue(displayValue);
     }
 
     const timestampParts = formatTimestampDisplayParts(value, dataTypes?.[column] || "");
@@ -545,7 +576,19 @@ export function createDataCell(item, column, columns, rowIndex, colIndex, table_
     } else {
         td.classList.add('table_data_cell--height-resizable');
     }
-    content.textContent = normalizeDisplayText(displayValue);
+    if (timestampParts) {
+        content.textContent = normalizeDisplayText(displayValue);
+    } else {
+        setLocalizedDatasetText(content, value, columnMetadata, {
+            transform: (localizedValue) => normalizeDisplayText(formatValue(localizedValue)),
+            afterRender: (renderedValue) => {
+                const isCompact = shouldRenderCompactCellValue(renderedValue);
+                td.classList.toggle('table_data_cell--compact', isCompact);
+                td.classList.toggle('table_data_cell--height-resizable', !isCompact);
+                content.classList.toggle('table_cell_content--compact', isCompact);
+            },
+        });
+    }
     td.appendChild(content);
     return td;
 }

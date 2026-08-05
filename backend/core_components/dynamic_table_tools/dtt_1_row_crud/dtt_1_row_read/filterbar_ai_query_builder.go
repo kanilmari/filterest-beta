@@ -18,7 +18,10 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-var errFilterbarAIInvalidPlannerResult = errors.New("invalid AI planner result")
+var (
+	errFilterbarAIInvalidPlannerResult = errors.New("invalid AI planner result")
+	errFilterbarAIOpenAIKeyMissing     = errors.New("missing OPENAI_API_KEY")
+)
 
 const filterbarAIMaxPlannerCalls = 4
 const filterbarAIDefaultOpenAIModel = "gpt-5.5"
@@ -125,7 +128,7 @@ func planFilterbarAIQueryWithLLM(ctx context.Context, payload filterbarAIQueryRe
 
 	apiKey := strings.TrimSpace(os.Getenv("OPENAI_API_KEY"))
 	if apiKey == "" {
-		return filterbarAIPlannerResponse{}, errors.New("missing OPENAI_API_KEY")
+		return filterbarAIPlannerResponse{}, errFilterbarAIOpenAIKeyMissing
 	}
 
 	modelName := resolveFilterbarAIOpenAIModel()
@@ -688,7 +691,7 @@ func resolveFilterbarAIPlannerFilterColumn(rawColumn string, columnSet map[strin
 func answerFilterbarAIQueryWithLLM(ctx context.Context, payload filterbarAIQueryRequest, plannerResponse filterbarAIPlannerResponse, resultContext filterbarAIResultContext) (filterbarAIAnswerResponse, error) {
 	apiKey := strings.TrimSpace(os.Getenv("OPENAI_API_KEY"))
 	if apiKey == "" {
-		return filterbarAIAnswerResponse{}, errors.New("missing OPENAI_API_KEY")
+		return filterbarAIAnswerResponse{}, errFilterbarAIOpenAIKeyMissing
 	}
 
 	modelName := resolveFilterbarAIOpenAIModel()

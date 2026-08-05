@@ -4,8 +4,9 @@
 // Bridges admin layout persistence payloads and DOM section ordering.
 // Exists so unknown or duplicate section keys cannot corrupt the saved layout.
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
+    applySectionCollapsedState,
     DEFAULT_FILTERBAR_SECTION_ORDER,
     normalizeFilterbarSectionCollapsed,
     normalizeFilterbarSectionOrder,
@@ -88,5 +89,33 @@ describe("normalizeFilterbarSectionCollapsed", () => {
 
     test("falls back to no collapsed sections for empty input", () => {
         expect(normalizeFilterbarSectionCollapsed()).toEqual({});
+    });
+
+    test("remote layout never reopens initially closed sidebar sections", async () => {
+        const container = document.createElement("div");
+        const filters = document.createElement("section");
+        filters.dataset.filterbarSectionKey = "filters";
+        filters.classList.add("is-collapsed");
+        filters.expand = vi.fn();
+        filters.collapse = vi.fn();
+
+        const tools = document.createElement("section");
+        tools.dataset.filterbarSectionKey = "tools";
+        tools.expand = vi.fn();
+        tools.collapse = vi.fn(() => {
+            tools.classList.add("is-collapsed");
+            return Promise.resolve();
+        });
+        container.append(filters, tools);
+
+        await applySectionCollapsedState(container, {
+            filters: false,
+            tools: true,
+        });
+
+        expect(filters.expand).not.toHaveBeenCalled();
+        expect(filters.classList.contains("is-collapsed")).toBe(true);
+        expect(tools.collapse).toHaveBeenCalledWith({ animate: false });
+        expect(tools.classList.contains("is-collapsed")).toBe(true);
     });
 });

@@ -5,11 +5,17 @@
 // Exists to keep map view row placement stable across supported coordinate shapes.
 
 import { beforeEach, describe, expect, test } from "vitest";
-import { create_map_view, dataset_supports_map_view, extract_map_points } from "./map_view_printer.js";
+import {
+    create_map_view,
+    dataset_supports_map_view,
+    extract_map_points,
+    refresh_mounted_map_view_languages,
+} from "./map_view_printer.js";
 
 describe("map_view_printer", () => {
     beforeEach(() => {
         document.body.innerHTML = "";
+        localStorage.clear();
     });
 
     test("extracts explicit coordinate column pairs by supported aliases", () => {
@@ -208,5 +214,87 @@ describe("map_view_printer", () => {
         expect(markers[1].classList.contains("map-view-is-selected")).toBe(true);
         expect(rows[1].classList.contains("map-view-is-selected")).toBe(true);
         expect(rows[1].textContent).toContain("Harbor");
+    });
+
+    test.each([
+        ["fi", "Suomenkielinen paikka", "Suomenkielinen kuvaus"],
+        ["en", "English place", "English description"],
+        ["yue", "粵語地點", "粵語描述"],
+        ["sv", "English place", "English description"],
+    ])("shows only the %s value in multilingual map labels and previews", (
+        language,
+        expectedTitle,
+        expectedDescription
+    ) => {
+        localStorage.setItem("chosen_language", language);
+        const nameValue = JSON.stringify({
+            en: "English place",
+            fi: "Suomenkielinen paikka",
+            yue: "粵語地點",
+        });
+        const descriptionValue = JSON.stringify({
+            en: "English description",
+            fi: "Suomenkielinen kuvaus",
+            yue: "粵語描述",
+        });
+        const row = {
+            id: 1,
+            name: nameValue,
+            description: descriptionValue,
+            lat: 60.1699,
+            lng: 24.9384,
+        };
+
+        const view = create_map_view(
+            "places",
+            ["id", "name", "description", "lat", "lng"],
+            [row],
+            {
+                name: { is_multilingual: true },
+                description: { is_multilingual: true },
+            }
+        );
+
+        expect(view.querySelector(".map-view-row-title")?.textContent).toBe(expectedTitle);
+        expect(view.querySelector(".map-view-marker-button")?.title).toContain(expectedTitle);
+        expect(view.querySelector(".map-view-row-values")?.textContent).toContain(expectedDescription);
+        expect(view.textContent).not.toContain('{"en"');
+        expect(row.name).toBe(nameValue);
+        expect(row.description).toBe(descriptionValue);
+    });
+
+    test("keeps ordinary JSON raw when the column is explicitly not multilingual", () => {
+        const rawJson = JSON.stringify({ name: "Raw value", value: "Untouched" });
+        const view = create_map_view(
+            "places",
+            ["id", "name", "metadata", "lat", "lng"],
+            [{ id: 1, name: "Library", metadata: rawJson, lat: 60.17, lng: 24.94 }],
+            { metadata: { is_multilingual: false } }
+        );
+
+        expect(view.querySelector(".map-view-row-values")?.textContent).toContain(rawJson);
+    });
+
+    test("refreshes mounted map values from retained rows without refetching them", async () => {
+        localStorage.setItem("chosen_language", "en");
+        const nameValue = JSON.stringify({ en: "English place", fi: "Suomenkielinen paikka" });
+        const row = { id: 1, name: nameValue, lat: 60.17, lng: 24.94 };
+        const view = create_map_view(
+            "places",
+            ["id", "name", "lat", "lng"],
+            [row],
+            { name: { is_multilingual: true } }
+        );
+        document.body.appendChild(view);
+
+        localStorage.setItem("chosen_language", "fi");
+        const refreshedCount = await refresh_mounted_map_view_languages("fi");
+
+        expect(refreshedCount).toBe(1);
+        expect(view.querySelector(".map-view-row-title")?.textContent).toBe("Suomenkielinen paikka");
+        expect(view.querySelector(".map-view-marker-button")?.title).toContain("Suomenkielinen paikka");
+        expect(document.body.querySelector(".map-view")).toBe(view);
+        expect(view.querySelector(".map-view-is-selected")?.dataset.rowIndex).toBe("0");
+        expect(row.name).toBe(nameValue);
     });
 });

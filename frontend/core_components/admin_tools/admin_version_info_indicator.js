@@ -6,7 +6,10 @@
 import { hasRoutePermission } from "../route_permission_checker.js";
 import { fetchAdminVersionInfo } from "../endpoints/stable_endpoint_router.js";
 import { getLanguageWithBrowserFallback } from "../state_stores/lang_preference_reader.js";
-import { getCurrentSiteName } from "../state_stores/site_identity_reader.js";
+import {
+    formatSiteNameForDisplay,
+    getCurrentSiteName,
+} from "../state_stores/site_identity_reader.js";
 import { getCardDetailIconSvgMarkup } from "../table_views/card_view/card_detail_icon_builder.js";
 
 export const ADMIN_VERSION_INFO_ROUTE = "/api/admin/version-info";
@@ -15,7 +18,7 @@ let versionInfoPanelSequence = 0;
 
 const VERSION_LABELS = Object.freeze({
     fi: {
-        title: "Versioinfo",
+        title: "Sivustotiedot",
         site: "Sivusto",
         app: "Sovellus",
         database: "Tietokanta",
@@ -27,7 +30,7 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "ei yhteensopiva",
     },
     en: {
-        title: "Version information",
+        title: "Site information",
         site: "Site",
         app: "Application",
         database: "Database",
@@ -39,7 +42,7 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "incompatible",
     },
     ch: {
-        title: "版本信息",
+        title: "站点信息",
         site: "网站",
         app: "应用程序",
         database: "数据库",
@@ -51,7 +54,7 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "不兼容",
     },
     yue: {
-        title: "版本資訊",
+        title: "網站資訊",
         site: "網站",
         app: "應用程式",
         database: "資料庫",
@@ -63,6 +66,10 @@ const VERSION_LABELS = Object.freeze({
         incompatible: "不相容",
     },
 });
+
+export function getAdminSiteInfoTitle(language = "en") {
+    return (VERSION_LABELS[language] || VERSION_LABELS.en).title;
+}
 
 export function buildAdminVersionInfoRows(versionInfo, language = "en", siteName = "") {
     const labels = VERSION_LABELS[language] || VERSION_LABELS.en;
@@ -79,20 +86,20 @@ export function buildAdminVersionInfoRows(versionInfo, language = "en", siteName
         : labels.incompatible;
 
     const rows = [
-        { id: "application", label: productName, value: appVersion },
+        { id: "application", label: productName, value: `v. ${appVersion}` },
         {
             id: "database",
             label: labels.database,
-            value: `${databaseVersion} (${compatibilityLabel})`,
+            value: `v. ${databaseVersion} (${compatibilityLabel})`,
         },
         {
             id: "required-database",
             label: labels.requiredDatabase,
-            value: requiredDatabaseVersion,
+            value: `v. ${requiredDatabaseVersion}`,
         },
         { id: "runtime", label: labels.runtime, value: runtimeLabel },
     ];
-    const normalizedSiteName = String(siteName || "").trim();
+    const normalizedSiteName = formatSiteNameForDisplay(siteName);
     if (normalizedSiteName) {
         rows.unshift({ id: "site", label: labels.site, value: normalizedSiteName });
     }
@@ -106,9 +113,14 @@ export function formatAdminVersionInfoLabel(versionInfo, language = "en") {
 }
 
 function renderAdminVersionInfoRows(panel, rows, title) {
-    const caption = document.createElement("caption");
-    caption.classList.add("filterbar-clock-bar__version-info-title");
-    caption.textContent = title;
+    const heading = document.createElement("thead");
+    const headingRow = document.createElement("tr");
+    const headingCell = document.createElement("th");
+    headingCell.colSpan = 2;
+    headingCell.classList.add("filterbar-clock-bar__version-info-title");
+    headingCell.textContent = title;
+    headingRow.appendChild(headingCell);
+    heading.appendChild(headingRow);
 
     const body = document.createElement("tbody");
     const rowElements = rows.map(({ id, label, value }) => {
@@ -129,7 +141,7 @@ function renderAdminVersionInfoRows(panel, rows, title) {
         return row;
     });
     body.append(...rowElements);
-    panel.replaceChildren(caption, body);
+    panel.replaceChildren(heading, body);
 }
 
 export function buildAdminVersionInfoIndicator() {
@@ -204,8 +216,9 @@ async function hydrateAdminVersionInfoIndicator(shell, indicator, panel) {
     try {
         const versionInfo = await fetchAdminVersionInfo({ suppressAuthRedirect: true });
         const language = getLanguageWithBrowserFallback();
-        const labels = VERSION_LABELS[language] || VERSION_LABELS.en;
-        const siteName = getCurrentSiteName() || String(versionInfo?.product_name || "").trim();
+        const siteName = formatSiteNameForDisplay(
+            getCurrentSiteName() || String(versionInfo?.product_name || "").trim()
+        );
         const rows = buildAdminVersionInfoRows(versionInfo, language, siteName);
         const label = formatAdminVersionInfoLabel(
             versionInfo,
@@ -213,8 +226,9 @@ async function hydrateAdminVersionInfoIndicator(shell, indicator, panel) {
         );
         indicator.title = label;
         indicator.setAttribute("aria-label", label.replaceAll("\n", ". "));
-        panel.setAttribute("aria-label", labels.title);
-        renderAdminVersionInfoRows(panel, rows, labels.title);
+        const panelTitle = getAdminSiteInfoTitle(language);
+        panel.setAttribute("aria-label", panelTitle);
+        renderAdminVersionInfoRows(panel, rows, panelTitle);
         shell.hidden = false;
     } catch {
         shell.destroy();

@@ -80,6 +80,7 @@ const STABLE_CANDIDATE_ROUTE_SPECS = Object.freeze({
     ]),
     adminMaintenance: Object.freeze([
         { routeName: 'adminVersionInfo', handlerName: 'router.adminVersionInfoHandler' },
+        { routeName: 'saveOpenAIAPIKey', handlerName: 'router.saveOpenAIAPIKeyHandler' },
         { routeName: 'checkDbConsistency', handlerName: 'system_table_tools.CheckDatabaseConsistencyHandler' },
         { routeName: 'fixDbConsistency', handlerName: 'system_table_tools.FixDatabaseConsistencyHandler' },
         { routeName: 'checkJsonColumns', handlerName: 'devtools.CheckJsonInTextColumnsHandler' },

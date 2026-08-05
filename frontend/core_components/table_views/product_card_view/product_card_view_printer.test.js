@@ -34,7 +34,10 @@ vi.mock("../../general_tables/gt_1_row_crud/gt_1_2_row_read/table_refresh_unifie
     refreshTableUnified: refreshTableUnifiedMock,
 }));
 
-import { create_product_card_view } from "./product_card_view_printer.js";
+import {
+    create_product_card_view,
+    refreshProductCardLanguages,
+} from "./product_card_view_printer.js";
 
 describe("product_card_view_printer", () => {
     beforeEach(() => {
@@ -191,5 +194,61 @@ describe("product_card_view_printer", () => {
 
         expect(emptyState?.textContent).toBe("No rows");
         expect(emptyState?.dataset.langKey).toBe("no_rows");
+    });
+
+    test("shows one language at a time and refreshes from unchanged raw row data", () => {
+        const rawTitle = JSON.stringify({
+            en: "Support service",
+            fi: "Tukipalvelu",
+        });
+        const rawCategory = JSON.stringify({
+            en: "Operations",
+            fi: "Toiminta",
+        });
+        const row = {
+            id: 17,
+            name: rawTitle,
+            category: rawCategory,
+        };
+        const view = create_product_card_view(
+            "services",
+            ["id", "name", "category"],
+            [row],
+            {
+                name: { data_type: "text", is_multilingual: true },
+                category: { data_type: "text", is_multilingual: true },
+            }
+        );
+        document.body.appendChild(view);
+
+        expect(view.querySelector(".product-card-view-title")?.textContent)
+            .toBe("Support service");
+        expect(view.querySelector(".product-card-view-detail-value")?.textContent)
+            .toBe("Operations");
+
+        refreshProductCardLanguages("fi");
+
+        expect(view.querySelector(".product-card-view-title")?.textContent)
+            .toBe("Tukipalvelu");
+        expect(view.querySelector(".product-card-view-detail-value")?.textContent)
+            .toBe("Toiminta");
+        expect(row).toEqual({
+            id: 17,
+            name: rawTitle,
+            category: rawCategory,
+        });
+    });
+
+    test("preserves ordinary JSON when metadata explicitly disables multilingual rendering", () => {
+        const ordinaryJson = JSON.stringify({ name: "Support service", count: 2 });
+        const view = create_product_card_view(
+            "services",
+            ["id", "name"],
+            [{ id: 18, name: ordinaryJson }],
+            { name: { data_type: "jsonb", is_multilingual: false } }
+        );
+
+        expect(view.querySelector(".product-card-view-title")?.textContent)
+            .toBe(ordinaryJson);
     });
 });

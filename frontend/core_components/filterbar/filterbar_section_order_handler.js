@@ -133,7 +133,7 @@ function applySectionOrder(container, order) {
     }
 }
 
-async function applySectionCollapsedState(container, collapsedState) {
+export async function applySectionCollapsedState(container, collapsedState) {
     const normalizedCollapsed = normalizeFilterbarSectionCollapsed(collapsedState);
     const operations = getSectionElements(container).map((section) => {
         const key = section.dataset.filterbarSectionKey;
@@ -143,9 +143,8 @@ async function applySectionCollapsedState(container, collapsedState) {
         if (shouldCollapse && !isCollapsed && typeof section.collapse === "function") {
             return section.collapse({ animate: false });
         }
-        if (!shouldCollapse && isCollapsed && typeof section.expand === "function") {
-            return section.expand({ animate: false });
-        }
+        // Remote layout can make a section stricter, but it must not reopen the
+        // closed-by-default right sidebar during initial page construction.
         return Promise.resolve();
     });
 

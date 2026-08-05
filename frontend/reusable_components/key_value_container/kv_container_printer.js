@@ -71,7 +71,7 @@ function observeKvContainer(target, onResize) {
  * Piirtää avain-arvo-parit konttiin ja huolehtii responsiivisuudesta.
  *
  * @param {HTMLElement}                 containerElement
- * @param {{key:string,value:string,isLink?:boolean,labelText?:string,labelKey?:string,href?:string,openInNewTabHref?:string}[]} keyValuePairDataArray
+ * @param {{key:string,value:string,isLink?:boolean,labelText?:string,labelKey?:string,href?:string,openInNewTabHref?:string,columnClass?:string}[]} keyValuePairDataArray
  * @param {Object}   [userOptions={}]
  * @param {number}   [userOptions.maxColumns=6]
  * @param {number}   [userOptions.minPairWidth=320]
@@ -265,6 +265,13 @@ export function renderKeyValuePairs(
         }
     }
 
+    function applyPairColumnClass(pairElement, pairObj) {
+        const columnClass = String(pairObj?.columnClass || "").trim();
+        if (columnClass) {
+            pairElement.classList.add(columnClass);
+        }
+    }
+
     function createInlineElements(pairObj) {
 
         const keySp = document.createElement("span");
@@ -289,6 +296,7 @@ export function renderKeyValuePairs(
 
         const wrap = document.createElement("div");
         wrap.className = "kv-pair-stacked";
+        applyPairColumnClass(wrap, pairObj);
 
         const keyDiv = document.createElement("div");
         keyDiv.className = "kv-key";
@@ -319,6 +327,7 @@ export function renderKeyValuePairs(
 
         const wrap = document.createElement("div");
         wrap.className = "kv-pair-conditional kv-smart-row";
+        applyPairColumnClass(wrap, pairObj);
 
         const keyDiv = document.createElement("div");
         keyDiv.className = "kv-key kv-conditional-key";
@@ -603,6 +612,7 @@ export function renderKeyValuePairs(
                         if (!pair) continue;
                         const wrap = document.createElement("div");
                         wrap.className = "kv-pair-inline";
+                        applyPairColumnClass(wrap, pair);
                         wrap.style.display = "grid";
                         wrap.style.gridTemplateColumns = "1fr 1fr";
                         const [k, v] = createInlineElements(pair);

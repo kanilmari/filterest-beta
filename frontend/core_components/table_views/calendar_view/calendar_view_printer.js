@@ -20,7 +20,12 @@ import {
     toLocalDateKey,
 } from "./calendar_view_helpers.js";
 import { openRowArticleView } from "../card_view/row_article_opener.js";
+import { getLanguageWithBrowserFallback } from "../../state_stores/lang_preference_reader.js";
 import { setUnifiedTableState } from "../../state_stores/table_state_store.js";
+import {
+    bindDatasetLanguageRenderer,
+    refreshLocalizedDatasetValues,
+} from "../dataset_value_localizer.js";
 
 const CALENDAR_MODES = [
     { key: "month", label: "Month", langKey: "calendar_month" },
@@ -60,7 +65,9 @@ export function create_calendar_view(table_name, columns, data, data_types = {})
     const groupedEvents = groupCalendarRowsByDate(
         safeRows,
         calendarColumns,
-        safeColumns
+        safeColumns,
+        getLanguageWithBrowserFallback(),
+        data_types
     );
 
     const state = {
@@ -69,11 +76,36 @@ export function create_calendar_view(table_name, columns, data, data_types = {})
         viewDate: chooseInitialViewDate(groupedEvents),
         groupedEvents,
         calendarColumns,
+        rows: safeRows,
+        columns: safeColumns,
+        dataTypes: data_types,
     };
 
     const render = () => renderCalendarRoot(root, state, render);
-    render();
+    bindDatasetLanguageRenderer(root, (chosenLanguage) => {
+        state.groupedEvents = groupCalendarRowsByDate(
+            state.rows,
+            state.calendarColumns,
+            state.columns,
+            chosenLanguage,
+            state.dataTypes
+        );
+        render();
+    });
     return root;
+}
+
+/**
+ * Refreshes visible calendar event titles after the active language changes.
+ * Operates between retained raw row data and already mounted calendar roots.
+ * Exists so language switching updates calendar labels without refetching or mutating rows.
+ *
+ * @param {string} chosenLanguage - Active UI language code.
+ */
+export function refreshCalendarLanguages(
+    chosenLanguage = getLanguageWithBrowserFallback()
+) {
+    return refreshLocalizedDatasetValues(chosenLanguage, document);
 }
 
 /**

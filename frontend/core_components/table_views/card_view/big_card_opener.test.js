@@ -145,6 +145,7 @@ import {
 } from "./row_article_asset_resolver.js";
 import { buildRowArticleContent } from "./row_article_content_builder.js";
 import { createRowArticleLoadSession } from "./row_article_load_session.js";
+import { buildSlug } from "./row_article_opener_helpers.js";
 
 function createDefaultRowArticleContent() {
     const rowArticleContentElement = document.createElement("div");
@@ -235,6 +236,45 @@ describe("openRowArticleView", () => {
         article?.querySelector(".big_card_close")?.click();
 
         expect(closeRowArticleMock).toHaveBeenCalled();
+    });
+
+    test("uses the active-language header for the article avatar and URL slug", async () => {
+        document.body.innerHTML = `
+            <div id="services_card_view_container">
+                <div class="card_view_wrapper">
+                    <div class="card_container">
+                        <div class="card" data-id="42"></div>
+                    </div>
+                    <div class="big_card_placeholder row_article_placeholder"></div>
+                </div>
+            </div>
+        `;
+        const selectedCard = document.querySelector(".card[data-id='42']");
+        selectedCard._data_types = {
+            title: { card_element: "header", is_multilingual: true },
+        };
+        vi.mocked(parseRoleString).mockImplementation((roleString = "") => ({
+            baseRoles: String(roleString).split(/\s+/).filter(Boolean),
+        }));
+
+        await openRowArticleView(
+            { id: 42, title: JSON.stringify({ en: "Services", fi: "Palvelut" }) },
+            "services",
+            selectedCard,
+        );
+
+        expect(buildRowArticleContent).toHaveBeenCalledWith(
+            expect.any(Object),
+            "services",
+            selectedCard._data_types,
+            expect.any(Array),
+            expect.any(String),
+            "S",
+            false,
+            1,
+        );
+        expect(buildSlug).toHaveBeenCalledWith("Services");
+        expect(document.body.textContent).not.toContain('{"en"');
     });
 
     test("preserves active search params and marks row URLs as article view", async () => {

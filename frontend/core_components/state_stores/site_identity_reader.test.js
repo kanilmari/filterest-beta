@@ -5,7 +5,10 @@
 // Exists to keep dynamic site identity out of translated and hardcoded component copy.
 
 import { beforeEach, describe, expect, test } from "vitest";
-import { getCurrentSiteName } from "./site_identity_reader.js";
+import {
+    formatSiteNameForDisplay,
+    getCurrentSiteName,
+} from "./site_identity_reader.js";
 
 describe("getCurrentSiteName", () => {
     beforeEach(() => {
@@ -28,5 +31,17 @@ describe("getCurrentSiteName", () => {
 
     test("returns an empty identity when the application shell has neither source", () => {
         expect(getCurrentSiteName()).toBe("");
+    });
+});
+
+describe("formatSiteNameForDisplay", () => {
+    test.each([
+        ["filt", "Filt"],
+        ["  serlog.com  ", "Serlog.com"],
+        ["Filterest", "Filterest"],
+        ["筛选器 Filterest", "筛选器 Filterest"],
+        ["", ""],
+    ])("normalizes %j without translating it", (siteName, expected) => {
+        expect(formatSiteNameForDisplay(siteName)).toBe(expected);
     });
 });

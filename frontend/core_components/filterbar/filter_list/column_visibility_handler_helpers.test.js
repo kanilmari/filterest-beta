@@ -64,11 +64,20 @@ describe('buildCssHideRules', () => {
         expect(result.split('\n')).toHaveLength(2);
     });
 
-    test('each rule includes display:none and card exclusion', () => {
+    test('each rule hides the shared field class in every dataset presentation', () => {
         const result = buildCssHideRules({ status: true }, 'orders');
         expect(result).toBe(
-            '.column_orders_status:not([data-hide-field-on-card="false"]) { display: none !important; }'
+            '.column_orders_status { display: none !important; }'
         );
+    });
+
+    test('does not exempt card fields from field-set visibility', () => {
+        const css = buildCssHideRules({ description: true }, 'orders');
+
+        expect(css).toBe(
+            '.column_orders_description { display: none !important; }'
+        );
+        expect(css).not.toContain('data-hide-field-on-card');
     });
 
     test('returns empty string for empty hiddenMap', () => {

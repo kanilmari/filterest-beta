@@ -62,4 +62,5 @@ type AddRowColumnInfo struct {
 	InsertNewTargetWithSource sql.NullBool `json:"insert_new_target_with_source"`
 	SourceInsertSpecs         string       `json:"source_insert_specs"`
 	TargetInsertSpecs         string       `json:"target_insert_specs"`
+	Insertable                sql.NullBool `json:"insertable"`
 }

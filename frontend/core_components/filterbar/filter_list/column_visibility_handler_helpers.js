@@ -27,8 +27,9 @@ export function makeColumnClass(tableName, columnName) {
 }
 
 /**
- * Generate CSS rules that hide columns listed in hiddenMap.
- * Each rule targets the column class and excludes card-visible elements.
+ * Generate CSS rules that hide fields listed in hiddenMap.
+ * Each rule targets the shared column class across table and card views so a
+ * field set has one visibility meaning regardless of the active presentation.
  *
  * @param {Record<string, boolean>} hiddenMap - Keys are column names to hide
  * @param {string} tableName - Used to build per-column class names
@@ -40,7 +41,7 @@ export function buildCssHideRules(hiddenMap, tableName) {
         .map((originalColumnName) => {
             const cls = makeColumnClass(tableName, originalColumnName);
             if (!cls) return '';
-            return `.${cls}:not([data-hide-field-on-card="false"]) { display: none !important; }`;
+            return `.${cls} { display: none !important; }`;
         })
         .filter(Boolean)
         .join("\n");

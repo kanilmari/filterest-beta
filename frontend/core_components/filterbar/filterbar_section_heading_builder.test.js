@@ -43,7 +43,7 @@ describe("buildFilterbarDisclosureSection", () => {
         }
     });
 
-    test("wraps filterbar content in an accessible animated disclosure", async () => {
+    test("wraps filterbar content in an accessible disclosure that starts closed", async () => {
         const content = document.createElement("div");
         content.classList.add("tools-content");
         content.textContent = "Controls";
@@ -63,7 +63,7 @@ describe("buildFilterbarDisclosureSection", () => {
         expect(section.classList.contains("filterbar-disclosure-section")).toBe(true);
         expect(section.classList.contains("dataset-filter-tools-section")).toBe(true);
         expect(heading?.classList.contains("animated-disclosure-header")).toBe(true);
-        expect(heading?.getAttribute("aria-expanded")).toBe("true");
+        expect(heading?.getAttribute("aria-expanded")).toBe("false");
         expect(heading?.getAttribute("aria-controls")).toBe(contentShell?.id);
         expect(heading?.querySelector('[data-lang-key="tools"]')?.textContent).toBe("Työkalut");
         expect(heading?.querySelector(".table-tools-icon")).toBeTruthy();
@@ -71,10 +71,7 @@ describe("buildFilterbarDisclosureSection", () => {
         expect(content.classList.contains("dataset-filter-tools-content")).toBe(true);
         expect(resizeObserveCalls).toBe(0);
 
-        await section.collapse();
-
         expect(section.classList.contains("is-collapsed")).toBe(true);
-        expect(heading?.getAttribute("aria-expanded")).toBe("false");
         expect(contentShell?.hidden).toBe(true);
 
         await section.expand();
@@ -82,5 +79,10 @@ describe("buildFilterbarDisclosureSection", () => {
         expect(heading?.getAttribute("aria-expanded")).toBe("true");
         expect(contentShell?.style.height).toBe("auto");
         expect(resizeObserveCalls).toBe(0);
+
+        await section.collapse();
+
+        expect(heading?.getAttribute("aria-expanded")).toBe("false");
+        expect(contentShell?.hidden).toBe(true);
     });
 });

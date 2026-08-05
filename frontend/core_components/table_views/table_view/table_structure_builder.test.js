@@ -58,6 +58,7 @@ async function loadModule() {
 describe('table_structure_builder resize affordances', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
+        localStorage.clear();
         toggleSelectAllMock.mockReset();
         updateRowSelectionMock.mockReset();
         addEventListenersToCellsMock.mockReset();
@@ -112,6 +113,81 @@ describe('table_structure_builder resize affordances', () => {
 
         expect(cell.textContent).toBe(displayDateTime('2026-06-15', '21:36'));
         expect(cell.title).toBe('2026-06-15 21:36:10');
+    });
+
+    test('multilingual cells show only the active language instead of raw JSON', async () => {
+        localStorage.setItem('chosen_language', 'fi');
+        const { createDataCell } = await loadModule();
+        const cell = createDataCell(
+            {
+                title: JSON.stringify({
+                    en: 'Design services people can trust',
+                    fi: 'Muotoile palvelut, joihin ihmiset voivat luottaa',
+                    yue: '設計大家可以信賴嘅服務',
+                }),
+            },
+            'title',
+            ['title'],
+            0,
+            0,
+            'services',
+            { title: { data_type: 'text', is_multilingual: true } }
+        );
+
+        expect(cell.textContent).toBe('Muotoile palvelut, joihin ihmiset voivat luottaa');
+        expect(cell.textContent).not.toContain('{"en"');
+    });
+
+    test('multilingual cells use English as the controlled fallback when active language is absent', async () => {
+        localStorage.setItem('chosen_language', 'sv');
+        const { createDataCell } = await loadModule();
+        const cell = createDataCell(
+            { title: JSON.stringify({ fi: 'Palvelut', en: 'Services' }) },
+            'title',
+            ['title'],
+            0,
+            0,
+            'services',
+            { title: { data_type: 'text', is_multilingual: true } }
+        );
+
+        expect(cell.textContent).toBe('Services');
+    });
+
+    test('refreshes an existing multilingual table cell when the active language changes', async () => {
+        localStorage.setItem('chosen_language', 'en');
+        const { create_table_element, refreshTableLanguages } = await loadModule();
+        const table = create_table_element(
+            ['title'],
+            [{ title: JSON.stringify({ en: 'Services', fi: 'Palvelut' }) }],
+            'services',
+            { title: { data_type: 'text', is_multilingual: true } }
+        );
+        document.body.appendChild(table);
+
+        expect(table.querySelector('[data-column="title"]')?.textContent).toBe('Services');
+
+        refreshTableLanguages('fi');
+
+        expect(table.querySelector('[data-column="title"]')?.textContent).toBe('Palvelut');
+    });
+
+    test('keeps explicitly non-multilingual JSON intact', async () => {
+        localStorage.setItem('chosen_language', 'fi');
+        const { createDataCell } = await loadModule();
+        const rawValue = JSON.stringify({ name: 'Primary', value: 'secondary' });
+        const cell = createDataCell(
+            { settings: rawValue },
+            'settings',
+            ['settings'],
+            0,
+            0,
+            'services',
+            { settings: { data_type: 'jsonb', is_multilingual: false } }
+        );
+
+        expect(cell.textContent).toBe(rawValue);
+        expect(cell.dataset.localizedRawValue).toBeUndefined();
     });
 
     test('row-edge handle resizes every expandable cell in the row from the tallest current height', async () => {

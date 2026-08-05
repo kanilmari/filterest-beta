@@ -40,6 +40,7 @@ import {
     normalizeRangeBounds,
     normalizeRangeSelection,
 } from './grid_interactions/range_selection_builder.js';
+import { setLocalizedDatasetText } from './dataset_value_localizer.js';
 
 export class TableComponent {
     /**
@@ -204,7 +205,11 @@ export class TableComponent {
                 const cellContent = document.createElement('div');
                 cellContent.className = 'cell-content';
                 cellContent.classList.add(colClass);                               // ★
-                cellContent.textContent = rowData[header.key] ?? '';
+                setLocalizedDatasetText(
+                    cellContent,
+                    rowData[header.key],
+                    this.dataTypes[header.key]
+                );
                 cellContent.style.whiteSpace = 'pre-wrap';
     
                 cell.appendChild(cellContent);
@@ -241,7 +246,12 @@ export class TableComponent {
             ticket.classList.add('ticket');
             this.headers.forEach(header => {
                 const p = document.createElement('p');
-                p.textContent = `${header.label}: ${rowData[header.key] || ''}`;
+                setLocalizedDatasetText(
+                    p,
+                    rowData[header.key],
+                    this.dataTypes[header.key],
+                    { prefix: `${header.label}: ` }
+                );
                 ticket.appendChild(p);
             });
             ticketContainer.appendChild(ticket);
@@ -285,7 +295,8 @@ export class TableComponent {
                 this.headers,
                 this.table_name,                           // ★ välitetään ensin
                 (key)           => this.sortData(key),
-                (fromCol, toCol) => this.reorderColumns(fromCol, toCol)
+                (fromCol, toCol) => this.reorderColumns(fromCol, toCol),
+                this.dataTypes
             );
         } else if (this.currentView === 'transposed') {
             tableElement = generateTransposedTable(
@@ -293,14 +304,16 @@ export class TableComponent {
                 this.headers,
                 this.table_name,                           // ★
                 (key)           => this.sortData(key),
-                (fromRow, toRow) => this.reorderColumnsTransposed(fromRow, toRow)
+                (fromRow, toRow) => this.reorderColumnsTransposed(fromRow, toRow),
+                this.dataTypes
             );
         } else { /* 'ticket' */
             tableElement = generateTicketView(
                 filteredData,
                 this.headers,
                 this.table_name,                           // ★
-                (key) => this.sortData(key)
+                (key) => this.sortData(key),
+                this.dataTypes
             );
         }
     

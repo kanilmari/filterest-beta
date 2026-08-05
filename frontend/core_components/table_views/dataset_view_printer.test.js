@@ -220,6 +220,33 @@ describe('generate_table', () => {
         expect(activeContainer.id).toBe('demo_dataset_map_view_container');
     });
 
+    test('passes multilingual column metadata to the tree view', async () => {
+        localStorage.setItem('demo_dataset_view', 'tree');
+        const rows = [{ id: 1, name: '{"en":"English","fi":"Suomi"}' }];
+        const dataTypes = {
+            id: { data_type: 'integer' },
+            name: { data_type: 'text', is_multilingual: true },
+        };
+
+        const { generate_table } = await import('./dataset_view_printer.js');
+        await generate_table(
+            'demo_dataset',
+            ['id', 'name'],
+            rows,
+            dataTypes,
+            1,
+            false,
+            null
+        );
+
+        expect(createTreeViewMock).toHaveBeenCalledWith(
+            'demo_dataset',
+            ['id', 'name'],
+            rows,
+            dataTypes
+        );
+    });
+
     test('renders price chart view when selected', async () => {
         localStorage.setItem('demo_dataset_view', 'price_chart');
 

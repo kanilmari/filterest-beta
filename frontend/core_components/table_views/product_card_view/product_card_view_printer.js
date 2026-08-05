@@ -7,6 +7,10 @@ import { openRowArticleView } from "../card_view/row_article_opener.js";
 import { getLanguageWithBrowserFallback } from "../../state_stores/lang_preference_reader.js";
 import { setUnifiedTableState } from "../../state_stores/table_state_store.js";
 import { resolveProductCardFields } from "./product_card_view_field_resolver.js";
+import {
+    bindDatasetLanguageRenderer,
+    refreshLocalizedDatasetValues,
+} from "../dataset_value_localizer.js";
 
 const TITLE_FALLBACK_LANG_KEY = "untitled";
 const EMPTY_STATE_LANG_KEY = "no_rows";
@@ -39,29 +43,57 @@ export function create_product_card_view(
     wrapper.dataset.tableName = table_name;
     wrapper.dataset.testid = "product-card-view";
 
-    if (safeData.length === 0) {
+    const context = {
+        tableName: table_name,
+        columns: safeColumns,
+        rows: safeData,
+        dataTypes: safeDataTypes,
+    };
+    bindDatasetLanguageRenderer(
+        wrapper,
+        (chosenLanguage) => renderProductCardView(wrapper, context, chosenLanguage),
+        preferredLanguage
+    );
+    return wrapper;
+}
+
+/**
+ * Refreshes mounted product cards after the active language changes.
+ * Operates between retained raw row data and already rendered product-card roots.
+ * Exists so titles and details switch language without refetching or mutating rows.
+ *
+ * @param {string} chosenLanguage - Active UI language code.
+ */
+export function refreshProductCardLanguages(
+    chosenLanguage = getLanguageWithBrowserFallback()
+) {
+    return refreshLocalizedDatasetValues(chosenLanguage, document);
+}
+
+function renderProductCardView(wrapper, context, preferredLanguage) {
+    wrapper.replaceChildren();
+    if (context.rows.length === 0) {
         wrapper.appendChild(createEmptyState());
-        return wrapper;
+        return;
     }
 
     const grid = document.createElement("div");
     grid.classList.add("product-card-view-grid");
     grid.dataset.testid = "product-card-view-grid";
 
-    for (const rowItem of safeData) {
+    for (const rowItem of context.rows) {
         grid.appendChild(
             createProductCard({
                 rowItem,
-                columns: safeColumns,
-                tableName: table_name,
-                dataTypes: safeDataTypes,
+                columns: context.columns,
+                tableName: context.tableName,
+                dataTypes: context.dataTypes,
                 preferredLanguage,
             })
         );
     }
 
     wrapper.appendChild(grid);
-    return wrapper;
 }
 
 /**

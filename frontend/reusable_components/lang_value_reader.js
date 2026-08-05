@@ -15,28 +15,36 @@
  */
 export function extractLangValue(rawVal, chosenLang = 'en', isMultilingual = null) {
     if (rawVal == null) return '';
-    const str = String(rawVal).trim();
+    const isObjectValue = typeof rawVal === 'object' && !Array.isArray(rawVal);
+    const str = isObjectValue ? JSON.stringify(rawVal) : String(rawVal).trim();
 
-    if (!(str.startsWith('{') && str.endsWith('}'))) {
+    if (!isObjectValue && !(str.startsWith('{') && str.endsWith('}'))) {
+        return str;
+    }
+    if (isMultilingual === false) {
         return str;
     }
     try {
-        const parsed = JSON.parse(str);
+        const parsed = isObjectValue ? rawVal : JSON.parse(str);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
             // Looks like a lang object: all keys are short (2-5 char) language codes
-            // and all values are strings. Skip objects that don't match this pattern
-            // when isMultilingual is explicitly false.
+            // and all values are strings.
             const keys = Object.keys(parsed);
-            const looksLikeLangObj = keys.length > 0
-                && keys.every(k => /^[a-z]{2,5}$/.test(k))
-                && keys.every(k => typeof parsed[k] === 'string');
 
-            if (isMultilingual === false && !looksLikeLangObj) {
-                return str;
-            }
+            const normalizedChosenLang = String(chosenLang || 'en')
+                .trim()
+                .toLowerCase()
+                .replaceAll('_', '-');
+            const preferredLanguageKeys = [
+                normalizedChosenLang,
+                normalizedChosenLang.split('-')[0],
+                'en',
+            ].filter((key, index, keys) => key && keys.indexOf(key) === index);
 
-            if (typeof parsed[chosenLang] === 'string') {
-                return String(parsed[chosenLang]);
+            for (const languageKey of preferredLanguageKeys) {
+                if (typeof parsed[languageKey] === 'string') {
+                    return String(parsed[languageKey]);
+                }
             }
             const firstKey = keys.find(k => typeof parsed[k] === 'string');
             if (firstKey) return String(parsed[firstKey]);

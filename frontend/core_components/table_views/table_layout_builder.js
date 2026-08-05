@@ -6,6 +6,7 @@
 import { makeColumnClass }      from "../filterbar/filter_list/column_visibility_handler.js";
 import { logAndCheckAccess }    from "../function_access_checker.js";
 import { count_this_function }  from "../dev_tools/function_counter.js";
+import { setLocalizedDatasetText } from "./dataset_value_localizer.js";
 /**
  * Sisältää funktiot erilaisten näkymien (normal, transposed, ticket) luomiseen.
  * Vastaanottaa parametreina dataa, headers-listan sekä callback-funktioita,
@@ -23,7 +24,8 @@ export function generateNormalTable(
     headers,
     tableName,              // ★ uusi parametri
     onSort,
-    onReorderColumns
+    onReorderColumns,
+    dataTypes = {}
 ) {
     logAndCheckAccess("generateNormalTable");
 
@@ -91,7 +93,11 @@ export function generateNormalTable(
             const cellContent = document.createElement("div");
             cellContent.className = "cell-content";
             cellContent.classList.add(colClass);                       // ★
-            cellContent.textContent = item[header.key] ?? "";
+            setLocalizedDatasetText(
+                cellContent,
+                item[header.key],
+                dataTypes[header.key]
+            );
             cellContent.style.whiteSpace = "pre-wrap";
 
             cell.appendChild(cellContent);
@@ -116,7 +122,8 @@ export function generateTransposedTable(
     headers,
     tableName,                 // ★ uusi parametri
     onSort,
-    onReorderTransposed
+    onReorderTransposed,
+    dataTypes = {}
 ) {
     count_this_function?.("generateTransposedTable");
 
@@ -179,7 +186,11 @@ export function generateTransposedTable(
             const c = document.createElement("div");
             c.className = "cell-content";
             c.classList.add(colClass);                                  // ★
-            c.textContent = item[header.key] ?? "";
+            setLocalizedDatasetText(
+                c,
+                item[header.key],
+                dataTypes[header.key]
+            );
             c.style.whiteSpace = "pre-wrap";
 
             cell.appendChild(c);
@@ -201,7 +212,8 @@ export function generateTicketView(
     filteredData,
     headers,
     tableName,                // ★ uusi parametri
-    onSort
+    onSort,
+    dataTypes = {}
 ) {
     count_this_function?.("generateTicketView");
 
@@ -226,7 +238,12 @@ export function generateTicketView(
 
             const valueSpan = document.createElement("span");
             valueSpan.classList.add(colClass);                        // ★
-            valueSpan.textContent = " " + (item[h.key] ?? "");
+            setLocalizedDatasetText(
+                valueSpan,
+                item[h.key],
+                dataTypes[h.key],
+                { prefix: " " }
+            );
 
             fieldRow.appendChild(labelSpan);
             fieldRow.appendChild(valueSpan);

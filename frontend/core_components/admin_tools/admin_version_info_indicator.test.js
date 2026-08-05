@@ -26,7 +26,7 @@ describe("admin version info indicator", () => {
         hasRoutePermissionMock.mockReset();
         fetchAdminVersionInfoMock.mockReset();
         document.body.innerHTML = "";
-        document.head.innerHTML = '<meta property="og:site_name" content="Filt">';
+        document.head.innerHTML = '<meta property="og:site_name" content="filt">';
     });
 
     test("does not render without the protected route permission", async () => {
@@ -59,15 +59,18 @@ describe("admin version info indicator", () => {
         expect(fetchAdminVersionInfoMock).toHaveBeenCalledWith({ suppressAuthRedirect: true });
         expect(indicator.tagName).toBe("BUTTON");
         expect(indicator.querySelector("svg")).toBeTruthy();
-        expect(indicator.title).toContain("Filterest 8.27.99");
-        expect(indicator.title).toContain("Tietokanta 8.0.55 (yhteensopiva)");
+        expect(indicator.title).toContain("Filterest v. 8.27.99");
+        expect(indicator.title).toContain("Tietokanta v. 8.0.55 (yhteensopiva)");
+        expect(indicator.title).toContain("Vaadittu tietokanta v. 8.0.55");
         expect(indicator.title).toContain("Ajotapa Docker");
         expect(indicator.title).not.toContain(":");
         expect(indicator.getAttribute("aria-expanded")).toBe("false");
         expect(indicator.getAttribute("aria-controls")).toBe(panel.id);
         expect(panel.tagName).toBe("TABLE");
-        expect(panel.getAttribute("aria-label")).toBe("Versioinfo");
-        expect(panel.querySelector("caption")?.textContent).toBe("Versioinfo");
+        expect(panel.getAttribute("aria-label")).toBe("Sivustotiedot");
+        expect(panel.querySelector("caption")).toBeNull();
+        expect(panel.querySelector("thead th")?.textContent).toBe("Sivustotiedot");
+        expect(panel.querySelector("thead th")?.colSpan).toBe(2);
         expect(panel.querySelectorAll("tbody > tr")).toHaveLength(5);
         expect(panel.querySelector('[data-version-info-key="site"]')?.textContent)
             .toBe("Sivusto");
@@ -80,7 +83,7 @@ describe("admin version info indicator", () => {
         expect(panel.querySelector('[data-version-info-key="application"]')?.textContent)
             .toBe("Filterest");
         expect(panel.querySelector('[data-version-info-value="application"]')?.textContent)
-            .toBe("8.27.99");
+            .toBe("v. 8.27.99");
         expect(panel.querySelector('[data-version-info-key="runtime"]')?.textContent)
             .toBe("Ajotapa");
         expect(panel.querySelector('[data-version-info-value="runtime"]')?.textContent)
@@ -120,5 +123,17 @@ describe("admin version info indicator", () => {
 
         expect(label).toContain(expected);
         expect(label).not.toContain(":");
+    });
+
+    test.each([
+        ["fi", "Sivustotiedot"],
+        ["en", "Site information"],
+        ["ch", "站点信息"],
+        ["yue", "網站資訊"],
+        ["unsupported", "Site information"],
+    ])("localizes the site information title for %s", async (language, expected) => {
+        const { getAdminSiteInfoTitle } = await import("./admin_version_info_indicator.js");
+
+        expect(getAdminSiteInfoTitle(language)).toBe(expected);
     });
 });

@@ -192,6 +192,16 @@ func TestBuildDefaultRouteManifestCoversScenarioMatrix(t *testing.T) {
 		t.Fatalf("expected router.adminVersionInfoHandler production profile to be admin")
 	}
 
+	openAIKeySave := mustFindManifestRoute(t, manifest, "router.saveOpenAIAPIKeyHandler")
+	assertScenarioNames(t, openAIKeySave, []string{"production", "development", "api_language"})
+	assertRouteMethods(t, openAIKeySave, []string{"POST"}, router.RouteMethodSourceExplicitStableContract)
+	if openAIKeySave.PathPattern != "/api/admin/openai-api-key" {
+		t.Fatalf("expected router.saveOpenAIAPIKeyHandler path to be /api/admin/openai-api-key, got %q", openAIKeySave.PathPattern)
+	}
+	if mustFindScenarioProfile(t, openAIKeySave, "production").ProfileName != "admin" {
+		t.Fatalf("expected router.saveOpenAIAPIKeyHandler production profile to be admin")
+	}
+
 	userPermissions := mustFindManifestRoute(t, manifest, "auth.UserPermissionsHandler")
 	assertRouteMethods(t, userPermissions, []string{"GET"}, router.RouteMethodSourceExplicitStableContract)
 

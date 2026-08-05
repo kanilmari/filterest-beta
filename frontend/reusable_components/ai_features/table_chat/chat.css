@@ -330,3 +330,40 @@ body.dark-mode {
   width: 100%;
   min-width: 0;
 }
+
+.chat-openai-key-setup {
+  display: grid;
+  gap: 0.55rem;
+  min-width: min(28rem, 72vw);
+}
+
+.chat-openai-key-setup__title {
+  font-size: 1rem;
+}
+
+.chat-openai-key-setup label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+
+.chat-openai-key-setup input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border_color);
+  border-radius: var(--border_radius_small, 4px);
+  background: var(--input_bg_color, var(--bg_color_extreme));
+  color: var(--text_color);
+}
+
+.chat-openai-key-setup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.chat-openai-key-setup__status {
+  min-height: 1.3em;
+}

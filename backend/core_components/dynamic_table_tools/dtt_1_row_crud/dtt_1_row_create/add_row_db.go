@@ -168,6 +168,7 @@ func insertDataAccordingToPayload(
 			filteredRow["cached_username"] = currentUsername
 		}
 	}
+	applyCurrentActorOwnership(filteredRow, columnsInfo, currentUserID, currentUsername)
 
 	//------------------------------------------------------------------
 	// 3) PÄÄRIVI

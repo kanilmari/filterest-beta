@@ -7,6 +7,7 @@
 import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import { endpoint_router } from '../endpoints/endpoint_router.js';
 import { refreshCardLanguages } from '../table_views/card_view/card_view_printer.js';
+import { refreshLocalizedDatasetValues } from '../table_views/dataset_value_localizer.js';
 
 vi.mock('../endpoints/endpoint_router.js', () => ({
     endpoint_router: vi.fn(),
@@ -14,6 +15,10 @@ vi.mock('../endpoints/endpoint_router.js', () => ({
 
 vi.mock('../table_views/card_view/card_view_printer.js', () => ({
     refreshCardLanguages: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../table_views/dataset_value_localizer.js', () => ({
+    refreshLocalizedDatasetValues: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../reusable_components/notifications/toast_notification_printer.js', () => ({
@@ -31,6 +36,7 @@ describe('translatePage', () => {
         document.head.innerHTML = '';
         endpoint_router.mockReset();
         refreshCardLanguages.mockClear();
+        refreshLocalizedDatasetValues.mockClear();
 
         window.translationPromises = {
             en: Promise.resolve({
@@ -90,6 +96,8 @@ describe('translatePage', () => {
         expect(actionButton.title).toBe('Exclude this value from results');
 
         expect(refreshCardLanguages).toHaveBeenCalledTimes(2);
+        expect(refreshLocalizedDatasetValues).toHaveBeenNthCalledWith(1, 'fi');
+        expect(refreshLocalizedDatasetValues).toHaveBeenNthCalledWith(2, 'en');
         expect(endpoint_router).not.toHaveBeenCalled();
     });
 

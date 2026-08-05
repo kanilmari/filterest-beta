@@ -111,6 +111,7 @@ export const MANIFEST_BACKED_ENDPOINT_ROUTE_HANDLERS = Object.freeze({
     aiChatQuery: 'dtt_1_row_read.FilterbarAIQueryHandler',
     aiChatCodexQuery: 'dtt_1_row_read.FilterbarAICodexQueryHandler',
     aiChatConversation: 'dtt_1_row_read.FilterbarAIConversationHandler',
+    saveOpenAIAPIKey: 'router.saveOpenAIAPIKeyHandler',
     openaiEmbedStream: 'ai_features.EmbeddingStreamHandler',
     refreshLangEmbeddings: 'ai_features.RefreshLangEmbeddingsHandler',
     countLangEmbeddings: 'ai_features.CountLangEmbeddingsHandler',

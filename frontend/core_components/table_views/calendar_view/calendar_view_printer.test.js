@@ -28,7 +28,10 @@ vi.mock("../../general_tables/gt_1_row_crud/gt_1_2_row_read/table_refresh_unifie
     refreshTableUnified: refreshTableUnifiedMock,
 }));
 
-import { create_calendar_view } from "./calendar_view_printer.js";
+import {
+    create_calendar_view,
+    refreshCalendarLanguages,
+} from "./calendar_view_printer.js";
 import {
     groupCalendarRowsByDate,
     inferCalendarColumns,
@@ -267,5 +270,33 @@ describe("create_calendar_view", () => {
         ]);
         expect(emptyRanges[1]?.querySelector(".calendar-view__day-empty")?.textContent).toBe("No events");
         expect(emptyRanges[1]?.querySelector(".calendar-view__day-empty")?.dataset.langKey).toBe("calendar_no_events");
+    });
+
+    test("refreshes multilingual event titles from retained raw data", () => {
+        const rawTitle = JSON.stringify({
+            en: "Planning session",
+            fi: "Suunnittelutuokio",
+        });
+        const row = {
+            id: 1,
+            title: rawTitle,
+            event_date: "2026-04-15",
+        };
+        const view = create_calendar_view(
+            "events",
+            ["id", "title", "event_date"],
+            [row],
+            { title: { data_type: "text", is_multilingual: true } }
+        );
+        document.body.appendChild(view);
+
+        expect(view.querySelector(".calendar-view__event-title")?.textContent)
+            .toBe("Planning session");
+
+        refreshCalendarLanguages("fi");
+
+        expect(view.querySelector(".calendar-view__event-title")?.textContent)
+            .toBe("Suunnittelutuokio");
+        expect(row.title).toBe(rawTitle);
     });
 });

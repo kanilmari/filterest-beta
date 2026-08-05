@@ -24,6 +24,25 @@ describe('extractLangValue', () => {
     expect(extractLangValue(json, 'de')).toBe('Moi');
   });
 
+  test('uses English before the first stored language as the controlled fallback', () => {
+    const json = JSON.stringify({ fi: 'Moi', en: 'Hello', sv: 'Hej' });
+    expect(extractLangValue(json, 'de')).toBe('Hello');
+  });
+
+  test('accepts an already parsed multilingual object without exposing object syntax', () => {
+    expect(extractLangValue({ en: 'Services', fi: 'Palvelut' }, 'fi', true)).toBe('Palvelut');
+  });
+
+  test('preserves JSON when metadata explicitly marks the field non-multilingual', () => {
+    const json = JSON.stringify({ en: 'ordinary value', fi: 'another value' });
+    expect(extractLangValue(json, 'fi', false)).toBe(json);
+  });
+
+  test('falls back from a regional language code to its primary language', () => {
+    const json = JSON.stringify({ en: 'Services', fi: 'Palvelut' });
+    expect(extractLangValue(json, 'fi-FI', true)).toBe('Palvelut');
+  });
+
   test('defaults to en when no chosenLang', () => {
     const json = JSON.stringify({ fi: 'Moi', en: 'Hello' });
     expect(extractLangValue(json)).toBe('Hello');
@@ -58,11 +77,9 @@ describe('extractLangValue', () => {
     expect(extractLangValue(json, 'en', false)).toBe(json);
   });
 
-  test('isMultilingual=false with lang-like keys still extracts', () => {
-    // keys are 2-5 chars and all values are strings → looksLikeLangObj = true
-    // isMultilingual=false only skips when !looksLikeLangObj
+  test('isMultilingual=false preserves even JSON with short string keys', () => {
     const json = JSON.stringify({ name: 'test', value: 'x' });
-    expect(extractLangValue(json, 'name', false)).toBe('test');
+    expect(extractLangValue(json, 'name', false)).toBe(json);
   });
 
   test('isMultilingual=true treats lang-like object as multilingual', () => {

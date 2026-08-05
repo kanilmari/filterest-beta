@@ -67,6 +67,12 @@ ColLoop:
 	for _, col := range columns {
 		colNameLower := strings.ToLower(col.ColumnName)
 
+		// Metadata-owned values (for example the current row owner) are filled
+		// by the server and must never be requested from the add-row form.
+		if !isAddRowColumnUserInsertable(col) {
+			continue
+		}
+
 		// 1) Onko sarake exclude-listalla?
 		if excludeColumns[colNameLower] {
 			continue
@@ -122,8 +128,9 @@ func getAddRowColumnsWithTypes(tableUID, schemaName string) ([]dtt_models.AddRow
         c.udt_name,
 		fk_rel.insert_new_target_with_source,
 		fk_rel.insert_new_source_with_target,
-        fk_rel.source_insert_specs,
-		fk_rel.target_insert_specs
+		fk_rel.source_insert_specs,
+		fk_rel.target_insert_specs,
+		scd.insertable
     FROM information_schema.columns c
     JOIN system_db_tables sdt
         ON sdt.table_uid = $1 AND sdt.table_name = c.table_name
@@ -179,6 +186,7 @@ func getAddRowColumnsWithTypes(tableUID, schemaName string) ([]dtt_models.AddRow
 
 		var sourceInsertSpecs sql.NullString
 		var targetInsertSpecs sql.NullString
+		var insertable sql.NullBool
 
 		if err := rows.Scan(
 			&col.ColumnName,
@@ -195,6 +203,7 @@ func getAddRowColumnsWithTypes(tableUID, schemaName string) ([]dtt_models.AddRow
 			&insertNewSourceWithTarget,
 			&sourceInsertSpecs,
 			&targetInsertSpecs,
+			&insertable,
 		); err != nil {
 			return nil, err
 		}
@@ -209,6 +218,7 @@ func getAddRowColumnsWithTypes(tableUID, schemaName string) ([]dtt_models.AddRow
 		col.InsertNewSourceWithTarget = insertNewSourceWithTarget
 		col.SourceInsertSpecs = sourceInsertSpecs.String
 		col.TargetInsertSpecs = targetInsertSpecs.String
+		col.Insertable = insertable
 
 		// Jos data_type == "USER-DEFINED" ja udt_name == "geometry", tulkitaan data_type = "geometry"
 		if strings.ToLower(col.DataType) == "user-defined" && strings.ToLower(col.UdtName) == "geometry" {

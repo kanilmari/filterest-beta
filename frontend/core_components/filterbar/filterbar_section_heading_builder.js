@@ -33,7 +33,7 @@ export function buildFilterbarDisclosureSection({
     sectionElement,
     sectionClassNames = [],
     contentClassNames = [],
-    startOpen = true,
+    startOpen = false,
 }) {
     return createAnimatedDisclosureSection({
         titleLangKey: langKey,

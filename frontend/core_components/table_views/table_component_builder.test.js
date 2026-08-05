@@ -30,11 +30,13 @@ vi.mock('../general_tables/gt_1_row_crud/gt_1_3_row_update/cell_editor.js', () =
 }));
 
 import { TableComponent } from './table_component_builder.js';
+import { refreshLocalizedDatasetValues } from './dataset_value_localizer.js';
 
 describe('TableComponent shared grid interactions', () => {
     beforeEach(() => {
         editCellMock.mockClear();
         document.body.replaceChildren();
+        localStorage.clear();
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,
             value: {
@@ -522,7 +524,109 @@ describe('TableComponent shared grid interactions', () => {
         expect(getCell(1, 1).classList.contains('editing')).toBe(true);
         expect(document.querySelectorAll('.cell.selected')).toHaveLength(0);
     });
+
+    test.each([
+        ['normal', () => getCellContent(1, 0)?.textContent],
+        ['transposed', () => getCellContent(0, 1)?.textContent],
+        ['ticket', () => document.querySelector('.ticket span:not(.label)')?.textContent.trim()],
+    ])('shows only the active language in the initial %s layout', (initialView, readVisibleValue) => {
+        localStorage.setItem('chosen_language', 'fi');
+        const rawMultilingualValue = JSON.stringify({
+            en: 'Service people can trust',
+            fi: 'Palvelu, johon ihmiset voivat luottaa',
+        });
+        const tableComponent = createMultilingualTableComponent(initialView, [
+            { id: 1, title: rawMultilingualValue },
+        ]);
+        document.body.appendChild(tableComponent.getElement());
+
+        expect(readVisibleValue()).toBe('Palvelu, johon ihmiset voivat luottaa');
+        expect(tableComponent.data[0].title).toBe(rawMultilingualValue);
+        expect(document.body.textContent).not.toContain('"en"');
+    });
+
+    test.each([
+        ['normal', () => getCellContent(1, 0)?.textContent],
+        ['transposed', () => getCellContent(0, 1)?.textContent],
+        ['ticket', () => document.querySelector('.ticket')?.textContent],
+    ])('localizes newly appended rows in the %s layout', async (initialView, readVisibleValue) => {
+        localStorage.setItem('chosen_language', 'fi');
+        const rawMultilingualValue = JSON.stringify({
+            en: 'New service',
+            fi: 'Uusi palvelu',
+        });
+        const tableComponent = createMultilingualTableComponent(initialView, []);
+        document.body.appendChild(tableComponent.getElement());
+
+        tableComponent.appendData([{ id: 2, title: rawMultilingualValue }]);
+
+        expect(readVisibleValue()).toContain('Uusi palvelu');
+        expect(readVisibleValue()).not.toContain('"en"');
+        expect(tableComponent.data[0].title).toBe(rawMultilingualValue);
+
+        await refreshLocalizedDatasetValues('en');
+
+        expect(readVisibleValue()).toContain('New service');
+        expect(tableComponent.data[0].title).toBe(rawMultilingualValue);
+    });
+
+    test.each([
+        ['normal', () => getCellContent(1, 0)?.textContent],
+        ['transposed', () => getCellContent(0, 1)?.textContent],
+        ['ticket', () => document.querySelector('.ticket')?.textContent],
+    ])('refreshes mounted %s values without refetching or mutating raw data', async (initialView, readVisibleValue) => {
+        localStorage.setItem('chosen_language', 'fi');
+        const rawMultilingualValue = JSON.stringify({
+            en: 'English value',
+            fi: 'Suomenkielinen arvo',
+        });
+        const row = { id: 3, title: rawMultilingualValue };
+        const tableComponent = createMultilingualTableComponent(initialView, [row]);
+        document.body.appendChild(tableComponent.getElement());
+
+        await refreshLocalizedDatasetValues('en');
+
+        expect(readVisibleValue()).toContain('English value');
+        expect(readVisibleValue()).not.toContain('Suomenkielinen arvo');
+        expect(row.title).toBe(rawMultilingualValue);
+        expect(tableComponent.data[0]).toBe(row);
+    });
+
+    test('keeps explicitly non-multilingual JSON intact across language refreshes', async () => {
+        localStorage.setItem('chosen_language', 'fi');
+        const ordinaryJsonValue = { name: 'Service', type: 'internal' };
+        const expectedJsonText = JSON.stringify(ordinaryJsonValue);
+        const tableComponent = new TableComponent({
+            table_name: 'services',
+            initialView: 'normal',
+            headers: [{ key: 'metadata', label: 'Metadata' }],
+            data: [{ id: 4, metadata: ordinaryJsonValue }],
+            dataTypes: {
+                metadata: { data_type: 'jsonb', is_multilingual: false },
+            },
+        });
+        document.body.appendChild(tableComponent.getElement());
+
+        expect(getCellContent(1, 0)?.textContent).toBe(expectedJsonText);
+
+        await refreshLocalizedDatasetValues('en');
+
+        expect(getCellContent(1, 0)?.textContent).toBe(expectedJsonText);
+        expect(tableComponent.data[0].metadata).toBe(ordinaryJsonValue);
+    });
 });
+
+function createMultilingualTableComponent(initialView, data) {
+    return new TableComponent({
+        table_name: 'services',
+        initialView,
+        headers: [{ key: 'title', label: 'Title' }],
+        data,
+        dataTypes: {
+            title: { data_type: 'text', is_multilingual: true },
+        },
+    });
+}
 
 function getCell(rowIndex, columnIndex) {
     return document.querySelector(

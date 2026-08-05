@@ -16,7 +16,7 @@ import {
 describe('create_filter_bar inline hero mounting', () => {
     beforeEach(() => {
         resetFilterBarBuilderTestDom();
-        document.head.innerHTML = '<meta property="og:site_name" content="Filt">';
+        document.head.innerHTML = '<meta property="og:site_name" content="filt">';
     });
 
     afterEach(() => {

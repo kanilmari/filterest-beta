@@ -22,6 +22,7 @@ func TestSensitiveMaintenanceRoutesRequireAdmin(t *testing.T) {
 		"dtt_foreign_keys.AddForeignKeyHandler",
 		"dtt_foreign_keys.DeleteForeignKeyHandler",
 		"dtt_crud_workflows.SimpleQueryTableHandler",
+		"router.saveOpenAIAPIKeyHandler",
 	}
 
 	for _, handlerName := range handlerNames {
@@ -35,7 +36,7 @@ func TestSensitiveMaintenanceRoutesRequireAdmin(t *testing.T) {
 			}
 
 			stages := pipeline.DescribePipeline(pipeline.RouteContext{}, pipeline.GetProfile(handlerName))
-			containsAll(t, stages, []string{"auth", "access_control", "admin_check"})
+			containsAll(t, stages, []string{"auth", "csrf", "access_control", "admin_check"})
 		})
 	}
 }

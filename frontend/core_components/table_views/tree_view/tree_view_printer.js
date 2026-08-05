@@ -5,6 +5,11 @@
 
 import { render_tree } from '../../../reusable_components/vanilla_tree/vanilla_tree_builder.js';
 import { endpoint_router } from '../../endpoints/endpoint_router.js';
+import { getLanguageWithBrowserFallback } from '../../state_stores/lang_preference_reader.js';
+import {
+    bindDatasetLanguageRenderer,
+    resolveDatasetDisplayValue,
+} from '../dataset_value_localizer.js';
 
 const DATABASE_CATALOG_TREE_DATASETS = new Set([
     'system_table_folders',
@@ -13,6 +18,7 @@ const DATABASE_CATALOG_TREE_DATASETS = new Set([
 const DATABASE_CATALOG_TREE_CACHE_KEY = 'full_tree_data';
 const DATABASE_CATALOG_TREE_CACHE_TS_KEY = 'full_tree_data_cached_at';
 const DATABASE_CATALOG_TREE_CACHE_TTL_MS = 5 * 60 * 1000;
+const DATASET_TREE_LANGUAGE_RENDERERS = new WeakMap();
 
 function shouldRenderDatabaseCatalogTree(tableName) {
     return DATABASE_CATALOG_TREE_DATASETS.has(tableName);
@@ -65,6 +71,32 @@ function createTreeRenderHost(treeViewContainer, tableName, treeKind) {
     return treeRenderHost;
 }
 
+function buildLocalizedDatasetTreeData(data, columnSelection, dataTypes, chosenLanguage) {
+    const resolveTreeValue = (row, column) => resolveDatasetDisplayValue(
+        row[column],
+        dataTypes?.[column] || null,
+        chosenLanguage
+    ).trim();
+
+    return data.map((row) => {
+        const typeVal = columnSelection.typeColumn && row[columnSelection.typeColumn]
+            ? resolveTreeValue(row, columnSelection.typeColumn)
+            : '';
+        const nameVal = columnSelection.nameColumn && row[columnSelection.nameColumn] != null
+            ? resolveTreeValue(row, columnSelection.nameColumn)
+            : String(row[columnSelection.idColumn]);
+        const nodeLabel = typeVal
+            ? `${typeVal.charAt(0).toUpperCase() + typeVal.slice(1)}: ${nameVal}`
+            : nameVal;
+
+        return {
+            id: row[columnSelection.idColumn],
+            parent_id: columnSelection.parentColumn ? row[columnSelection.parentColumn] : null,
+            name: nodeLabel,
+        };
+    });
+}
+
 async function handleDatabaseCatalogTreeButtonClick(nodeData) {
     if (!nodeData?.table_uid && !nodeData?.is_view) return;
 
@@ -109,7 +141,7 @@ async function renderDatabaseCatalogTree(tableName, treeViewContainer) {
     return treeRenderHost;
 }
 
-export async function create_tree_view(table_name, columns, data) {
+export async function create_tree_view(table_name, columns, data, data_types = {}) {
     const tree_view_div = document.getElementById(`${table_name}_tree_view_container`);
     if (!tree_view_div) return null;
 
@@ -154,26 +186,15 @@ export async function create_tree_view(table_name, columns, data) {
         }
     }
 
-    // Rakennetaan "flat"-data
-    const tree_data = data.map(row => {
-        const typeVal = type_column && row[type_column] ? String(row[type_column]).trim() : '';
-        const nameVal = (name_column && row[name_column] != null)
-            ? String(row[name_column]).trim()
-            : String(row[id_column]); // fallback id:hen
-
-        // Iso alkukirjain ja kaksoispiste
-        const nodeLabel = typeVal
-            ? `${typeVal.charAt(0).toUpperCase() + typeVal.slice(1)}: ${nameVal}`
-            : nameVal;
-
-        return {
-            id: row[id_column],
-            parent_id: parent_column ? row[parent_column] : null,
-            name: nodeLabel
-        };
-    });
-
-    await render_tree(tree_data, {
+    // Rakennetaan "flat"-data. Raaka rividata säilyy muuttumattomana;
+    // vain puussa näkyvä tyyppi ja nimi rajataan aktiiviseen kieleen.
+    const columnSelection = {
+        idColumn: id_column,
+        parentColumn: parent_column,
+        nameColumn: name_column,
+        typeColumn: type_column,
+    };
+    const renderConfig = {
         container_id: treeRenderHost.id,
         id_suffix: `_${table_name}_tree`,
         render_mode: 'button',
@@ -189,7 +210,44 @@ export async function create_tree_view(table_name, columns, data) {
         // button_action_function: (nodeData) => {
         //     // console.log("Klikkasit solmua:", nodeData);
         // }
-    });
+    };
+    treeRenderHost.classList.add('dataset-row-tree-language-refreshable');
+    const renderChosenLanguage = (chosenLanguage) => {
+        return render_tree(
+            buildLocalizedDatasetTreeData(
+                data,
+                columnSelection,
+                data_types,
+                chosenLanguage
+            ),
+            renderConfig
+        );
+    };
+    DATASET_TREE_LANGUAGE_RENDERERS.set(treeRenderHost, renderChosenLanguage);
+    await bindDatasetLanguageRenderer(treeRenderHost, renderChosenLanguage);
 
     return treeRenderHost;
+}
+
+/**
+ * Re-renders mounted dataset row trees from their retained raw rows.
+ * Between the language selector and tree nodes already present in the document.
+ * Avoids a dataset refetch while keeping every visible node on the active language.
+ * @param {string} chosenLanguage
+ * @param {ParentNode} root
+ * @returns {Promise<number>} refreshed tree count
+ */
+export async function refresh_mounted_tree_view_languages(
+    chosenLanguage = getLanguageWithBrowserFallback(),
+    root = document
+) {
+    const treeHosts = root.querySelectorAll('.dataset-row-tree-language-refreshable');
+    let refreshedCount = 0;
+    for (const treeHost of treeHosts) {
+        const renderer = DATASET_TREE_LANGUAGE_RENDERERS.get(treeHost);
+        if (!renderer) continue;
+        await renderer(chosenLanguage);
+        refreshedCount += 1;
+    }
+    return refreshedCount;
 }

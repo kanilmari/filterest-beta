@@ -139,4 +139,23 @@ describe("renderKeyValuePairs", () => {
         });
         expect(decorateKeyElement).toHaveBeenCalledTimes(3);
     });
+
+    test("preserves a field visibility class in every responsive layout mode", () => {
+        ["inline", "stacked", "conditional"].forEach((layoutMode) => {
+            const kvContainer = document.createElement("div");
+            document.body.appendChild(kvContainer);
+            renderKeyValuePairs(
+                kvContainer,
+                [{
+                    key: "status",
+                    value: "Active",
+                    columnClass: "column_orders_status",
+                }],
+                { layoutMode }
+            );
+
+            expect(kvContainer.firstElementChild?.classList)
+                .toContain("column_orders_status");
+        });
+    });
 });

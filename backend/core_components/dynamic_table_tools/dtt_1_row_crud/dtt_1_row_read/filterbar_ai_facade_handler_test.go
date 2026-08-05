@@ -229,6 +229,47 @@ func TestFilterbarAIQueryHandlerWrapsExplicitDelegate(t *testing.T) {
 	}
 }
 
+func TestFilterbarAIQueryHandlerReturnsConfigurationPromptWhenOpenAIKeyIsMissing(t *testing.T) {
+	originalPlannerFunc := filterbarAIPlannerFunc
+	originalColumnsReader := filterbarAIColumnsReader
+	originalEmbeddingsReader := filterbarAIEmbeddingsReader
+	t.Cleanup(func() {
+		filterbarAIPlannerFunc = originalPlannerFunc
+		filterbarAIColumnsReader = originalColumnsReader
+		filterbarAIEmbeddingsReader = originalEmbeddingsReader
+	})
+
+	filterbarAIColumnsReader = func(string) ([]map[string]interface{}, error) {
+		return []map[string]interface{}{{"column_name": "id"}}, nil
+	}
+	filterbarAIEmbeddingsReader = func(string) (bool, error) { return false, nil }
+	filterbarAIPlannerFunc = func(context.Context, filterbarAIQueryRequest, []map[string]interface{}, bool) (filterbarAIPlannerResponse, error) {
+		return filterbarAIPlannerResponse{}, errFilterbarAIOpenAIKeyMissing
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/app/ai-chat/query", strings.NewReader(`{
+		"dataset": "app_service_catalog",
+		"query": "show services"
+	}`))
+	recorder := httptest.NewRecorder()
+
+	FilterbarAIQueryHandler(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 configuration response", recorder.Code)
+	}
+	var response filterbarAIQueryResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if response.ConfigurationRequired == nil || response.ConfigurationRequired.Code != "openai_api_key_missing" {
+		t.Fatalf("configuration_required = %#v, want openai_api_key_missing", response.ConfigurationRequired)
+	}
+	if strings.Contains(recorder.Body.String(), "OPENAI_API_KEY") {
+		t.Fatal("configuration response exposed the internal environment variable name")
+	}
+}
+
 func TestFilterbarAIQueryHandlerUsesLLMPlannerWhenModeOmitted(t *testing.T) {
 	originalPlannerFunc := filterbarAIPlannerFunc
 	originalAnswererFunc := filterbarAIAnswererFunc

@@ -281,6 +281,7 @@ function renderCardDetailsSection(
         isLink: entry.isLink,
         href: entry.href,
         openInNewTabHref: entry.openInNewTabHref,
+        columnClass: entry.columnClass,
         column: entry.column,
         sourceColumn: entry.sourceColumn,
         dataColumn: entry.dataColumn,
@@ -693,6 +694,7 @@ async function createSingleCard(
                         CARD_IMAGE_RENDER_SLOTS.CARD_MEDIA
                     )
                 );
+                card_image_content.lastElementChild?.classList.add(columnClass);
                 continue;
             }
 

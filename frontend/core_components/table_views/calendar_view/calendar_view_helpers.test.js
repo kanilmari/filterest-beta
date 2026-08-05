@@ -74,4 +74,50 @@ describe("calendar_view_helpers", () => {
         ]);
         expect(grouped.get("2026-04-30")?.[0]?.title).toBe("Release window");
     });
+
+    test("shows only the active language in calendar titles without changing raw rows", () => {
+        const rawTitle = JSON.stringify({
+            en: "Service review",
+            fi: "Palvelukatselmus",
+            yue: "服務檢視",
+        });
+        const row = {
+            id: 7,
+            title: rawTitle,
+            event_date: "2026-04-29",
+        };
+        const calendarColumns = inferCalendarColumns(
+            ["id", "title", "event_date"],
+            {}
+        );
+
+        const grouped = groupCalendarRowsByDate(
+            [row],
+            calendarColumns,
+            ["id", "title", "event_date"],
+            "fi",
+            { title: { is_multilingual: true } }
+        );
+
+        expect(grouped.get("2026-04-29")?.[0]?.title).toBe("Palvelukatselmus");
+        expect(row.title).toBe(rawTitle);
+    });
+
+    test("preserves ordinary JSON when metadata explicitly disables multilingual rendering", () => {
+        const ordinaryJson = JSON.stringify({ name: "Service review", count: 2 });
+        const calendarColumns = inferCalendarColumns(
+            ["id", "title", "event_date"],
+            {}
+        );
+
+        const grouped = groupCalendarRowsByDate(
+            [{ id: 8, title: ordinaryJson, event_date: "2026-04-30" }],
+            calendarColumns,
+            ["id", "title", "event_date"],
+            "fi",
+            { title: { is_multilingual: false } }
+        );
+
+        expect(grouped.get("2026-04-30")?.[0]?.title).toBe(ordinaryJson);
+    });
 });

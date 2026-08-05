@@ -17,3 +17,14 @@ export function getCurrentSiteName(root = document) {
         ?.textContent
         ?.trim() || "";
 }
+
+/**
+ * Normalizes the administrator-owned identity for visible browser labels.
+ * Bridges the unchanged stored name with headings and administrator information panels.
+ * Keeps dynamic names out of translations while giving Latin-script names a polished initial.
+ */
+export function formatSiteNameForDisplay(siteName) {
+    return String(siteName || "")
+        .trim()
+        .replace(/^\p{Ll}/u, (firstLetter) => firstLetter.toLocaleUpperCase());
+}

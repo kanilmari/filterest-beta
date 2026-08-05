@@ -137,6 +137,7 @@ var RouteProfiles = map[string]RouteProfile{
 	// Tab ordering
 	"system_table_tools.UpdateTabOrderHandler": AdminProfile,
 	"router.adminVersionInfoHandler":           AdminProfile,
+	"router.saveOpenAIAPIKeyHandler":           AdminProfile,
 
 	// DEV-only local AI tooling
 	"dtt_1_row_read.FilterbarAICodexQueryHandler": AdminProfile,

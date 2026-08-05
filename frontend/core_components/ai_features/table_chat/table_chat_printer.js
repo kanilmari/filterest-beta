@@ -14,6 +14,10 @@ import {
     runApiToolsChatQuery,
     runCodexDevChatQuery,
 } from './table_chat_query_runner.js';
+import {
+    isOpenAIKeyConfigurationRequired,
+    renderOpenAIKeySetupPrompt,
+} from './openai_key_setup_printer.js';
 
 // Mapit keskustelun hallintaan
 let conversation_map = new Map();
@@ -629,6 +633,29 @@ export function create_chat_ui(table_name, parent_element) {
         try {
             await start_api_tools_query(table_name, user_message, pending_message);
         } catch (error) {
+            if (isOpenAIKeyConfigurationRequired(error)) {
+                finish_pending_chat_message(table_name, pending_message, 'assistant', '');
+                renderOpenAIKeySetupPrompt(pending_message?.element, {
+                    onSaved: async () => {
+                        const retryPendingMessage = append_pending_chat_message(table_name, 'api_tools');
+                        setChatComposerBusy(chat_input, chat_send_btn, clear_history_btn, true);
+                        try {
+                            await start_api_tools_query(table_name, user_message, retryPendingMessage);
+                        } catch (retryError) {
+                            console.warn('AI chat retry error:', retryError);
+                            finish_pending_chat_message(
+                                table_name,
+                                retryPendingMessage,
+                                'error',
+                                String(retryError?.message || 'Unable to complete the AI query right now.')
+                            );
+                        } finally {
+                            setChatComposerBusy(chat_input, chat_send_btn, clear_history_btn, false);
+                        }
+                    },
+                });
+                return;
+            }
             console.warn('AI chat query error:', error);
             finish_pending_chat_message(
                 table_name,

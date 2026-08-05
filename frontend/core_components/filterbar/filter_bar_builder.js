@@ -45,7 +45,10 @@ import { createSortDropdown } from "./top_row_buttons/sort_dropdown_builder.js";
 import { getAllSpecs } from "../state_stores/table_specs_reader.js";
 import { createMaskIconSpan } from "../../icons/icon_mask_builder.js";
 import { getLanguageWithBrowserFallback } from "../state_stores/lang_preference_reader.js";
-import { getCurrentSiteName } from "../state_stores/site_identity_reader.js";
+import {
+    formatSiteNameForDisplay,
+    getCurrentSiteName,
+} from "../state_stores/site_identity_reader.js";
 import { buildCalendarPopup } from "./filterbar_calendar.js";
 import {
     NAVBAR_VISIBILITY_CHANGED_EVENT,
@@ -405,7 +408,7 @@ function buildFilterbarHeroHeader(tableName, {
     datasetTitle.dataset.langKey = `${tableName}_front_page`;
     datasetTitle.textContent = headerTitleOverride || tableName;
 
-    const siteName = getCurrentSiteName();
+    const siteName = formatSiteNameForDisplay(getCurrentSiteName());
     if (siteName) {
         const siteTitle = document.createElement("span");
         siteTitle.classList.add("morphing-title__site-name");

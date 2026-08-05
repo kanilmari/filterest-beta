@@ -137,9 +137,9 @@ const DATASET_VIEW_RENDERERS = {
         },
     },
     tree: {
-        create: async (table_name, columns, data) => {
+        create: async (table_name, columns, data, data_types) => {
             //   console.log('view_dataset.js: tree create kutsuu create_tree_view');
-            return await create_tree_view(table_name, columns, data);
+            return await create_tree_view(table_name, columns, data, data_types);
         },
     },
     normal: {

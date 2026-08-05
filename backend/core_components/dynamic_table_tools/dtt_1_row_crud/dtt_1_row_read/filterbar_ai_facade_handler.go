@@ -60,14 +60,19 @@ type filterbarAIQueryPlan struct {
 }
 
 type filterbarAIQueryResponse struct {
-	Dataset string                       `json:"dataset"`
-	Answer  string                       `json:"answer"`
-	Plan    filterbarAIQueryPlan         `json:"plan"`
-	Plans   []filterbarAIQueryPlan       `json:"plans,omitempty"`
-	Result  map[string]interface{}       `json:"result"`
-	Results []filterbarAIQueryResultItem `json:"results,omitempty"`
-	Memory  *aiChatConversationMessage   `json:"memory,omitempty"`
-	Usage   *filterbarAIUsageSummary     `json:"usage,omitempty"`
+	Dataset               string                            `json:"dataset"`
+	Answer                string                            `json:"answer"`
+	Plan                  filterbarAIQueryPlan              `json:"plan"`
+	Plans                 []filterbarAIQueryPlan            `json:"plans,omitempty"`
+	Result                map[string]interface{}            `json:"result"`
+	Results               []filterbarAIQueryResultItem      `json:"results,omitempty"`
+	Memory                *aiChatConversationMessage        `json:"memory,omitempty"`
+	Usage                 *filterbarAIUsageSummary          `json:"usage,omitempty"`
+	ConfigurationRequired *filterbarAIConfigurationRequired `json:"configuration_required,omitempty"`
+}
+
+type filterbarAIConfigurationRequired struct {
+	Code string `json:"code"`
 }
 
 type filterbarAIQueryResultItem struct {
@@ -184,6 +189,16 @@ func FilterbarAIQueryHandler(w http.ResponseWriter, r *http.Request) {
 
 	plannerResponse, result, results, memory, err := executeFilterbarAIQuery(r, payload)
 	if err != nil {
+		if errors.Is(err, errFilterbarAIOpenAIKeyMissing) {
+			httpresponse.RespondWithJSON(w, http.StatusOK, filterbarAIQueryResponse{
+				Dataset: payload.Dataset,
+				Result:  map[string]interface{}{},
+				ConfigurationRequired: &filterbarAIConfigurationRequired{
+					Code: "openai_api_key_missing",
+				},
+			})
+			return
+		}
 		var delegateErr *filterbarAIDelegateResponseError
 		if errors.As(err, &delegateErr) {
 			copyFilterbarAIErrorResponse(w, delegateErr.Recorder)

@@ -3,6 +3,8 @@
 // Bridges dataset columns, system_column_details-like metadata, and calendar renderer state.
 // Exists to keep the DOM printer small while preserving a clean path for future temporal roles.
 
+import { resolveDatasetDisplayValue } from "../dataset_value_localizer.js";
+
 const PRIMARY_DATE_COLUMN_CANDIDATES = [
     "due_date",
     "start_date",
@@ -114,9 +116,21 @@ export function inferCalendarColumns(columns, dataTypes = {}) {
  * Operates between raw row values and date-keyed event buckets.
  * Exists to keep month/list rendering independent from row parsing details.
  */
-export function groupCalendarRowsByDate(rows, calendarColumns, columns = []) {
+export function groupCalendarRowsByDate(
+    rows,
+    calendarColumns,
+    columns = [],
+    preferredLanguage = "en",
+    dataTypes = {}
+) {
     const groupedEvents = new Map();
-    const events = buildCalendarEvents(rows, calendarColumns, columns);
+    const events = buildCalendarEvents(
+        rows,
+        calendarColumns,
+        columns,
+        preferredLanguage,
+        dataTypes
+    );
 
     events.forEach((event) => {
         event.dateKeys.forEach((dateKey) => {
@@ -353,13 +367,26 @@ export function isSameLocalDay(firstDate, secondDate) {
  * Operates between inferred columns and row-level start/end values.
  * Exists to centralize date parsing and inclusive range expansion.
  */
-function buildCalendarEvents(rows, calendarColumns, columns) {
+function buildCalendarEvents(
+    rows,
+    calendarColumns,
+    columns,
+    preferredLanguage,
+    dataTypes
+) {
     if (!calendarColumns?.startColumn) {
         return [];
     }
 
     return rows
-        .map((row, index) => buildCalendarEvent(row, index, calendarColumns, columns))
+        .map((row, index) => buildCalendarEvent(
+            row,
+            index,
+            calendarColumns,
+            columns,
+            preferredLanguage,
+            dataTypes
+        ))
         .filter(Boolean);
 }
 
@@ -368,7 +395,14 @@ function buildCalendarEvents(rows, calendarColumns, columns) {
  * Operates between a raw row object and the calendar event shape used by renderers.
  * Exists so all modes share the same title, date, and range semantics.
  */
-function buildCalendarEvent(row, index, calendarColumns, columns) {
+function buildCalendarEvent(
+    row,
+    index,
+    calendarColumns,
+    columns,
+    preferredLanguage,
+    dataTypes
+) {
     const startValue = row?.[calendarColumns.startColumn];
     const startDate = parseCalendarDate(startValue);
     if (!startDate) {
@@ -386,7 +420,13 @@ function buildCalendarEvent(row, index, calendarColumns, columns) {
     return {
         row,
         index,
-        title: formatRowTitle(row, calendarColumns.titleColumn, columns),
+        title: formatRowTitle(
+            row,
+            calendarColumns.titleColumn,
+            columns,
+            preferredLanguage,
+            dataTypes
+        ),
         startDate,
         endDate,
         startKey: toLocalDateKey(startDate),
@@ -502,19 +542,35 @@ function inferTitleColumn(columns, dateColumn, endColumn) {
  * Operates between row values and display-only calendar labels.
  * Exists to keep previews readable while preserving safe textContent rendering.
  */
-function formatRowTitle(row, titleColumn, columns) {
-    const titleValue = stringifyCalendarValue(row?.[titleColumn]);
+function formatRowTitle(row, titleColumn, columns, preferredLanguage, dataTypes) {
+    const titleValue = stringifyCalendarValue(
+        row?.[titleColumn],
+        preferredLanguage,
+        dataTypes?.[titleColumn]?.is_multilingual ?? null
+    );
     if (titleValue) {
         return titleValue;
     }
 
-    const idValue = stringifyCalendarValue(row?.id ?? row?.ID);
+    const idValue = stringifyCalendarValue(row?.id ?? row?.ID, preferredLanguage, false);
     if (idValue) {
         return `#${idValue}`;
     }
 
-    const fallbackColumn = columns.find((column) => stringifyCalendarValue(row?.[column]));
-    return fallbackColumn ? stringifyCalendarValue(row?.[fallbackColumn]) : "Untitled row";
+    const fallbackColumn = columns.find((column) => {
+        return stringifyCalendarValue(
+            row?.[column],
+            preferredLanguage,
+            dataTypes?.[column]?.is_multilingual ?? null
+        );
+    });
+    return fallbackColumn
+        ? stringifyCalendarValue(
+            row?.[fallbackColumn],
+            preferredLanguage,
+            dataTypes?.[fallbackColumn]?.is_multilingual ?? null
+        )
+        : "Untitled row";
 }
 
 /**
@@ -522,68 +578,13 @@ function formatRowTitle(row, titleColumn, columns) {
  * Operates between scalar or multilingual-like row values and text-only DOM output.
  * Exists so JSON language values do not render as [object Object].
  */
-function stringifyCalendarValue(value) {
+function stringifyCalendarValue(value, preferredLanguage, isMultilingual) {
     if (value == null) {
         return "";
     }
 
-    if (typeof value === "object") {
-        return stringifyLanguageObject(value) || JSON.stringify(value);
-    }
-
-    const stringValue = String(value).trim();
-    if (!stringValue) {
-        return "";
-    }
-
-    if (stringValue.startsWith("{") && stringValue.endsWith("}")) {
-        try {
-            const parsedValue = JSON.parse(stringValue);
-            return stringifyLanguageObject(parsedValue) || stringValue;
-        } catch {
-            return stringValue;
-        }
-    }
-
-    return stringValue;
-}
-
-/**
- * Extracts the preferred language value from a JSON object.
- * Operates between multilingual row payloads and the browser document language.
- * Exists to keep calendar labels multilingual-ready without extra dependencies.
- */
-function stringifyLanguageObject(value) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-        return "";
-    }
-
-    const keys = Object.keys(value);
-    if (!keys.length || !keys.every((key) => /^[a-z]{2,5}$/i.test(key))) {
-        return "";
-    }
-
-    const preferredLanguage = getPreferredLanguage();
-    const fallbackKey = keys.includes("en") ? "en" : keys[0];
-    const selectedValue = value[preferredLanguage] ?? value[fallbackKey];
-    return selectedValue == null ? "" : String(selectedValue).trim();
-}
-
-/**
- * Reads the current language from document metadata when available.
- * Operates between browser globals and render helpers.
- * Exists to avoid importing the broader translation system into this simple view.
- */
-function getPreferredLanguage() {
-    if (typeof document === "undefined") {
-        return "en";
-    }
-
-    const htmlLanguage = document.documentElement?.lang;
-    if (htmlLanguage) {
-        return htmlLanguage.split("-")[0].toLowerCase();
-    }
-    return "en";
+    const metadata = isMultilingual == null ? null : { is_multilingual: isMultilingual };
+    return resolveDatasetDisplayValue(value, metadata, preferredLanguage).trim();
 }
 
 /**

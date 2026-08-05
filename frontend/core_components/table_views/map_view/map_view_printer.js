@@ -3,6 +3,11 @@
 // Bridges table columns, row data, and dependency-free Web Mercator tile rendering.
 // Exists to make location rows visible together without forcing a map library dependency yet.
 
+import {
+    bindDatasetLanguageRenderer,
+    resolveDatasetDisplayValue,
+} from "../dataset_value_localizer.js";
+
 const COORDINATE_NUMBER_PATTERN = "[+-]?(?:(?:\\d+\\.?\\d*)|(?:\\.\\d+))(?:[eE][+-]?\\d+)?";
 const LATITUDE_COLUMN_ALIASES = ["latitude", "lat", "y"];
 const LONGITUDE_COLUMN_ALIASES = ["longitude", "lng", "lon", "x"];
@@ -30,6 +35,7 @@ const DEFAULT_TILE_PROVIDER = {
 const EWKB_SRID_FLAG = 0x20000000;
 const EWKB_TYPE_MASK = 0x1fffffff;
 const WKB_POINT_TYPES = new Set([1, 1001, 2001, 3001]);
+const MAP_VIEW_LANGUAGE_RENDERERS = new WeakMap();
 const PRIMARY_LABEL_ALIASES = [
     "name",
     "title",
@@ -444,26 +450,20 @@ function formatCoordinateValue(value) {
     return Number(value).toFixed(6).replace(/\.?0+$/, "");
 }
 
-// Converts arbitrary cell values into safe display text for DOM textContent.
-function stringifyCellValue(value) {
-    if (value == null) {
-        return "";
-    }
-    if (typeof value === "object") {
-        try {
-            return JSON.stringify(value);
-        } catch {
-            return String(value);
-        }
-    }
-    return String(value);
+// Creates a display-only reader that leaves the raw row payload intact for editing and coordinate parsing.
+function createMapDisplayValueReader(dataTypes, chosenLanguage) {
+    return (row, column) => resolveDatasetDisplayValue(
+        row?.[column],
+        dataTypes?.[column] || null,
+        chosenLanguage
+    ).trim();
 }
 
 // Finds the first non-empty cell matching alias priority instead of table order.
-function findFirstCellTextByAliases(row, columns, aliases) {
+function findFirstCellTextByAliases(row, columns, aliases, readDisplayValue) {
     for (const alias of aliases) {
         const column = findColumnByAliases(columns, [alias]);
-        const value = column ? stringifyCellValue(row[column]).trim() : "";
+        const value = column ? readDisplayValue(row, column) : "";
         if (value) {
             return value;
         }
@@ -472,28 +472,38 @@ function findFirstCellTextByAliases(row, columns, aliases) {
 }
 
 // Builds a compact address label when name/title columns are not available.
-function resolveAddressLabel(row, columns) {
-    const street = findFirstCellTextByAliases(row, columns, ADDRESS_STREET_ALIASES);
-    const postalCode = findFirstCellTextByAliases(row, columns, ADDRESS_POSTAL_ALIASES);
-    const city = findFirstCellTextByAliases(row, columns, ADDRESS_CITY_ALIASES);
+function resolveAddressLabel(row, columns, readDisplayValue) {
+    const street = findFirstCellTextByAliases(row, columns, ADDRESS_STREET_ALIASES, readDisplayValue);
+    const postalCode = findFirstCellTextByAliases(row, columns, ADDRESS_POSTAL_ALIASES, readDisplayValue);
+    const city = findFirstCellTextByAliases(row, columns, ADDRESS_CITY_ALIASES, readDisplayValue);
     const postalCity = [postalCode, city].filter(Boolean).join(" ");
     return [street, postalCity].filter(Boolean).join(", ");
 }
 
 // Resolves a stable human-readable row label for marker and list controls.
-function resolveRowLabel(row, columns, rowIndex) {
+function resolveRowLabel(row, columns, rowIndex, readDisplayValue) {
     const rowColumns = mergeColumnsWithRowKeys(columns, row);
-    const primaryLabel = findFirstCellTextByAliases(row, rowColumns, PRIMARY_LABEL_ALIASES);
+    const primaryLabel = findFirstCellTextByAliases(
+        row,
+        rowColumns,
+        PRIMARY_LABEL_ALIASES,
+        readDisplayValue
+    );
     if (primaryLabel) {
         return primaryLabel;
     }
 
-    const addressLabel = resolveAddressLabel(row, rowColumns);
+    const addressLabel = resolveAddressLabel(row, rowColumns, readDisplayValue);
     if (addressLabel) {
         return addressLabel;
     }
 
-    const idLabel = findFirstCellTextByAliases(row, rowColumns, ID_LABEL_ALIASES);
+    const idLabel = findFirstCellTextByAliases(
+        row,
+        rowColumns,
+        ID_LABEL_ALIASES,
+        readDisplayValue
+    );
     if (idLabel) {
         return idLabel;
     }
@@ -662,7 +672,7 @@ function createEmptyState() {
 }
 
 // Creates a single marker button for the tile map.
-function createMarkerButton(point, pointNumber, tileLayout, columns, selectRow) {
+function createMarkerButton(point, pointNumber, tileLayout, columns, selectRow, readDisplayValue) {
     const markerPosition = resolveWorldPixelPercent(
         projectCoordinateToWorldPixel(point, tileLayout.zoom),
         tileLayout.worldBounds
@@ -675,7 +685,7 @@ function createMarkerButton(point, pointNumber, tileLayout, columns, selectRow) 
     marker.style.top = `${markerPosition.yPercent}%`;
     marker.textContent = String(pointNumber);
 
-    const rowLabel = resolveRowLabel(point.row, columns, point.rowIndex);
+    const rowLabel = resolveRowLabel(point.row, columns, point.rowIndex, readDisplayValue);
     marker.title = `${rowLabel}: ${formatCoordinateValue(point.latitude)}, ${formatCoordinateValue(point.longitude)}`;
     marker.setAttribute("aria-label", marker.title);
     marker.setAttribute("aria-pressed", "false");
@@ -684,7 +694,7 @@ function createMarkerButton(point, pointNumber, tileLayout, columns, selectRow) 
 }
 
 // Creates the plotting surface and places every coordinate marker on it.
-function createMapPlane(points, columns, selectRow) {
+function createMapPlane(points, columns, selectRow, readDisplayValue) {
     const plane = document.createElement("div");
     plane.classList.add("map-view-plane", "map-view-plane--tile");
     plane.dataset.mapProvider = DEFAULT_TILE_PROVIDER.label;
@@ -698,7 +708,14 @@ function createMapPlane(points, columns, selectRow) {
     plane.appendChild(planeLabel);
 
     points.forEach((point, index) => {
-        plane.appendChild(createMarkerButton(point, index + 1, tileLayout, columns, selectRow));
+        plane.appendChild(createMarkerButton(
+            point,
+            index + 1,
+            tileLayout,
+            columns,
+            selectRow,
+            readDisplayValue
+        ));
     });
 
     const attribution = document.createElement("a");
@@ -713,7 +730,7 @@ function createMapPlane(points, columns, selectRow) {
 }
 
 // Creates key/value preview chips for a row in the coordinate list.
-function createRowValuePreview(row, columns) {
+function createRowValuePreview(row, columns, readDisplayValue) {
     const values = document.createElement("div");
     values.classList.add("map-view-row-values");
     const previewColumns = Array.isArray(columns) && columns.length > 0
@@ -735,7 +752,7 @@ function createRowValuePreview(row, columns) {
 
         const valueText = document.createElement("span");
         valueText.classList.add("map-view-row-value-text");
-        valueText.textContent = stringifyCellValue(rawValue);
+        valueText.textContent = readDisplayValue(row, column);
 
         valueItem.append(valueKey, valueText);
         values.appendChild(valueItem);
@@ -745,7 +762,7 @@ function createRowValuePreview(row, columns) {
 }
 
 // Creates one row button for the side list and wires it to marker selection.
-function createMapListRow(point, columns, selectRow) {
+function createMapListRow(point, columns, selectRow, readDisplayValue) {
     const rowItem = document.createElement("li");
     rowItem.classList.add("map-view-row-item");
 
@@ -758,7 +775,12 @@ function createMapListRow(point, columns, selectRow) {
 
     const rowTitle = document.createElement("span");
     rowTitle.classList.add("map-view-row-title");
-    rowTitle.textContent = resolveRowLabel(point.row, columns, point.rowIndex);
+    rowTitle.textContent = resolveRowLabel(
+        point.row,
+        columns,
+        point.rowIndex,
+        readDisplayValue
+    );
 
     const coordinateLine = document.createElement("span");
     coordinateLine.classList.add("map-view-row-coordinate");
@@ -775,13 +797,18 @@ function createMapListRow(point, columns, selectRow) {
     sourceValue.textContent = point.sourceLabel;
 
     sourceLine.append(sourceLabel, sourceValue);
-    rowButton.append(rowTitle, coordinateLine, sourceLine, createRowValuePreview(point.row, columns));
+    rowButton.append(
+        rowTitle,
+        coordinateLine,
+        sourceLine,
+        createRowValuePreview(point.row, columns, readDisplayValue)
+    );
     rowItem.appendChild(rowButton);
     return rowItem;
 }
 
 // Creates the side list containing all rows that resolved to coordinates.
-function createMapList(points, rowsWithoutCoordinates, columns, selectRow) {
+function createMapList(points, rowsWithoutCoordinates, columns, selectRow, readDisplayValue) {
     const listShell = document.createElement("aside");
     listShell.classList.add("map-view-list-shell");
 
@@ -792,12 +819,16 @@ function createMapList(points, rowsWithoutCoordinates, columns, selectRow) {
     const list = document.createElement("ul");
     list.classList.add("map-view-row-list");
     points.forEach((point) => {
-        list.appendChild(createMapListRow(point, columns, selectRow));
+        list.appendChild(createMapListRow(point, columns, selectRow, readDisplayValue));
     });
 
     listShell.append(heading, list);
     if (rowsWithoutCoordinates.length > 0) {
-        listShell.appendChild(createMissingRowsSection(rowsWithoutCoordinates, columns));
+        listShell.appendChild(createMissingRowsSection(
+            rowsWithoutCoordinates,
+            columns,
+            readDisplayValue
+        ));
     }
     return listShell;
 }
@@ -812,7 +843,7 @@ function getRowsWithoutCoordinates(data, points) {
 }
 
 // Creates a compact disclosure for rows that remain editable/searchable but not mappable yet.
-function createMissingRowsSection(rowsWithoutCoordinates, columns) {
+function createMissingRowsSection(rowsWithoutCoordinates, columns, readDisplayValue) {
     const details = document.createElement("details");
     details.classList.add("map-view-missing-rows");
 
@@ -825,7 +856,7 @@ function createMissingRowsSection(rowsWithoutCoordinates, columns) {
     list.classList.add("map-view-missing-row-list");
     rowsWithoutCoordinates.forEach(({ row, rowIndex }) => {
         const item = document.createElement("li");
-        item.textContent = resolveRowLabel(row, columns, rowIndex);
+        item.textContent = resolveRowLabel(row, columns, rowIndex, readDisplayValue);
         list.appendChild(item);
     });
 
@@ -852,23 +883,55 @@ export function create_map_view(table_name, columns, data, data_types) {
     const container = document.createElement("div");
     container.classList.add("map-view");
     container.dataset.datasetName = table_name;
-
     if (points.length === 0) {
         container.appendChild(createEmptyState());
         return container;
     }
 
-    const status = createMapStatus(points, safeRows.length);
-    const layout = document.createElement("div");
-    layout.classList.add("map-view-layout");
+    let selectedRowIndex = points[0].rowIndex;
+    const renderChosenLanguage = (chosenLanguage) => {
+        const readDisplayValue = createMapDisplayValueReader(data_types, chosenLanguage);
+        const status = createMapStatus(points, safeRows.length);
+        const layout = document.createElement("div");
+        layout.classList.add("map-view-layout");
 
-    const selectRow = (rowIndex) => syncSelectedRow(container, rowIndex);
-    layout.append(
-        createMapPlane(points, safeColumns, selectRow),
-        createMapList(points, rowsWithoutCoordinates, safeColumns, selectRow)
-    );
-    container.append(status, layout);
-
-    syncSelectedRow(container, points[0].rowIndex);
+        const selectRow = (rowIndex) => {
+            selectedRowIndex = rowIndex;
+            syncSelectedRow(container, rowIndex);
+        };
+        layout.append(
+            createMapPlane(points, safeColumns, selectRow, readDisplayValue),
+            createMapList(
+                points,
+                rowsWithoutCoordinates,
+                safeColumns,
+                selectRow,
+                readDisplayValue
+            )
+        );
+        container.replaceChildren(status, layout);
+        syncSelectedRow(container, selectedRowIndex);
+    };
+    MAP_VIEW_LANGUAGE_RENDERERS.set(container, renderChosenLanguage);
+    bindDatasetLanguageRenderer(container, renderChosenLanguage);
     return container;
+}
+
+/**
+ * Refreshes active-language values in mounted maps while retaining raw rows and map state.
+ * Between the language selector and map labels, previews, markers, and missing-row listings.
+ * Avoids refetching dataset rows while preserving the selected map row.
+ * @param {string} chosenLanguage
+ * @param {ParentNode} root
+ * @returns {Promise<number>} refreshed map count
+ */
+export async function refresh_mounted_map_view_languages(chosenLanguage, root = document) {
+    let refreshedCount = 0;
+    for (const container of root.querySelectorAll('.map-view')) {
+        const renderer = MAP_VIEW_LANGUAGE_RENDERERS.get(container);
+        if (!renderer) continue;
+        await renderer(chosenLanguage);
+        refreshedCount += 1;
+    }
+    return refreshedCount;
 }

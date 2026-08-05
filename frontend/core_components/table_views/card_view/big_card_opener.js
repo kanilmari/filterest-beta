@@ -56,6 +56,7 @@ import { showSuccessToast } from "../../../reusable_components/notifications/toa
 import { refreshTableUnified } from "../../general_tables/gt_1_row_crud/gt_1_2_row_read/table_refresh_unified.js";
 import { buildConfirmationMessage } from "../../general_tables/gt_1_row_crud/gt_1_4_row_delete/row_remover_helpers.js";
 import { getLanguageWithBrowserFallback } from "../../state_stores/lang_preference_reader.js";
+import { resolveDatasetDisplayValue } from "../dataset_value_localizer.js";
 import { createRowArticleLoadSession } from "./row_article_load_session.js";
 import { fetchCurrentUserProfile } from "../../user_tools/current_user_profile_fetcher.js";
 import { buildRowArticleQueryString } from "./row_article_url_state.js";
@@ -116,7 +117,10 @@ export async function openRowArticleView(
                 data_types[col]?.card_element || ""
             );
             if (baseRoles.includes("header")) {
-                const txt = row_item[col] ? String(row_item[col]).trim() : "";
+                const txt = resolveDatasetDisplayValue(
+                    row_item[col],
+                    data_types?.[col] || null
+                ).trim();
                 if (txt) header_first_letter = txt[0];
             }
         }
@@ -503,9 +507,10 @@ export async function openRowArticleView(
                         data_types[col]?.card_element || ""
                     );
                     if (baseRoles.includes("header")) {
-                        headerText = row_item[col]
-                            ? String(row_item[col]).trim()
-                            : "";
+                        headerText = resolveDatasetDisplayValue(
+                            row_item[col],
+                            data_types?.[col] || null
+                        ).trim();
                         break;
                     }
                 }
@@ -591,7 +596,10 @@ export async function openRowArticleView(
             for (const col of sorted_columns) {
                 const { baseRoles } = parseRoleString(data_types[col]?.card_element || "");
                 if (baseRoles.includes("header")) {
-                    const txt = row_item[col] ? String(row_item[col]).trim() : "";
+                    const txt = resolveDatasetDisplayValue(
+                        row_item[col],
+                        data_types?.[col] || null
+                    ).trim();
                     if (txt) {
                         slug = buildSlug(txt);
                     }

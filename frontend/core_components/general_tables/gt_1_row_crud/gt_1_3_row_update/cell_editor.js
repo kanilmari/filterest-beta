@@ -25,6 +25,12 @@ import {
     getTemporalValueKind,
     serializeTemporalInputValue,
 } from '../../../table_views/temporal_value_formatter.js';
+import { getLanguageWithBrowserFallback } from '../../../state_stores/lang_preference_reader.js';
+import {
+    reconstructMultilingualValue,
+    resolveMultilingualValue,
+} from '../../../table_views/card_view/card_field_formatter_helpers.js';
+import { setLocalizedDatasetText } from '../../../table_views/dataset_value_localizer.js';
 
 export async function editCell(cell, columns, data, dataTypes, table_name) {
     let originalContent = cell.textContent;
@@ -315,6 +321,19 @@ async function handleRegularEditing(cell, columns, data, dataTypes, table_name, 
         return;
     }
     const originalValue = rowData[columnName];
+    const serializedOriginalValue = typeof originalValue === 'object' && originalValue !== null
+        ? JSON.stringify(originalValue)
+        : String(originalValue ?? '');
+    const multilingualMetadata = dataTypeInfo && typeof dataTypeInfo === 'object'
+        ? dataTypeInfo.is_multilingual
+        : undefined;
+    const multilingualValue = multilingualMetadata === false
+        ? null
+        : resolveMultilingualValue(
+            serializedOriginalValue,
+            multilingualMetadata,
+            getLanguageWithBrowserFallback()
+        );
     const inlineOptions = getInlineEditOptions({
         tableName: table_name,
         columnName,
@@ -352,7 +371,8 @@ async function handleRegularEditing(cell, columns, data, dataTypes, table_name, 
     } else if (inputType === 'date' || inputType === 'datetime-local') {
         input.value = formatDateForInput(originalValue, inputType, dataType);
     } else {
-        input.value = originalValue !== null && originalValue !== undefined ? originalValue : '';
+        input.value = multilingualValue?.displayText
+            ?? (originalValue !== null && originalValue !== undefined ? originalValue : '');
     }
 
     cell.appendChild(input);
@@ -371,7 +391,9 @@ async function handleRegularEditing(cell, columns, data, dataTypes, table_name, 
         cell.classList.remove('editing');
 
         const temporalKind = getTemporalValueKind(dataType);
-        const comparisonValue = inputType === 'checkbox' || temporalKind
+        const comparisonValue = multilingualValue
+            ? originalEditorValue
+            : inputType === 'checkbox' || temporalKind
             ? originalEditorValue
             : originalValue;
         const valueChanged = hasValueChanged(comparisonValue, newValue, input.type);
@@ -379,19 +401,36 @@ async function handleRegularEditing(cell, columns, data, dataTypes, table_name, 
         // Debug-tulostus
 
         if (!valueChanged) {
+            if (multilingualValue) {
+                setLocalizedTableCellDisplay(cell, originalValue, dataTypeInfo);
+            }
             selectCell(cell);
             return;
         }
 
         const id = rowData['id'];
 
-        const serializedValue = temporalKind
+        let serializedValue = temporalKind
             ? serializeTemporalInputValue(newValue, dataType)
             : newValue;
         if (temporalKind && serializedValue === null) {
             setCellDisplayText(cell, originalContent);
             selectCell(cell);
             return;
+        }
+
+        if (multilingualValue && typeof newValue === 'string') {
+            const reconstructedValue = reconstructMultilingualValue(
+                JSON.stringify(multilingualValue.multiLangObj),
+                multilingualValue.editLang,
+                newValue
+            );
+            if (reconstructedValue === null) {
+                setCellDisplayText(cell, originalContent);
+                selectCell(cell);
+                return;
+            }
+            serializedValue = reconstructedValue;
         }
 
         const updateData = {
@@ -404,10 +443,17 @@ async function handleRegularEditing(cell, columns, data, dataTypes, table_name, 
             await sendUpdateRequest(table_name, updateData);
 
             data[rowIndex][columnName] = serializedValue;
+            if (multilingualValue) {
+                setLocalizedTableCellDisplay(cell, serializedValue, dataTypeInfo);
+            }
 
         } catch (error) {
             console.warn('Error updating cell:', error);
-            setCellDisplayText(cell, originalContent);
+            if (multilingualValue) {
+                setLocalizedTableCellDisplay(cell, originalValue, dataTypeInfo);
+            } else {
+                setCellDisplayText(cell, originalContent);
+            }
         } finally {
             selectCell(cell);
         }
@@ -563,6 +609,16 @@ async function handleOptionEditing({
 
 function setCellDisplayText(cell, value) {
     const text = value !== null && value !== undefined ? String(value) : '';
+    if (cell.matches?.('.table_data_cell')) {
+        const cellContent = document.createElement('div');
+        cellContent.className = 'table_cell_content';
+        if (cell.classList.contains('table_data_cell--compact')) {
+            cellContent.classList.add('table_cell_content--compact');
+        }
+        cellContent.textContent = text;
+        cell.replaceChildren(cellContent);
+        return;
+    }
     if (cell.matches?.('.cell')) {
         const cellContent = document.createElement('div');
         cellContent.className = 'cell-content';
@@ -574,6 +630,25 @@ function setCellDisplayText(cell, value) {
     }
 
     cell.textContent = text;
+}
+
+function setLocalizedTableCellDisplay(cell, rawValue, columnMetadata) {
+    const cellContent = document.createElement('div');
+    if (cell.matches?.('.table_data_cell')) {
+        cellContent.className = 'table_cell_content';
+        if (cell.classList.contains('table_data_cell--compact')) {
+            cellContent.classList.add('table_cell_content--compact');
+        }
+    } else if (cell.matches?.('.cell')) {
+        cellContent.className = 'cell-content';
+        copyListCellColumnClasses(cell, cellContent);
+        cellContent.style.whiteSpace = 'pre-wrap';
+    } else {
+        setLocalizedDatasetText(cell, rawValue, columnMetadata);
+        return;
+    }
+    setLocalizedDatasetText(cellContent, rawValue, columnMetadata);
+    cell.replaceChildren(cellContent);
 }
 
 function copyListCellColumnClasses(cell, contentElement) {

@@ -216,6 +216,12 @@ export async function runApiToolsChatQuery(table_name, user_message, conversatio
         body_data: payload,
     });
 
+    if (response?.configuration_required?.code === "openai_api_key_missing") {
+        const configurationError = new Error("Chat configuration is required.");
+        configurationError.code = "openai_api_key_missing";
+        throw configurationError;
+    }
+
     let resultActionTaken = false;
     const responsePlan = response?.plan || {};
     const appliedSort = shouldApplyChatPlanToTable(table_name, responsePlan)

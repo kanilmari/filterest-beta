@@ -219,6 +219,69 @@ describe("create_chat_ui", () => {
         });
     });
 
+    test("offers secure inline OpenAI key setup and retries chat after saving", async () => {
+        let queryAttempts = 0;
+        endpointRouterMock.mockImplementation((routeName, options = {}) => {
+            if (routeName === "aiChatConversation" && !options.method) {
+                return Promise.resolve({
+                    dataset: "app_service_catalog",
+                    messages: [],
+                    preview: "",
+                    updated_at: null,
+                });
+            }
+            if (routeName === "aiChatConversation" && options.method === "PUT") {
+                return Promise.resolve({
+                    dataset: "app_service_catalog",
+                    messages: options.body_data.messages,
+                    preview: options.body_data.preview,
+                    updated_at: options.body_data.updated_at,
+                });
+            }
+            if (routeName === "aiChatQuery") {
+                queryAttempts += 1;
+                return Promise.resolve(queryAttempts === 1
+                    ? { configuration_required: { code: "openai_api_key_missing" } }
+                    : { answer: "Chat works now." });
+            }
+            if (routeName === "saveOpenAIAPIKey") {
+                return Promise.resolve({ saved: true });
+            }
+            return Promise.resolve({});
+        });
+
+        const { create_chat_ui } = await loadModule();
+        create_chat_ui("app_service_catalog", document.getElementById("chat-host"));
+
+        const textarea = document.getElementById("app_service_catalog_chat_input");
+        textarea.value = "show services";
+        document.getElementById("app_service_catalog_chat_sendBtn").click();
+
+        await vi.waitFor(() => {
+            expect(document.querySelector(".chat-openai-key-setup input[type='password']")).not.toBeNull();
+        });
+        expect(document.querySelector(".chat-bubble-error")).toBeNull();
+
+        const secretInput = document.querySelector(".chat-openai-key-setup input");
+        secretInput.value = "test-inline-secret";
+        document.querySelector(".chat-openai-key-setup").dispatchEvent(new Event("submit", {
+            bubbles: true,
+            cancelable: true,
+        }));
+
+        await vi.waitFor(() => {
+            expect(endpointRouterMock).toHaveBeenCalledWith("saveOpenAIAPIKey", {
+                method: "POST",
+                body_data: { api_key: "test-inline-secret" },
+            });
+            expect(
+                document.getElementById("app_service_catalog_chat_container")?.textContent
+            ).toContain("Chat works now.");
+        });
+        expect(document.body.textContent).not.toContain("test-inline-secret");
+        expect(queryAttempts).toBe(2);
+    });
+
     test("restores the in-progress multiline draft after browsing message history", async () => {
         endpointRouterMock.mockImplementation((routeName, options = {}) => {
             if (routeName === "aiChatConversation" && !options.method) {

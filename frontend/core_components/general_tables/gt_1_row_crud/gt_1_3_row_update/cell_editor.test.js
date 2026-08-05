@@ -346,6 +346,82 @@ describe('cell_editor', () => {
         expect(endpointRouterMock).not.toHaveBeenCalled();
     });
 
+    test('edits only the active language while preserving the other multilingual values', async () => {
+        localStorage.setItem('chosen_language', 'fi');
+        const { editCell } = await import('./cell_editor.js');
+        const cell = document.createElement('td');
+        cell.classList.add('table_data_cell');
+        cell.dataset.rowIndex = '0';
+        cell.dataset.colIndex = '1';
+        cell.innerHTML = '<div class="table_cell_content">Palvelut</div>';
+        document.body.appendChild(cell);
+
+        const originalValue = JSON.stringify({ en: 'Services', fi: 'Palvelut', yue: '服務' });
+        const data = [{ id: 7, title: originalValue }];
+
+        await editCell(
+            cell,
+            ['id', 'title'],
+            data,
+            { title: { data_type: 'text', is_multilingual: true } },
+            'services'
+        );
+
+        const input = cell.querySelector('[data-testid="table-editor"]');
+        expect(input.value).toBe('Palvelut');
+        input.value = 'Palveluluettelo';
+        input.dispatchEvent(new Event('blur'));
+
+        await vi.waitFor(() => expect(endpointRouterMock).toHaveBeenCalledTimes(1));
+        const savedValue = endpointRouterMock.mock.calls[0][1].body_data.value;
+        expect(JSON.parse(savedValue)).toEqual({
+            en: 'Services',
+            fi: 'Palveluluettelo',
+            yue: '服務',
+        });
+        await vi.waitFor(() => expect(data[0].title).toBe(savedValue));
+        expect(cell.textContent).toBe('Palveluluettelo');
+        expect(cell.querySelector('.table_cell_content')).not.toBeNull();
+
+        const { refreshLocalizedDatasetValues } = await import(
+            '../../../table_views/dataset_value_localizer.js'
+        );
+        await refreshLocalizedDatasetValues('en');
+        expect(cell.textContent).toBe('Services');
+    });
+
+    test('cancels a multilingual edit without sending or exposing the raw JSON value', async () => {
+        localStorage.setItem('chosen_language', 'en');
+        const { editCell } = await import('./cell_editor.js');
+        const cell = document.createElement('td');
+        cell.classList.add('table_data_cell');
+        cell.dataset.rowIndex = '0';
+        cell.dataset.colIndex = '1';
+        cell.innerHTML = '<div class="table_cell_content">Services</div>';
+        document.body.appendChild(cell);
+
+        const originalValue = JSON.stringify({ en: 'Services', fi: 'Palvelut' });
+        const data = [{ id: 8, title: originalValue }];
+        await editCell(
+            cell,
+            ['id', 'title'],
+            data,
+            { title: { data_type: 'text', is_multilingual: true } },
+            'services'
+        );
+
+        const input = cell.querySelector('[data-testid="table-editor"]');
+        expect(input.value).toBe('Services');
+        input.value = 'Changed';
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        await Promise.resolve();
+
+        expect(endpointRouterMock).not.toHaveBeenCalled();
+        expect(data[0].title).toBe(originalValue);
+        expect(cell.textContent).toBe('Services');
+        expect(cell.textContent).not.toContain('{"en"');
+    });
+
     test('restores div-list cell content wrapper after regular edit commit', async () => {
         const { editCell } = await import('./cell_editor.js');
         const cell = document.createElement('div');

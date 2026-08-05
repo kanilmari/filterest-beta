@@ -5,6 +5,7 @@
 import { endpoint_router } from '../endpoints/endpoint_router.js';
 import { renderAllowedHtml } from '../../reusable_components/dom_container_builder.js';
 import { refreshCardLanguages } from '../table_views/card_view/card_view_printer.js';
+import { refreshLocalizedDatasetValues } from '../table_views/dataset_value_localizer.js';
 import { showToast } from '../../reusable_components/notifications/toast_notification_printer.js';
 import { initDevLangKeyEditor } from './dev_lang_key_editor.js';
 import {
@@ -238,6 +239,7 @@ export async function translatePage(chosen_language) {
 
         // Päivitetään korttien kielet
         await refreshCardLanguages();
+        await refreshLocalizedDatasetValues(chosen_language);
 
         // Dev-tila: kieliavainten duplaklikkaustoiminto
         if (IS_DEV_MODE) {
