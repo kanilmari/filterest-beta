@@ -6,13 +6,13 @@ not legal advice and still needs human/project approval before publication.
 
 ## Candidate
 
-- Filterest app version: `8.28.24`
+- Filterest app version: `8.28.25`
 - Database version: `8.0.59`
 - Go metadata source: `go list metadata with go mod download cache`
 - npm metadata source: `package-lock.json with installed package.json license metadata`
 - Go modules listed: `96`
 - npm packages listed: `441`
-- bundled asset files listed: `60`
+- bundled asset files listed: `72`
 - dependency rows still requiring license review: `0`
 
 ## Review Notes
@@ -53,7 +53,7 @@ not legal advice and still needs human/project approval before publication.
 ### Bundled Assets
 
 - `.ico`: 1
-- `.jpg`: 10
+- `.jpg`: 22
 - `.png`: 14
 - `.svg`: 35
 
@@ -659,6 +659,18 @@ not legal advice and still needs human/project approval before publication.
 | `frontend/public/auth-tour/platform-navbar.jpg` | `.jpg` |
 | `frontend/public/auth-tour/platform-table-view.jpg` | `.jpg` |
 | `frontend/reusable_components/vanilla_dropdown/chevron.svg` | `.svg` |
+| `storage/10/1/1000/10_1_1.jpg` | `.jpg` |
+| `storage/10/1/2160/10_1_1.jpg` | `.jpg` |
+| `storage/10/1/300/10_1_1.jpg` | `.jpg` |
+| `storage/10/1/original/10_1_1.jpg` | `.jpg` |
+| `storage/7/1/1000/7_1_1.jpg` | `.jpg` |
+| `storage/7/1/2160/7_1_1.jpg` | `.jpg` |
+| `storage/7/1/300/7_1_1.jpg` | `.jpg` |
+| `storage/7/1/original/7_1_1.jpg` | `.jpg` |
+| `storage/8/1/1000/8_1_1.jpg` | `.jpg` |
+| `storage/8/1/2160/8_1_1.jpg` | `.jpg` |
+| `storage/8/1/300/8_1_1.jpg` | `.jpg` |
+| `storage/8/1/original/8_1_1.jpg` | `.jpg` |
 | `storage/9/1/1000/9_1_1.png` | `.png` |
 | `storage/9/1/300/9_1_1.png` | `.png` |
 | `storage/9/1/original/9_1_1.png` | `.png` |

@@ -118,4 +118,25 @@ describe("renderKeyValuePairs", () => {
         expect(value?.textContent).toBe("2026-06-15 21:36");
         expect(value?.title).toBe("2026-06-15 21:36:10");
     });
+
+    test("applies the opt-in key decorator in every responsive layout mode", () => {
+        const decorateKeyElement = vi.fn((keyElement) => {
+            keyElement.classList.add("decorated-key");
+        });
+
+        ["inline", "stacked", "conditional"].forEach((layoutMode) => {
+            const kvContainer = document.createElement("div");
+            document.body.appendChild(kvContainer);
+            renderKeyValuePairs(
+                kvContainer,
+                [{ key: "status", value: "Active" }],
+                { layoutMode, decorateKeyElement }
+            );
+
+            expect(
+                kvContainer.querySelector(".kv-key")?.classList.contains("decorated-key")
+            ).toBe(true);
+        });
+        expect(decorateKeyElement).toHaveBeenCalledTimes(3);
+    });
 });

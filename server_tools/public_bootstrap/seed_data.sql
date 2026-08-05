@@ -211,6 +211,24 @@ SET is_current_project = FALSE,
     updated = CURRENT_DATE
 WHERE id = 1;
 
+-- A single ordinary example user gives the starter rows a human-readable
+-- author without creating login credentials. First Run still creates the
+-- installation administrator separately.
+INSERT INTO public.system_users
+    (id, username, full_name, created, updated, enabled, privileged,
+     main_group_id, creation_spec, bio_social_medias, website,
+     admin_access_allowed)
+VALUES
+  (2, 'teppo_tekija', 'Teppo Tekijä', '2026-08-05 00:00:00+00',
+   '2026-08-05 00:00:00+00', TRUE, FALSE, 2,
+   'Synthetic public example user without login credentials', '', '', FALSE);
+
+INSERT INTO public.system_user_group_memberships
+    (user_id, group_id, created, updated, id, creation_spec)
+VALUES
+  (2, 2, '2026-08-05 00:00:00', '2026-08-05 00:00:00', 1002,
+   'public fixture seed');
+
 INSERT INTO public.system_table_folders
     (id, folder_name, folder_description, created, updated, parent_id,
      creation_spec, is_current_project, admin_user_id, tab_order_json)
@@ -218,7 +236,7 @@ VALUES
   (2, 'system', 'Platform configuration and administration metadata', CURRENT_DATE, CURRENT_DATE, 1, 'public fixture seed', FALSE, NULL, '[]'::jsonb),
   (3, 'development', 'Development-time datasets and tools', CURRENT_DATE, CURRENT_DATE, 1, 'public fixture seed', FALSE, NULL, '[]'::jsonb),
   (4, 'apps', 'Application and project workspaces', CURRENT_DATE, CURRENT_DATE, 1, 'public fixture seed', FALSE, NULL, '[]'::jsonb),
-  (5, 'filterest', 'Filterest public example workspace', CURRENT_DATE, CURRENT_DATE, 4, 'public fixture seed', TRUE, 3,
+  (5, 'filterest', 'Filterest public example workspace', CURRENT_DATE, CURRENT_DATE, 4, 'public fixture seed', TRUE, 2,
    '[{"tab_id":"palvelukatalogi","sort_order":1},{"tab_id":"riskienhallinta","sort_order":2},{"tab_id":"dokumentaatio","sort_order":3},{"tab_id":"tiketit","sort_order":4},{"tab_id":"system_users","sort_order":5},{"tab_id":"static:user","sort_order":6},{"tab_id":"static:logout","sort_order":7}]'::jsonb),
   (6, 'users_and_groups', 'Users, groups, and memberships', CURRENT_DATE, CURRENT_DATE, 2, 'public fixture seed', FALSE, NULL, '[]'::jsonb),
   (7, 'logs', 'Runtime and transaction logs', CURRENT_DATE, CURRENT_DATE, 2, 'public fixture seed', FALSE, NULL, '[]'::jsonb),
@@ -314,6 +332,8 @@ VALUES
   (7, 'palvelutaso', 'Service level', 'text', 'details20', 5, 4, 4, 'palvelutaso', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'layers'),
   (7, 'tila', 'Status', 'text', 'details30', 6, 5, 5, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
   (7, 'vastuuhenkilo', 'Owner', 'text', 'details40', 7, 6, 6, 'vastuuhenkilo', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'user'),
+  (7, 'user_id', 'User ID', 'integer', 'hidden', 8, -10, NULL, NULL, 'public fixture seed', FALSE, FALSE, TRUE, TRUE, FALSE, NULL),
+  (7, 'cached_username', 'Username', 'character varying', 'username', 9, -60, NULL, 'username', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE, NULL),
 
   (8, 'riski', 'Risk', 'text', 'header', 1, 1, 1, 'riski', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
   (8, 'alentamistoimet', 'Mitigation', 'text', 'description', 2, 2, 2, 'alentamistoimet', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
@@ -324,6 +344,9 @@ VALUES
   (8, 'tila', 'Status', 'text', 'details40', 7, 6, 6, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
   (8, 'omistava_tiimi', 'Owning team', 'text', 'details', 8, 7, 7, 'omistava_tiimi', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, TRUE, 'user'),
   (8, 'todennakoisyys', 'Likelihood', 'text', 'details', 9, 8, 8, 'todennakoisyys', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, TRUE, 'ruler'),
+  (8, 'palvelu_id', 'Service ID', 'integer', 'hidden', 10, NULL, NULL, 'palvelu_id', 'public fixture seed', FALSE, FALSE, TRUE, FALSE, FALSE, NULL),
+  (8, 'user_id', 'User ID', 'integer', 'hidden', 11, -10, NULL, NULL, 'public fixture seed', FALSE, FALSE, TRUE, TRUE, FALSE, NULL),
+  (8, 'cached_username', 'Username', 'character varying', 'username', 12, -60, NULL, 'username', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE, NULL),
 
   (9, 'otsikko', 'Document', 'text', 'header', 1, 1, 1, 'otsikko', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
   (9, 'ohje', 'Guidance', 'text', 'description', 2, 2, 2, 'ohje', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
@@ -331,6 +354,9 @@ VALUES
   (9, 'kohdetiimi', 'Target team', 'text', 'details10', 4, 3, 3, 'kohdetiimi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'user'),
   (9, 'voimassaolo', 'Validity', 'text', 'details20', 5, 4, 4, 'voimassaolo', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
   (9, 'paivitetty', 'Reviewed', 'date', 'details30', 6, 5, 5, 'paivitetty', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, FALSE, 'calendar'),
+  (9, 'palvelu_id', 'Service ID', 'integer', 'hidden', 7, NULL, NULL, 'palvelu_id', 'public fixture seed', FALSE, FALSE, TRUE, FALSE, FALSE, NULL),
+  (9, 'user_id', 'User ID', 'integer', 'hidden', 8, -10, NULL, NULL, 'public fixture seed', FALSE, FALSE, TRUE, TRUE, FALSE, NULL),
+  (9, 'cached_username', 'Username', 'character varying', 'username', 9, -60, NULL, 'username', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE, NULL),
 
   (10, 'otsikko', 'Ticket', 'text', 'header', 1, 1, 1, 'otsikko', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
   (10, 'kuvaus', 'Description', 'text', 'description', 2, 2, 2, 'kuvaus', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, TRUE, NULL),
@@ -339,7 +365,17 @@ VALUES
   (10, 'tila', 'Status', 'text', 'details20', 5, 4, 4, 'tila', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'check-circle'),
   (10, 'prioriteetti', 'Priority', 'text', 'details30', 6, 5, 5, 'prioriteetti', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'alert-circle'),
   (10, 'pyyntotyyppi', 'Request type', 'text', 'details40', 7, 6, 6, 'pyyntotyyppi', 'public fixture seed', TRUE, TRUE, FALSE, FALSE, TRUE, 'layers'),
-  (10, 'maarapaiva', 'Due date', 'date', 'details', 8, 7, 7, 'maarapaiva', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, FALSE, 'calendar');
+  (10, 'maarapaiva', 'Due date', 'date', 'details', 8, 7, 7, 'maarapaiva', 'public fixture seed', TRUE, TRUE, TRUE, FALSE, FALSE, 'calendar'),
+  (10, 'palvelu_id', 'Service ID', 'integer', 'hidden', 9, NULL, NULL, 'palvelu_id', 'public fixture seed', FALSE, FALSE, TRUE, FALSE, FALSE, NULL),
+  (10, 'riski_id', 'Risk ID', 'integer', 'hidden', 10, NULL, NULL, 'riski_id', 'public fixture seed', FALSE, FALSE, TRUE, FALSE, FALSE, NULL),
+  (10, 'dokumentaatio_id', 'Document ID', 'integer', 'hidden', 11, NULL, NULL, 'dokumentaatio_id', 'public fixture seed', FALSE, FALSE, TRUE, FALSE, FALSE, NULL),
+  (10, 'user_id', 'User ID', 'integer', 'hidden', 12, -10, NULL, NULL, 'public fixture seed', FALSE, FALSE, TRUE, TRUE, FALSE, NULL),
+  (10, 'cached_username', 'Username', 'character varying', 'username', 13, -60, NULL, 'username', 'public fixture seed', FALSE, TRUE, FALSE, FALSE, FALSE, NULL);
+
+UPDATE public.system_column_details
+SET insertable = FALSE
+WHERE table_uid IN (7, 8, 9, 10)
+  AND column_name IN ('user_id', 'cached_username');
 
 -- The file-upload relationship uses the same metadata contract as the runtime
 -- Asset linking tool. It enables click and drag-and-drop image uploads while
@@ -395,9 +431,12 @@ SELECT source_uid,
 FROM asset_relations;
 
 INSERT INTO public.palvelukatalogi
-    (id, palvelu, kuvaus, omistava_tiimi, palvelutaso, tila, vastuuhenkilo)
+    (id, user_id, cached_username, palvelu, kuvaus, omistava_tiimi,
+     palvelutaso, tila, vastuuhenkilo)
 VALUES (
     1,
+    2,
+    'teppo_tekija',
     json_build_object(
         'en', 'Design the services people can rely on',
         'fi', 'Muotoile palvelut, joihin ihmiset voivat luottaa',
@@ -415,10 +454,12 @@ VALUES (
 );
 
 INSERT INTO public.riskienhallinta
-    (id, palvelu_id, riski, kuvaus, vaikutus, riskitaso, tila,
+    (id, user_id, cached_username, palvelu_id, riski, kuvaus, vaikutus, riskitaso, tila,
      omistava_tiimi, todennakoisyys, alentamistoimet)
 VALUES (
     1,
+    2,
+    'teppo_tekija',
     1,
     json_build_object(
         'en', 'Make uncertainty actionable',
@@ -443,10 +484,13 @@ VALUES (
 );
 
 INSERT INTO public.dokumentaatio
-    (id, palvelu_id, otsikko, kohdetiimi, ohje, paivitetty, voimassaolo)
+    (id, user_id, cached_username, palvelu_id, otsikko, kohdetiimi,
+     ohje, paivitetty, voimassaolo)
 VALUES
   (
     1,
+    2,
+    'teppo_tekija',
     1,
     json_build_object('en', 'Start here', 'fi', 'Aloita tästä', 'yue', '由此開始')::text,
     json_build_object('en', 'New administrators', 'fi', 'Uudet ylläpitäjät', 'yue', '新管理員')::text,
@@ -460,6 +504,8 @@ VALUES
   ),
   (
     2,
+    2,
+    'teppo_tekija',
     1,
     json_build_object('en', 'First dataset', 'fi', 'Ensimmäinen tietoaineisto', 'yue', '第一個資料集')::text,
     json_build_object('en', 'Workspace builders', 'fi', 'Työtilan rakentajat', 'yue', '工作區建立者')::text,
@@ -473,6 +519,8 @@ VALUES
   ),
   (
     3,
+    2,
+    'teppo_tekija',
     1,
     json_build_object(
         'en', 'Browse, filter and manage data',
@@ -490,10 +538,12 @@ VALUES
   );
 
 INSERT INTO public.tiketit
-    (id, palvelu_id, riski_id, dokumentaatio_id, otsikko, vastuutiimi,
-     maarapaiva, tila, prioriteetti, pyyntotyyppi, kuvaus)
+    (id, user_id, cached_username, palvelu_id, riski_id, dokumentaatio_id,
+     otsikko, vastuutiimi, maarapaiva, tila, prioriteetti, pyyntotyyppi, kuvaus)
 VALUES (
     1,
+    2,
+    'teppo_tekija',
     1,
     1,
     3,
@@ -514,6 +564,50 @@ VALUES (
     )::text
 );
 
+-- User-reviewed starter-row images captured from the verified asset-linking
+-- upload flow. IDs, parent links, source metadata, ordering, and primary flags
+-- match the accepted Filterest preview; storage files are copied separately by
+-- the public repository generator.
+INSERT INTO public.palvelukatalogi_assets
+    (id, palvelukatalogi_id, asset_kind, filename, original_name, mime_type,
+     size_bytes, title, description, sort_order, is_primary, metadata_json,
+     created, updated)
+VALUES (
+    1, 1, 'image', '7_1_1.jpg',
+    'service-collaboration.jpg', 'image/jpeg', 610101,
+    'Service collaboration', NULL, 0, TRUE, NULL,
+    TIMESTAMPTZ '2026-08-05 09:45:43.961655+03:00',
+    TIMESTAMPTZ '2026-08-05 09:45:43.961655+03:00'
+);
+
+INSERT INTO public.riskienhallinta_assets
+    (id, riskienhallinta_id, asset_kind, filename, original_name, mime_type,
+     size_bytes, title, description, sort_order, is_primary, metadata_json,
+     created, updated)
+VALUES (
+    1, 1, 'image', '8_1_1.jpg',
+    'risk-workshop.jpg',
+    'image/jpeg', 1091024,
+    'Risk workshop',
+    NULL, 0, FALSE, NULL,
+    TIMESTAMPTZ '2026-08-05 09:51:48.525668+03:00',
+    TIMESTAMPTZ '2026-08-05 09:51:48.525668+03:00'
+);
+
+INSERT INTO public.tiketit_assets
+    (id, tiketit_id, asset_kind, filename, original_name, mime_type,
+     size_bytes, title, description, sort_order, is_primary, metadata_json,
+     created, updated)
+VALUES (
+    1, 1, 'image', '10_1_1.jpg',
+    'ticket-teamwork.jpg',
+    'image/jpeg', 498575,
+    'Ticket teamwork',
+    NULL, 0, FALSE, NULL,
+    TIMESTAMPTZ '2026-08-05 09:56:43.752346+03:00',
+    TIMESTAMPTZ '2026-08-05 09:56:43.752346+03:00'
+);
+
 INSERT INTO public.palvelukatalogi_riskienhallinta_relation (palvelu_id, riski_id)
 VALUES (1, 1);
 INSERT INTO public.palvelukatalogi_dokumentaatio_relation (palvelu_id, dokumentaatio_id)
@@ -527,8 +621,9 @@ VALUES (1, 1);
 INSERT INTO public.dokumentaatio_tiketit_relation (dokumentaatio_id, tiketti_id)
 VALUES (3, 1);
 
--- Restore the three reviewed public walkthrough images that ship with the
--- minimal workspace. The service, risk, and ticket examples stay image-free.
+-- Restore the reviewed public images that ship with the minimal workspace.
+UPDATE public.palvelukatalogi SET cached_image = '7_1_1.jpg' WHERE id = 1;
+UPDATE public.riskienhallinta SET cached_image = '8_1_1.jpg' WHERE id = 1;
 UPDATE public.dokumentaatio
 SET cached_image = CASE id
     WHEN 1 THEN '9_1_1.png'
@@ -536,11 +631,15 @@ SET cached_image = CASE id
     WHEN 3 THEN '9_3_1.png'
 END
 WHERE id IN (1, 2, 3);
+UPDATE public.tiketit SET cached_image = '10_1_1.jpg' WHERE id = 1;
 
 SELECT setval(pg_get_serial_sequence('public.palvelukatalogi','id'), 1, TRUE);
 SELECT setval(pg_get_serial_sequence('public.riskienhallinta','id'), 1, TRUE);
 SELECT setval(pg_get_serial_sequence('public.dokumentaatio','id'), 3, TRUE);
 SELECT setval(pg_get_serial_sequence('public.tiketit','id'), 1, TRUE);
+SELECT setval(pg_get_serial_sequence('public.palvelukatalogi_assets','id'), 1, TRUE);
+SELECT setval(pg_get_serial_sequence('public.riskienhallinta_assets','id'), 1, TRUE);
+SELECT setval(pg_get_serial_sequence('public.tiketit_assets','id'), 1, TRUE);
 -- Filterest public bootstrap: menus and field labels for the established mock
 -- workspace. Cantonese is stored in the first-class yue language column.
 
@@ -612,6 +711,8 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('prioriteetti', 'Prioriteetti', 'Priority', '优先级', '優先次序', 'public fixture seed'),
   ('pyyntotyyppi', 'Pyyntötyyppi', 'Request type', '请求类型', '請求類型', 'public fixture seed'),
   ('cached_image', 'Kuva', 'Image', '图片', '圖片', 'public fixture seed'),
+  ('cached_username', 'Käyttäjänimi', 'Username', '用户名', '用戶名稱', 'public fixture seed'),
+  ('search_for_cached_username', 'Hae käyttäjänimellä', 'Search by username', '按用户名搜索', '按用戶名稱搜尋', 'public fixture seed'),
   ('sort_images_first', 'Kuvalliset ensin', 'Rows with images first', '有图片的行优先', '有圖片嘅資料列優先', 'public fixture seed'),
 
   -- Shared navigation and tool labels rendered by the public application shell.

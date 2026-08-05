@@ -85,6 +85,7 @@ function observeKvContainer(target, onResize) {
  * @param {number}   [userOptions.singleColumnBreakpoint=0] - Jos containerin leveys on alle tämän, käytetään 1 saraketta
  * @param {boolean}  [userOptions.animateHeight=false] - Animoi containerin korkeuden muutokset
  * @param {number}   [userOptions.deferResponsiveLayoutMs=0] - Lykkää conditional-tilan ensimmäistä relayoutia ja observereita
+ * @param {Function|null} [userOptions.decorateKeyElement=null] - Valinnainen avainelementin koristelija
  *
  * @returns {Function} unmount
  */
@@ -109,6 +110,7 @@ export function renderKeyValuePairs(
         animateHeight = false,
         deferResponsiveLayoutMs = 0,
         translate = () => undefined,
+        decorateKeyElement = null,
     } = userOptions;
     /* ------------------------------------- */
 
@@ -257,6 +259,12 @@ export function renderKeyValuePairs(
         }
     }
 
+    function decorateRenderedKey(keyElement, pairObj) {
+        if (typeof decorateKeyElement === "function") {
+            decorateKeyElement(keyElement, pairObj);
+        }
+    }
+
     function createInlineElements(pairObj) {
 
         const keySp = document.createElement("span");
@@ -271,6 +279,8 @@ export function renderKeyValuePairs(
         if (isEmptyValue(pairObj?.value)) {
             keySp.classList.add("kv-empty");
         }
+
+        decorateRenderedKey(keySp, pairObj);
 
         return [keySp, valSp];
     }
@@ -292,6 +302,8 @@ export function renderKeyValuePairs(
         if (isEmptyValue(pairObj?.value)) {
             keyDiv.classList.add("kv-empty");
         }
+
+        decorateRenderedKey(keyDiv, pairObj);
 
         wrap.appendChild(keyDiv);
         wrap.appendChild(valDiv);
@@ -320,6 +332,8 @@ export function renderKeyValuePairs(
         if (isEmptyValue(pairObj?.value)) {
             keyDiv.classList.add("kv-empty");
         }
+
+        decorateRenderedKey(keyDiv, pairObj);
 
         wrap.appendChild(keyDiv);
         wrap.appendChild(valDiv);

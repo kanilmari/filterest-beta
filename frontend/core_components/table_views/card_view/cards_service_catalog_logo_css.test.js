@@ -126,6 +126,14 @@ describe('service catalog logo CSS sizing', () => {
         expect(rowArticleContentRule).not.toContain('gap: 15px');
     });
 
+    test('keeps the modern details panel neutral instead of adding a blue left edge', () => {
+        const cardsCss = readSiblingCss('cards.css');
+        const infoPanelRule = extractRule(cardsCss, '.card--modern .card_modern_info_panel');
+
+        expect(infoPanelRule).toContain('If enabled, this would accent the details panel with a blue left edge.');
+        expect(infoPanelRule).not.toMatch(/^\s*border-left:/m);
+    });
+
     test('keeps article-mode chrome out of the row content and small-card titles', () => {
         const cardsCss = readSiblingCss('cards.css');
         const cardsBigCss = readSiblingCss('cards_big.css');

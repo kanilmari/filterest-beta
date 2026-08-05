@@ -2,7 +2,7 @@
 
 - Target: `Filterest public demo assets`
 - Auth-tour JPEG assets: `5`
-- Fixture storage assets: `9`
+- Fixture storage assets: `21`
 - Findings: `0`
 
 ## Verdict
@@ -19,6 +19,9 @@ PASS
 
 ## Fixture Storage Assets
 
+- table `10`: `4` JPG files
+- table `7`: `4` JPG files
+- table `8`: `4` JPG files
 - table `9`: `9` PNG files
 
 ## Findings

@@ -9,11 +9,12 @@ seed rows are placeholders for setup and smoke testing, not production data. The
 generated seed is derived from testing fixtures and normalized for public
 Filterest branding and runtime boundaries.
 
-The three reviewed walkthrough images are generated into the same row-scoped
-storage shape as ordinary uploaded images, for example
-`storage/9/1/{300,1000,original}/9_1_1.png`. Other mock rows intentionally stay
-image-free. The generator and asset audit reject the former repeated theme SVG
-placeholders so missing row-specific media remains visible during review.
+The three reviewed walkthrough images and the user-approved service, risk, and
+ticket starter images are generated into the same row-scoped storage shape as
+ordinary uploaded images. Examples include
+`storage/9/1/{300,1000,original}/9_1_1.png` and
+`storage/7/1/{300,1000,2160,original}/7_1_1.jpg`. The generator and asset audit
+reject repeated theme placeholders and any unreviewed storage files.
 
 The sibling checkout and its local database are review candidates. If
 you need to change the public bootstrap schema, seed rows, local env defaults,

@@ -72,6 +72,7 @@ import {
     resolveKvLayoutModeForCardDetails,
 } from "./card_detail_layout_options.js";
 import { createDatasetIconElement } from "./dataset_icon_builder.js";
+import { decorateStandardCardDetailKey } from "./card_detail_standard_key_decorator.js";
 
 /** Update all mass-delete bars to reflect current selection count. */
 export function updateMassDeleteBar() {
@@ -273,12 +274,19 @@ function renderCardDetailsSection(
 
     const kvDataArray = detailEntries.map((entry) => ({
         key: entry.labelKey || entry.column,
+        labelKey: entry.labelKey || entry.column,
         labelText: entry.label || entry.column,
         value: entry.rawValue,
         titleValue: entry.titleValue,
         isLink: entry.isLink,
         href: entry.href,
         openInNewTabHref: entry.openInNewTabHref,
+        column: entry.column,
+        sourceColumn: entry.sourceColumn,
+        dataColumn: entry.dataColumn,
+        labelMeta: dataTypes[String(
+            entry.sourceColumn || entry.dataColumn || entry.column || ""
+        ).trim()] || {},
     }));
 
     renderKeyValuePairs(containerElement, kvDataArray, {
@@ -286,6 +294,7 @@ function renderCardDetailsSection(
         layoutMode: resolveKvLayoutModeForCardDetails(normalizedLayout),
         animateHeight: true,
         deferResponsiveLayoutMs,
+        decorateKeyElement: decorateStandardCardDetailKey,
     });
 }
 

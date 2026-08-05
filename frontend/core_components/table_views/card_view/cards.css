@@ -315,7 +315,8 @@ body.dark-mode .card--modern {
     min-width: 0;
     overflow: hidden;
     border: 1px solid var(--card-modern-surface-border);
-    border-left: 3px solid var(--card-modern-left-border-color);
+    /* If enabled, this would accent the details panel with a blue left edge. */
+    /* border-left: 3px solid var(--card-modern-left-border-color); */
     border-radius: var(--border_radius);
     background: var(--card-modern-surface-bg);
 }
@@ -969,6 +970,17 @@ body.dark-mode .card--modern {
 
 .card_details_kv {
     --card-details-key-value-gap: 10px;
+}
+
+.card_details_kv:not(.card_details_single_line) .card_detail_row_label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.card_details_kv:not(.card_details_single_line) .card_detail_row_icon {
+    display: inline-flex;
+    flex: 0 0 auto;
 }
 
 .card_details_kv:not(.card_details_single_line) .kv-value,
