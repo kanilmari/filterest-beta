@@ -83,12 +83,18 @@ test.describe('E10 — Site identity and menu contract', () => {
 
     const wideBadge = page.locator('#showMenuButton .environment-badge');
     await expect(wideBadge).toBeVisible();
-    const wideBadgeBounds = await wideBadge.evaluate((element) => {
-      const badge = element.getBoundingClientRect();
-      const bodyContent = element.closest('.body_content')?.getBoundingClientRect();
-      return { badgeTop: badge.top, bodyTop: bodyContent?.top ?? 0 };
+    const wideMenuGeometry = await menuButton.evaluate((element) => {
+      const button = element.getBoundingClientRect();
+      const badge = element.querySelector('.environment-badge')?.getBoundingClientRect();
+      return {
+        buttonWidth: button.width,
+        buttonHeight: button.height,
+        badgeTopOffset: (badge?.top ?? button.top) - button.top,
+        badgeRightOffset: (badge?.right ?? button.right) - button.right,
+      };
     });
-    expect(wideBadgeBounds.badgeTop).toBeGreaterThanOrEqual(wideBadgeBounds.bodyTop);
+    expect(wideMenuGeometry.buttonWidth).toBe(44);
+    expect(wideMenuGeometry.buttonHeight).toBe(44);
 
     const widePosition = await menuButton.evaluate((element) => {
       const rect = element.getBoundingClientRect();
@@ -113,20 +119,30 @@ test.describe('E10 — Site identity and menu contract', () => {
 
     const narrowBadge = menuButton.locator('.environment-badge');
     await expect(narrowBadge).toBeVisible();
-    const narrowBadgeBounds = await narrowBadge.evaluate((element) => {
-      const badge = element.getBoundingClientRect();
-      const topbarInner = element
-        .closest('.dataset-shared-topbar__inner')
-        ?.getBoundingClientRect();
+    const narrowMenuGeometry = await menuButton.evaluate((element) => {
+      const button = element.getBoundingClientRect();
+      const badge = element.querySelector('.environment-badge')?.getBoundingClientRect();
+      const topbar = element.closest('.dataset-shared-topbar')?.getBoundingClientRect();
+      const topbarInner = element.closest('.dataset-shared-topbar__inner');
       return {
-        badgeTop: badge.top,
-        badgeBottom: badge.bottom,
-        topbarTop: topbarInner?.top ?? Number.POSITIVE_INFINITY,
-        topbarBottom: topbarInner?.bottom ?? Number.NEGATIVE_INFINITY,
+        buttonWidth: button.width,
+        buttonHeight: button.height,
+        badgeTop: badge?.top ?? Number.NEGATIVE_INFINITY,
+        badgeBottom: badge?.bottom ?? Number.POSITIVE_INFINITY,
+        badgeTopOffset: (badge?.top ?? button.top) - button.top,
+        badgeRightOffset: (badge?.right ?? button.right) - button.right,
+        topbarTop: topbar?.top ?? Number.POSITIVE_INFINITY,
+        topbarBottom: topbar?.bottom ?? Number.NEGATIVE_INFINITY,
+        innerOverflow: topbarInner ? getComputedStyle(topbarInner).overflow : '',
       };
     });
-    expect(narrowBadgeBounds.badgeTop).toBeGreaterThanOrEqual(narrowBadgeBounds.topbarTop);
-    expect(narrowBadgeBounds.badgeBottom).toBeLessThanOrEqual(narrowBadgeBounds.topbarBottom);
+    expect(narrowMenuGeometry.buttonWidth).toBe(wideMenuGeometry.buttonWidth);
+    expect(narrowMenuGeometry.buttonHeight).toBe(wideMenuGeometry.buttonHeight);
+    expect(narrowMenuGeometry.badgeTopOffset).toBeCloseTo(wideMenuGeometry.badgeTopOffset, 1);
+    expect(narrowMenuGeometry.badgeRightOffset).toBeCloseTo(wideMenuGeometry.badgeRightOffset, 1);
+    expect(narrowMenuGeometry.badgeTop).toBeGreaterThanOrEqual(narrowMenuGeometry.topbarTop);
+    expect(narrowMenuGeometry.badgeBottom).toBeLessThanOrEqual(narrowMenuGeometry.topbarBottom);
+    expect(narrowMenuGeometry.innerOverflow).toBe('visible');
 
     const narrowPosition = await menuButton.evaluate((element) => {
       const rect = element.getBoundingClientRect();

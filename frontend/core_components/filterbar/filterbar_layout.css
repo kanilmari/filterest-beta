@@ -298,6 +298,12 @@
   overflow: hidden;
 }
 
+/* The collapsed 0fr transition needs clipping, but the visible bar already
+   provides 12px of outer padding for the menu button's label overhang. */
+.dataset-shared-topbar--visible .dataset-shared-topbar__inner {
+  overflow: visible;
+}
+
 .dataset-shared-topbar__slot {
   min-width: 44px;
   min-height: 44px;
@@ -355,12 +361,6 @@
 
 .dataset-shared-topbar__menu-button:active {
   transform: scale(0.95);
-}
-
-/* The existing global menu button is moved into this slot without cloning it.
-   Keep its environment label inside the slot's clipping boundary. */
-.dataset-shared-topbar__menu-slot .environment-badge {
-  top: 0;
 }
 
 .dataset-shared-topbar__dataset-title {
