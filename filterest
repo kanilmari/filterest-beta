@@ -58,6 +58,50 @@ installed_profile() {
     done
 }
 
+# Reads one non-empty value from the installed public runtime configuration.
+# Between the root launcher and protected env files it avoids sourcing secrets
+# while still letting startup make narrow profile and safety decisions.
+installed_environment_value() {
+    local key="$1"
+    local candidate_file=""
+    local value=""
+
+    resolve_environment
+    for candidate_file in "$EASELECT_DEV_ENV_FILE" "$EASELECT_RUNTIME_ENV_FILE"; do
+        [[ -f "$candidate_file" ]] || continue
+        value="$(grep -E "^${key}=" "$candidate_file" 2>/dev/null | tail -1 | cut -d'=' -f2- || true)"
+        if [[ -n "$value" ]]; then
+            printf '%s' "$value"
+            return
+        fi
+    done
+}
+
+# Enables reviewed pending migrations for a local generated Filterest start.
+# Existing public installations can otherwise keep an older reduced schema
+# forever because their protected env files intentionally preserve blank
+# optional toggles across release refreshes. Explicit operator values and
+# remote database hosts remain untouched.
+enable_local_public_schema_repairs() {
+    local configured_value=""
+    local database_host=""
+
+    [[ -f "$PROJECT_ROOT/VERSION_APP" && ! -f "$PROJECT_ROOT/VERSION_EASELECT" ]] || return
+    configured_value="$(installed_environment_value ENABLE_SQL_MIGRATIONS)"
+    if [[ -n "$configured_value" ]]; then
+        export ENABLE_SQL_MIGRATIONS="$configured_value"
+        return
+    fi
+
+    database_host="$(installed_environment_value DB_HOST)"
+    case "${database_host,,}" in
+        localhost|127.0.0.1|::1)
+            export ENABLE_SQL_MIGRATIONS=true
+            printf 'Applying pending local Filterest schema repairs before startup.\n'
+            ;;
+    esac
+}
+
 # Reads the profile recorded only after database bootstrap and dependencies finish.
 # Between the public start command and the resumable installer it is the durable setup gate.
 # Why: environment files can already exist after an interrupted setup, so their presence alone
@@ -125,6 +169,9 @@ case "$command_name" in
     start|ctl)
         if start_action_was_requested "$@" && filterest_setup_is_required; then
             run_setup_before_first_start
+        fi
+        if start_action_was_requested "$@"; then
+            enable_local_public_schema_repairs
         fi
         if [[ "$(installed_profile)" == "admin" ]]; then
             exec "$PROJECT_ROOT/server_tools/run_filterest_admin.sh" "$@"
