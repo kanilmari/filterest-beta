@@ -3,12 +3,14 @@
 // Bridges raw row payloads, column multilingual metadata, and the active UI language into DOM-safe text.
 // Exists so every dataset presentation can share one conservative localization boundary without mutating source data.
 
-import { extractLangValue } from '../../reusable_components/lang_value_reader.js';
+import {
+    extractLangValue,
+    looksLikeLangValue,
+} from '../../reusable_components/lang_value_reader.js';
 import { getLanguageWithBrowserFallback } from '../state_stores/lang_preference_reader.js';
 
 const LANGUAGE_RENDERER = Symbol('datasetLanguageRenderer');
 const LANGUAGE_RENDERER_ATTRIBUTE = 'data-dataset-language-renderer';
-const LANGUAGE_CODE_PATTERN = /^[a-z]{2,3}(?:[-_][a-z]{2,4})?$/i;
 
 function serializeDatasetValue(rawValue) {
     if (rawValue == null) {
@@ -24,24 +26,6 @@ function serializeDatasetValue(rawValue) {
     }
 }
 
-function parseObjectValue(rawValue) {
-    if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
-        return rawValue;
-    }
-    const serializedValue = serializeDatasetValue(rawValue);
-    if (!(serializedValue.startsWith('{') && serializedValue.endsWith('}'))) {
-        return null;
-    }
-    try {
-        const parsedValue = JSON.parse(serializedValue);
-        return parsedValue && typeof parsedValue === 'object' && !Array.isArray(parsedValue)
-            ? parsedValue
-            : null;
-    } catch {
-        return null;
-    }
-}
-
 function resolveMultilingualMetadataFlag(columnMetadata) {
     if (!columnMetadata || typeof columnMetadata !== 'object') {
         return null;
@@ -54,17 +38,6 @@ function resolveMultilingualMetadataFlag(columnMetadata) {
         return true;
     }
     return false;
-}
-
-function looksLikeMultilingualValue(rawValue) {
-    const parsedValue = parseObjectValue(rawValue);
-    if (!parsedValue) {
-        return false;
-    }
-    const keys = Object.keys(parsedValue);
-    return keys.length > 0
-        && keys.every((key) => LANGUAGE_CODE_PATTERN.test(key))
-        && keys.every((key) => typeof parsedValue[key] === 'string');
 }
 
 /**
@@ -88,7 +61,7 @@ export function resolveDatasetDisplayValue(
     if (metadataFlag === false) {
         return serializedValue;
     }
-    if (metadataFlag !== true && !looksLikeMultilingualValue(rawValue)) {
+    if (metadataFlag !== true && !looksLikeLangValue(rawValue)) {
         return serializedValue;
     }
     return extractLangValue(rawValue, chosenLanguage, true);

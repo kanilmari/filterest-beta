@@ -192,6 +192,54 @@ describe('cell_editor', () => {
         expect(dropdown.querySelectorAll('[data-testid="inline-fk-option"]')).toHaveLength(2);
     });
 
+    test('localizes inline foreign-key labels while submitting the unchanged option id', async () => {
+        localStorage.setItem('chosen_language', 'fi');
+        const { editCell } = await import('./cell_editor.js');
+        const { fetchReferencedData } = await import('../gt_1_1_row_create/row_api_fetcher.js');
+        fetchReferencedData.mockResolvedValue([
+            {
+                id: 12,
+                display: JSON.stringify({ en: 'Customer portal', fi: 'Asiakasportaali' }),
+            },
+        ]);
+        const cell = document.createElement('td');
+        cell.classList.add('table_data_cell');
+        cell.dataset.rowIndex = '0';
+        cell.dataset.colIndex = '2';
+        cell.textContent = 'Vanha palvelu';
+        document.body.appendChild(cell);
+        const data = [{ id: 844, service_id: 4, service_name: 'Vanha palvelu' }];
+
+        await editCell(
+            cell,
+            ['id', 'service_id', 'service_name'],
+            data,
+            {
+                service_id: { data_type: 'integer', foreign_table: 'services' },
+                service_name: { data_type: 'text' },
+            },
+            'tickets'
+        );
+
+        const option = cell.querySelector('[data-testid="inline-fk-option"]');
+        expect(option.textContent).toBe('Asiakasportaali');
+        expect(option.dataset.value).toBe('12');
+        option.click();
+
+        await vi.waitFor(() => expect(endpointRouterMock).toHaveBeenCalledTimes(1));
+        expect(endpointRouterMock).toHaveBeenCalledWith('updateRow', {
+            method: 'POST',
+            url_params: '?dataset=tickets',
+            body_data: {
+                id: 844,
+                column: 'service_id',
+                value: 12,
+            },
+        });
+        await vi.waitFor(() => expect(data[0].service_id).toBe(12));
+        expect(data[0].service_name).toBe('Asiakasportaali');
+    });
+
     test('sizes regular text editors to the current cell content width', async () => {
         const { editCell } = await import('./cell_editor.js');
         const row = document.createElement('tr');

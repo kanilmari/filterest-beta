@@ -166,6 +166,8 @@ function _extractElementSourceContext(el) {
 // Tallennetaan viimeisin ladattu käännössanakirja ja kieli laajempaan scopeen
 let currentTranslations = {};
 let currentChosenLang = "";
+let translationRequestSequence = 0;
+let translationRenderQueue = Promise.resolve();
 
 const TRANSLATABLE_SELECTOR = '[data-lang-key], [data-html-lang-key], [data-title-lang-key], [data-aria-label-lang-key]';
 const TRANSLATABLE_ATTRIBUTE_FILTER = [
@@ -184,36 +186,42 @@ const TRANSLATABLE_ATTRIBUTE_FILTER = [
  */
 export async function translatePage(chosen_language) {
 
+    const requestSequence = ++translationRequestSequence;
+    const requestIsCurrent = () => requestSequence === translationRequestSequence;
+
     if (IS_DEV_MODE) console.log('translatePage called with language:', chosen_language);
 
     try {
-        // Asetetaan html-tagille lang-attribuutti
-        document.documentElement.setAttribute('lang', chosen_language);
-        currentChosenLang = chosen_language;
+        let nextDefaultTranslations = defaultTranslations;
 
         // Jos valittu kieli ei ole englanti, haetaan englanninkieliset käännökset fallbackia varten.
         if (chosen_language !== 'en') {
             try {
                 if (window.translationPromises && window.translationPromises['en']) {
-                    defaultTranslations = _unwrapTranslationResponse(await window.translationPromises['en']);
+                    nextDefaultTranslations = _unwrapTranslationResponse(await window.translationPromises['en']);
                 } else {
-                    defaultTranslations = _unwrapTranslationResponse(await endpoint_router('translations', { url_params: '?lang=en' }));
+                    nextDefaultTranslations = _unwrapTranslationResponse(await endpoint_router('translations', { url_params: '?lang=en' }));
                 }
-                if (IS_DEV_MODE && debug) console.log('Default English translations loaded', defaultTranslations);
+                if (!requestIsCurrent()) return;
+                if (IS_DEV_MODE && debug) console.log('Default English translations loaded', nextDefaultTranslations);
             } catch (error) {
+                if (!requestIsCurrent()) return;
                 console.warn('Error fetching default English translations:', error);
-                defaultTranslations = {}; // tyhjä fallback ettei kaadu
+                nextDefaultTranslations = {}; // tyhjä fallback ettei kaadu
             }
         }
 
         // Haetaan varsinaiset käännökset valitulla kielellä
+        let nextTranslations;
         try {
             if (window.translationPromises && window.translationPromises[chosen_language]) {
-                currentTranslations = _unwrapTranslationResponse(await window.translationPromises[chosen_language]);
+                nextTranslations = _unwrapTranslationResponse(await window.translationPromises[chosen_language]);
             } else {
-                currentTranslations = _unwrapTranslationResponse(await endpoint_router('translations', { url_params: `?lang=${chosen_language}` }));
+                nextTranslations = _unwrapTranslationResponse(await endpoint_router('translations', { url_params: `?lang=${chosen_language}` }));
             }
+            if (!requestIsCurrent()) return;
         } catch (errResponse) {
+            if (!requestIsCurrent()) return;
             if (errResponse && errResponse.status === 404) {
                 if (IS_DEV_MODE) console.log('Translations not found for language:', chosen_language);
                 const fallbackLang = 'en';
@@ -227,30 +235,39 @@ export async function translatePage(chosen_language) {
             throw errResponse; // muu virhe, annetaan mennä ulompaan catchiin
         }
 
-        // Tyhjennetään globaalien puuttuvien avainten lista, koska aloitamme "puhtaalta pöydältä"
-        globalMissingKeys = [];
-        globalMissingKeySources = {};
+        // DOM-renderöinnit ajetaan jonossa. Näin vanha, hitaampi kielipyyntö ei voi
+        // valmistua uudemman jälkeen ja palauttaa näkymää vahingossa väärälle kielelle.
+        const renderTranslation = translationRenderQueue.catch(() => undefined).then(async () => {
+            if (!requestIsCurrent()) return;
 
-        // Käännetään olemassa oleva DOM
-        translateElements(currentTranslations, chosen_language);
+            defaultTranslations = nextDefaultTranslations;
+            currentTranslations = nextTranslations;
+            currentChosenLang = chosen_language;
+            document.documentElement.setAttribute('lang', chosen_language);
 
-        // Käynnistetään DOM-muutoskuuntelija
-        observeDomChanges();
+            // Tyhjennetään globaalien puuttuvien avainten lista, koska aloitamme "puhtaalta pöydältä"
+            globalMissingKeys = [];
+            globalMissingKeySources = {};
 
-        // Päivitetään korttien kielet
-        await refreshCardLanguages();
-        await refreshLocalizedDatasetValues(chosen_language);
+            translateElements(currentTranslations, chosen_language);
+            observeDomChanges();
 
-        // Dev-tila: kieliavainten duplaklikkaustoiminto
-        if (IS_DEV_MODE) {
-            window._devLangEditorCurrentTranslations = currentTranslations;
-            window._devLangEditorDefaultTranslations = defaultTranslations;
-            initDevLangKeyEditor();
-        }
+            await refreshCardLanguages(chosen_language);
+            await refreshLocalizedDatasetValues(chosen_language);
 
-        // Poistetaan loading-luokka, jotta sisältö tulee näkyviin ja animaatiot käynnistyvät
-        document.body.classList.remove('loading');
+            if (!requestIsCurrent()) return;
+            if (IS_DEV_MODE) {
+                window._devLangEditorCurrentTranslations = currentTranslations;
+                window._devLangEditorDefaultTranslations = defaultTranslations;
+                initDevLangKeyEditor();
+            }
+
+            document.body.classList.remove('loading');
+        });
+        translationRenderQueue = renderTranslation;
+        await renderTranslation;
     } catch (error) {
+        if (!requestIsCurrent()) return;
         console.warn('translatePage – unhandled error:', error);
         // Virhetilanteessakin poistetaan loading, jotta sivu ei jää jumiin
         document.body.classList.remove('loading');

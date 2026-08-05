@@ -41,6 +41,8 @@ import { createVanillaDropdown } from "../../../../reusable_components/vanilla_d
 
 beforeEach(() => {
     vi.clearAllMocks();
+    document.body.replaceChildren();
+    localStorage.clear();
 });
 
 describe("resolveFileUploadProfiles", () => {
@@ -255,6 +257,7 @@ describe("buildOneToManySection", () => {
 
 describe("buildManyToManySection", () => {
     test("normalizes backend M2M metadata and stores submission state", async () => {
+        localStorage.setItem("chosen_language", "fi");
         fetchColumnsInfo.mockResolvedValue([
             { column_name: "id", data_type: "integer" },
             { column_name: "riski", data_type: "text" },
@@ -263,7 +266,10 @@ describe("buildManyToManySection", () => {
             { column_name: "updated", data_type: "timestamp with time zone" },
         ]);
         fetchReferencedData.mockResolvedValue([
-            { id: 7, display: "Tietovuotoriski" },
+            {
+                id: 7,
+                display: JSON.stringify({ en: "Data leak risk", fi: "Tietovuotoriski" }),
+            },
         ]);
 
         const form = document.createElement("form");
@@ -294,6 +300,10 @@ describe("buildManyToManySection", () => {
         });
 
         const dropdownConfig = createVanillaDropdown.mock.calls[0][0];
+        expect(dropdownConfig.options).toEqual([{
+            value: 7,
+            label: "7 - Tietovuotoriski",
+        }]);
         dropdownConfig.onChange("7");
         expect(relationState.existingHiddenInput.value).toBe("7");
 

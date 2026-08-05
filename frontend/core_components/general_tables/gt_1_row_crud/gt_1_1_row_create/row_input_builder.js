@@ -7,6 +7,8 @@ import { createVanillaDropdown } from "../../../../reusable_components/vanilla_d
 import { fetchReferencedData } from "./row_api_fetcher.js";
 import { buildGeometryField } from "./row_geometry_builder.js";
 import { buildFieldTestId, getInputType } from "./row_input_builder_helpers.js";
+import { getLanguageWithBrowserFallback } from "../../../state_stores/lang_preference_reader.js";
+import { resolveDatasetDisplayValue } from "../../../table_views/dataset_value_localizer.js";
 
 /** @deprecated Use getInputType from row_input_builder_helpers.js */
 export const get_input_type = getInputType;
@@ -48,13 +50,18 @@ export function buildForeignKeyField(form, table_name, column, modal_form_state)
     fetchReferencedData(column.foreign_table_name)
         .then((options) => {
             if (!Array.isArray(options)) return;
+            const chosenLanguage = getLanguageWithBrowserFallback();
             const mapped_options = options.map((opt) => {
                 const pk_column = Object.keys(opt).find(
                     (key) => key !== "display"
                 );
                 return {
                     value: opt[pk_column],
-                    label: `${opt[pk_column]} - ${opt["display"]}`,
+                    label: `${opt[pk_column]} - ${resolveDatasetDisplayValue(
+                        opt["display"],
+                        null,
+                        chosenLanguage
+                    )}`,
                 };
             });
             // Päivitä dropdown nyt kun data on saatu

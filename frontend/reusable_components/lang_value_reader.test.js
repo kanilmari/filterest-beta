@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { extractLangValue } from './lang_value_reader.js';
+import { extractLangValue, looksLikeLangValue } from './lang_value_reader.js';
 
 describe('extractLangValue', () => {
   test('null/undefined returns empty string', () => {
@@ -48,18 +48,19 @@ describe('extractLangValue', () => {
     expect(extractLangValue(json)).toBe('Hello');
   });
 
-  test('non-lang JSON object with non-string values returns first string value', () => {
-    // keys match lang regex (2-5 chars) but count is number, not string
-    // so looksLikeLangObj is false, but isMultilingual defaults to null
-    // → falls through to firstKey fallback
+  test('non-language JSON with mixed values stays intact when metadata is missing', () => {
     const json = JSON.stringify({ name: 'test', count: 5 });
-    expect(extractLangValue(json)).toBe('test');
+    expect(extractLangValue(json)).toBe(json);
   });
 
-  test('object with long keys falls back to first string value', () => {
-    // keys fail lang regex but isMultilingual=null → still attempts extraction
+  test('ordinary JSON with long keys stays intact when metadata is missing', () => {
     const json = JSON.stringify({ longkey: 'val', anotherlong: 'val2' });
-    expect(extractLangValue(json)).toBe('val');
+    expect(extractLangValue(json)).toBe(json);
+  });
+
+  test('recognizes language codes and rejects ordinary short-looking JSON keys', () => {
+    expect(looksLikeLangValue({ en: 'Hello', 'fi-FI': 'Hei' })).toBe(true);
+    expect(looksLikeLangValue({ name: 'test', value: 'x' })).toBe(false);
   });
 
   test('isMultilingual=false with long keys returns raw string', () => {

@@ -372,10 +372,12 @@ async function createSingleCard(
     table_name,
     data_types,
     renderContext = null,
-    cardIndex = 0
+    cardIndex = 0,
+    chosenLanguage = null
 ) {
     /* --- FUNKTIOLASKURI ---------------------------------------- */
     count_this_function("createSingleCard");
+    const chosenLang = chosenLanguage || getLanguageWithBrowserFallback();
 
     /* --- PIILOTUS-ASETUS --------------------------------------- */
     const hideFieldsOnCardsString =
@@ -471,7 +473,6 @@ async function createSingleCard(
         const { baseRoles, hasLangKey } = parseRoleString(
             data_types[col]?.card_element || ""
         );
-        const chosenLang = getLanguageWithBrowserFallback();
         const { displayValue } = resolveCardFieldDisplayValue(
             row_item,
             col,
@@ -515,10 +516,11 @@ async function createSingleCard(
        =========================================================== */
     for (const column of columns) {
         const raw_val = row_item[column];
-        const chosenLang = getLanguageWithBrowserFallback();
         const {
             rawValue: storedRawValue,
             displayValue: val_str,
+            aliasColumn,
+            isMultilingual,
         } = resolveCardFieldDisplayValue(
             row_item,
             column,
@@ -539,8 +541,16 @@ async function createSingleCard(
 
         if (data_types[column]?.show_value_on_card !== true) continue;
 
-        const isMultilingual = data_types[column]?.is_multilingual ?? null;
-        if (!hasLocalizedRowData && hasLocalizedCardValue(raw_val, isMultilingual)) {
+        // A foreign key can render through a generated alias such as
+        // `queue_name (ln)`. Track that displayed source—not the numeric FK—so
+        // changing the page language rebuilds the card when the alias is JSON.
+        const localizedSourceValue = aliasColumn
+            ? row_item[aliasColumn]
+            : raw_val;
+        if (
+            !hasLocalizedRowData &&
+            hasLocalizedCardValue(localizedSourceValue, isMultilingual)
+        ) {
             hasLocalizedRowData = true;
         }
 
@@ -1191,7 +1201,7 @@ export async function create_card_view(columns, data, table_name) {
     return wrapper;
 }
 
-export async function refreshCardLanguages() {
+export async function refreshCardLanguages(chosenLanguage = null) {
     const cards = document.querySelectorAll('.card');
     for (const card of cards) {
         if (card.classList.contains("experimental-free-layout-card")) {
@@ -1210,7 +1220,15 @@ export async function refreshCardLanguages() {
         if (!row || !columns || !tableName || !dataTypes) continue;
         if (!card._hasLocalizedRowData) continue;
 
-        const newCard = await createSingleCard(row, columns, tableName, dataTypes);
+        const newCard = await createSingleCard(
+            row,
+            columns,
+            tableName,
+            dataTypes,
+            null,
+            0,
+            chosenLanguage
+        );
         if (card.classList.contains('small-card')) {
             newCard.classList.add('small-card');
             ensureSmallSummaryMedia(newCard);

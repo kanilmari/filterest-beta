@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import {
     buildFilterControlParts,
     buildFilterRowParts,
+    mapForeignFilterOptions,
 } from "./filter_column_builder.js";
 
 describe("filter column row builders", () => {
@@ -70,5 +71,18 @@ describe("filter column row builders", () => {
         expect(header).not.toBeNull();
         expect(header.querySelector("label")).not.toBeNull();
         expect(header.querySelector("button[data-sort-state]")).toBe(parts.sortButton);
+    });
+
+    test("localizes foreign filter labels without changing their option values", () => {
+        localStorage.setItem("chosen_language", "fi");
+        const ordinaryJson = JSON.stringify({ name: "raw", count: 2 });
+
+        expect(mapForeignFilterOptions([
+            { value: 7, label: JSON.stringify({ en: "Services", fi: "Palvelut" }) },
+            { value: "raw-id", label: ordinaryJson },
+        ])).toEqual([
+            { value: "7", label: "Palvelut" },
+            { value: "raw-id", label: ordinaryJson },
+        ]);
     });
 });

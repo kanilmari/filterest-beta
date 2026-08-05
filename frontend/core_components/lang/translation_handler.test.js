@@ -155,4 +155,28 @@ describe('translatePage', () => {
         await translatePage('en');
         expect(chatTitle.textContent).toBe('Chat - Users');
     });
+
+    test('keeps the latest selected language when an older request resolves last', async () => {
+        const label = document.createElement('span');
+        label.dataset.langKey = 'exclude';
+        document.body.appendChild(label);
+
+        let resolveFinnish;
+        window.translationPromises.fi = new Promise((resolve) => {
+            resolveFinnish = resolve;
+        });
+
+        const { translatePage } = await import('./translation_handler.js');
+        const olderFinnishRequest = translatePage('fi');
+        const latestEnglishRequest = translatePage('en');
+
+        await latestEnglishRequest;
+        resolveFinnish({ exclude: 'Sulje pois' });
+        await olderFinnishRequest;
+
+        expect(document.documentElement.lang).toBe('en');
+        expect(label.textContent).toBe('Exclude');
+        expect(refreshCardLanguages).toHaveBeenLastCalledWith('en');
+        expect(refreshLocalizedDatasetValues).toHaveBeenLastCalledWith('en');
+    });
 });

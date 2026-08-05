@@ -9,6 +9,8 @@ import { buildChildGeometryField } from "./row_geometry_builder.js";
 import { createVanillaDropdown } from "../../../../reusable_components/vanilla_dropdown/vanilla_dropdown_builder.js";
 import { showWarningToast } from "../../../../reusable_components/notifications/toast_notification_printer.js";
 import { getTranslationForKey } from "../../../lang/translation_handler.js";
+import { getLanguageWithBrowserFallback } from "../../../state_stores/lang_preference_reader.js";
+import { resolveDatasetDisplayValue } from "../../../table_views/dataset_value_localizer.js";
 
 const ASSET_PROFILE_LABELS = {
     image: () => getTranslationForKey("image") || "Image",
@@ -730,13 +732,18 @@ export async function buildManyToManySection(form, manyToManyInfos, modal_form_s
             fetchReferencedData(relationInfo.thirdTableName)
                 .then((thirdTableOptions) => {
                     if (!Array.isArray(thirdTableOptions)) return;
+                    const chosenLanguage = getLanguageWithBrowserFallback();
                     const mapped = thirdTableOptions.map((opt) => {
                         const pk = Object.keys(opt).find(
                             (k) => k !== "display"
                         );
                         return {
                             value: opt[pk],
-                            label: `${opt[pk]} - ${opt["display"]}`,
+                            label: `${opt[pk]} - ${resolveDatasetDisplayValue(
+                                opt["display"],
+                                null,
+                                chosenLanguage
+                            )}`,
                         };
                     });
                     createVanillaDropdown({

@@ -30,7 +30,10 @@ import {
     reconstructMultilingualValue,
     resolveMultilingualValue,
 } from '../../../table_views/card_view/card_field_formatter_helpers.js';
-import { setLocalizedDatasetText } from '../../../table_views/dataset_value_localizer.js';
+import {
+    resolveDatasetDisplayValue,
+    setLocalizedDatasetText,
+} from '../../../table_views/dataset_value_localizer.js';
 
 export async function editCell(cell, columns, data, dataTypes, table_name) {
     let originalContent = cell.textContent;
@@ -123,19 +126,26 @@ async function handleForeignKeyEditing(cell, columns, data, dataTypes, table_nam
 
     function renderOptions(filterText = '') {
         optionsList.replaceChildren();
+        const chosenLanguage = getLanguageWithBrowserFallback();
+        const localizedOptions = options.map((option) => ({
+            option,
+            displayValue: resolveDatasetDisplayValue(
+                option['display'],
+                null,
+                chosenLanguage
+            ),
+        }));
 
-        const filteredOptions = options.filter(option => {
-            const displayValue = option['display'] || '';
+        const filteredOptions = localizedOptions.filter(({ displayValue }) => {
             return displayValue.toLowerCase().includes(filterText.toLowerCase());
         });
 
-        filteredOptions.forEach(option => {
+        filteredOptions.forEach(({ option, displayValue }) => {
             const optionItem = document.createElement('li');
             optionItem.classList.add('dropdown-option-item');
             optionItem.dataset.testid = 'inline-fk-option';
 
             const idValue = option['id'];
-            const displayValue = option['display'];
 
             optionItem.dataset.value = idValue;
             optionItem.dataset.display = displayValue;

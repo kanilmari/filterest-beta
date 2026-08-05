@@ -16,6 +16,8 @@ import {
 import { renderActiveFilters } from "./active_filter_tag_printer.js";
 import { getTranslationForKey } from "../../lang/translation_handler.js";
 import { fetchFilterOptions } from "../../endpoints/endpoint_data_fetcher.js";
+import { getLanguageWithBrowserFallback } from "../../state_stores/lang_preference_reader.js";
+import { resolveDatasetDisplayValue } from "../../table_views/dataset_value_localizer.js";
 import {
     determineColumnCategory,
     buildTestIdSegment,
@@ -99,10 +101,15 @@ function mapForeignFilterOptions(data) {
         return [];
     }
 
-    return data.map((item) => ({
-        value: String(item.value),
-        label: item.label || String(item.value),
-    }));
+    const chosenLanguage = getLanguageWithBrowserFallback();
+    return data.map((item) => {
+        const value = String(item.value);
+        const rawLabel = item.label || value;
+        return {
+            value,
+            label: resolveDatasetDisplayValue(rawLabel, null, chosenLanguage),
+        };
+    });
 }
 
 /**
@@ -937,5 +944,6 @@ export {
     buildFilterRowParts,
     createRowForColumn,
     buildFilterSection,
-    createFilterElement
+    createFilterElement,
+    mapForeignFilterOptions,
 };
