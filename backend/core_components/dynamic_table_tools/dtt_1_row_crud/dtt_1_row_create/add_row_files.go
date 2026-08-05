@@ -5,9 +5,8 @@
 package dtt_1_row_create
 
 import (
-	dtt_asset_linking "easelect/backend/core_components/dynamic_table_tools/dtt_asset_linking"
-	filevalidation "easelect/backend/core_components/filevalidation"
-	"easelect/backend/core_components/httpresponse"
+	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -16,6 +15,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"easelect/backend/core_components/dbutils"
+	dtt_asset_linking "easelect/backend/core_components/dynamic_table_tools/dtt_asset_linking"
+	filevalidation "easelect/backend/core_components/filevalidation"
+	"easelect/backend/core_components/httpresponse"
 
 	media_utils "easelect/backend/core_components/media_utils"
 
@@ -26,6 +30,7 @@ import (
 // Between: AddRowMultipartHandler -> Filesystem
 // Why: Handles saving of uploaded files and generation of thumbnails.
 func saveUploadedFiles(
+	ctx context.Context,
 	tx queryExecer,
 	w http.ResponseWriter,
 	fileMap map[string][]*multipart.FileHeader,
@@ -34,7 +39,7 @@ func saveUploadedFiles(
 	tableUID string,
 	mainRowID int64,
 	childInsertResults []ChildInsertResult,
-) {
+) error {
 	// Kerätään ChildInsertResult map-muotoon fieldKey -> ChildInsertResult
 	resultMap := make(map[string]ChildInsertResult)
 	for _, res := range childInsertResults {
@@ -54,7 +59,7 @@ func saveUploadedFiles(
 		if err != nil {
 			fmt.Printf("\033[31m[saveUploadedFiles] error: %s\033[0m\n", err.Error())
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error opening file")
-			continue
+			return fmt.Errorf("open uploaded file: %w", err)
 		}
 		// NOTE: srcFile.Close() called explicitly at end of loop iteration — do not defer inside loop
 
@@ -75,7 +80,7 @@ func saveUploadedFiles(
 			fmt.Printf("\033[31m[saveUploadedFiles] error loading file_upload config for %s: %s\033[0m\n", childTableName, configErr.Error())
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error loading upload config")
 			srcFile.Close()
-			continue
+			return fmt.Errorf("load upload config for %s: %w", childTableName, configErr)
 		}
 
 		effectiveReferencingColumn := referencingColumn
@@ -89,6 +94,12 @@ func saveUploadedFiles(
 			effectiveReferencingColumn,
 			len(uploadConfig.Profiles) > 0,
 		)
+		if storedContextErr != nil {
+			fmt.Printf("\033[31m[saveUploadedFiles] error loading stored upload context for %s: %s\033[0m\n", childTableName, storedContextErr.Error())
+			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error loading uploaded row")
+			srcFile.Close()
+			return fmt.Errorf("load stored upload row context for %s: %w", childTableName, storedContextErr)
+		}
 		if storedContextErr == nil {
 			if profileKey := dtt_asset_linking.ResolveProfileKeyForAssetKind(storedAssetKind); profileKey != "" {
 				if resolvedConfig, ok := dtt_asset_linking.ResolveEffectiveUploadConfigForProfile(uploadConfig, childTableName, profileKey); ok {
@@ -102,19 +113,19 @@ func saveUploadedFiles(
 		if originalExt == "" {
 			httpresponse.RespondWithError(w, http.StatusBadRequest, "unsupported file type")
 			srcFile.Close()
-			continue
+			return fmt.Errorf("uploaded file has no extension")
 		}
 		if !isAllowedExtension(originalExt, allowedExtensions) {
 			fmt.Printf("[INFO] unsupported file extension: %s\n", originalExt)
 			httpresponse.RespondWithError(w, http.StatusBadRequest, "unsupported file type")
 			srcFile.Close()
-			continue
+			return fmt.Errorf("unsupported uploaded file extension: %s", originalExt)
 		}
 		if err := filevalidation.ValidateExtensionSignature(srcFile, originalExt); err != nil {
 			fmt.Printf("[INFO] upload signature rejected for .%s: %s\n", originalExt, err.Error())
 			httpresponse.RespondWithError(w, http.StatusBadRequest, "unsupported file type")
 			srcFile.Close()
-			continue
+			return fmt.Errorf("validate uploaded file signature: %w", err)
 		}
 
 		storageContext, storageContextErr := dtt_asset_linking.ResolveSharedAssetParentStorageContext(
@@ -127,7 +138,7 @@ func saveUploadedFiles(
 			fmt.Printf("\033[31m[saveUploadedFiles] error resolving shared asset storage context for %s: %s\033[0m\n", childTableName, storageContextErr.Error())
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error resolving asset storage path")
 			srcFile.Close()
-			continue
+			return fmt.Errorf("resolve shared asset storage context: %w", storageContextErr)
 		}
 		storageTableUID, storageParentRowID, storageResolveErr := resolveUploadStorageCoordinates(
 			tableUID,
@@ -139,16 +150,17 @@ func saveUploadedFiles(
 			fmt.Printf("\033[31m[saveUploadedFiles] error resolving upload storage coordinates for %s: %s\033[0m\n", childTableName, storageResolveErr.Error())
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error resolving asset storage path")
 			srcFile.Close()
-			continue
+			return fmt.Errorf("resolve upload storage coordinates: %w", storageResolveErr)
 		}
 
 		baseFolder := filepath.Join(baseDir, storageTableUID, fmt.Sprintf("%d", storageParentRowID))
-		for _, sub := range requiredUploadSubfolders(uploadConfig) {
+		uploadSubfolders := requiredUploadSubfolders(uploadConfig)
+		for _, sub := range uploadSubfolders {
 			if err = os.MkdirAll(filepath.Join(baseFolder, sub), 0755); err != nil {
 				fmt.Printf("\033[31m[saveUploadedFiles] error: %s\033[0m\n", err.Error())
 				httpresponse.RespondWithError(w, http.StatusInternalServerError, "error creating directory")
 				srcFile.Close()
-				continue
+				return fmt.Errorf("create upload directory: %w", err)
 			}
 		}
 		originalFolder := filepath.Join(baseFolder, "original")
@@ -160,8 +172,13 @@ func saveUploadedFiles(
 		if err != nil {
 			fmt.Printf("\033[31m[saveUploadedFiles] error: %s\033[0m\n", err.Error())
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error creating file")
-			continue
+			srcFile.Close()
+			return fmt.Errorf("create uploaded file: %w", err)
 		}
+		cleanupUpload := func() {
+			removeUploadedFileVariants(baseFolder, uploadSubfolders, newFileName)
+		}
+		rollbackCleanupRegistered := dbutils.RegisterAfterRollbackHook(ctx, cleanupUpload)
 
 		_, err = io.Copy(dstFile, srcFile)
 		dstFile.Close()
@@ -169,7 +186,10 @@ func saveUploadedFiles(
 		if err != nil {
 			fmt.Printf("\033[31m[saveUploadedFiles] error: %s\033[0m\n", err.Error())
 			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error saving file")
-			continue
+			if !rollbackCleanupRegistered {
+				cleanupUpload()
+			}
+			return fmt.Errorf("save uploaded file: %w", err)
 		}
 		fmt.Printf("[INFO] saved file: %s\n", originalPath)
 
@@ -184,15 +204,25 @@ func saveUploadedFiles(
 				}
 				thumbPath := filepath.Join(baseFolder, sub, newFileName)
 				if err := CreateImageDisplayVariant(originalPath, thumbPath, size); err != nil {
-					fmt.Printf("[INFO] image display variant creation failed: %s\n", err.Error())
-				} else {
-					fmt.Printf("[INFO] created image display variant: %s\n", thumbPath)
+					fmt.Printf("\033[31m[saveUploadedFiles] image display variant creation failed: %s\033[0m\n", err.Error())
+					httpresponse.RespondWithError(w, http.StatusInternalServerError, "error creating image display variant")
+					if !rollbackCleanupRegistered {
+						cleanupUpload()
+					}
+					return fmt.Errorf("create image display variant %s: %w", sub, err)
 				}
+				fmt.Printf("[INFO] created image display variant: %s\n", thumbPath)
 			}
 		}
 
 		// Päivitetään rivin filename
-		updateFilenameInChildRow(tx, childTableName, childRowID, newFileName)
+		if err := updateFilenameInChildRow(tx, childTableName, childRowID, newFileName); err != nil {
+			httpresponse.RespondWithError(w, http.StatusInternalServerError, "error updating uploaded filename")
+			if !rollbackCleanupRegistered {
+				cleanupUpload()
+			}
+			return err
+		}
 
 		// Päivitetään cacheTargets myös suorissa asset-uploadeissa, kun parent-FK voidaan lukea tallennetulta riviltä.
 		if strings.TrimSpace(effectiveReferencingColumn) != "" {
@@ -216,9 +246,26 @@ func saveUploadedFiles(
 			}
 			if err := updateCacheTargetsNoTx(tx, childTableName, effectiveReferencingColumn, tempChildData); err != nil {
 				fmt.Printf("\033[31m[saveUploadedFiles -> updateCacheTargetsNoTx] error: %s\033[0m\n", err.Error())
+				httpresponse.RespondWithError(w, http.StatusInternalServerError, "error updating image preview")
+				if !rollbackCleanupRegistered {
+					cleanupUpload()
+				}
+				return fmt.Errorf("update uploaded file cache targets: %w", err)
 			}
 		}
 	}
+	return nil
+}
+
+func removeUploadedFileVariants(baseFolder string, subfolders []string, fileName string) {
+	for _, subfolder := range subfolders {
+		filePath := filepath.Join(baseFolder, subfolder, fileName)
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("[INFO] rollback cleanup could not remove %s: %s\n", filePath, err.Error())
+		}
+		_ = os.Remove(filepath.Join(baseFolder, subfolder))
+	}
+	_ = os.Remove(baseFolder)
 }
 
 func resolveUploadStorageCoordinates(
@@ -256,7 +303,10 @@ func loadFileUploadConfigForUpload(q queryExecer, childTableName string, referen
 	var rawSpecs []byte
 	var resolvedSourceColumn string
 	if err := q.QueryRow(query, args...).Scan(&rawSpecs, &resolvedSourceColumn); err != nil {
-		return dtt_asset_linking.FileUploadConfig{}, "", nil
+		if err == sql.ErrNoRows {
+			return dtt_asset_linking.FileUploadConfig{}, "", nil
+		}
+		return dtt_asset_linking.FileUploadConfig{}, "", err
 	}
 
 	config, err := dtt_asset_linking.ParseFileUploadConfig(rawSpecs)

@@ -220,6 +220,85 @@ def test_public_dataset_titles_and_search_copy_are_curated_in_four_languages() -
         assert not any("front page" in value.lower() or "etusivu" in value.lower() for value in slogan)
 
 
+def test_public_asset_dataset_copy_is_curated_in_four_languages() -> None:
+    rows_by_key = {row[0]: row for row in _seed_rows()}
+    expected_copy = {
+        "palvelukatalogi_assets": (
+            ("Palvelukuvat", "Service images", "服务图片", "服務圖片"),
+            (
+                "Hallinnoi palveluihin liitettyjä kuvia ja niiden kuvauksia.",
+                "Manage images linked to services and their descriptions.",
+                "管理与服务关联的图片及其说明。",
+                "管理同服務相關嘅圖片同說明。",
+            ),
+            (
+                "Hae palvelukuvia tiedostonimellä tai kuvauksella",
+                "Search service images by filename or description",
+                "按文件名或说明搜索服务图片",
+                "按檔案名稱或者說明搜尋服務圖片",
+            ),
+        ),
+        "riskienhallinta_assets": (
+            ("Riskikuvat", "Risk images", "风险图片", "風險圖片"),
+            (
+                "Hallinnoi riskejä, vaikutuksia ja hallintatoimia havainnollistavia kuvia.",
+                "Manage images that illustrate risks, impacts, and mitigating actions.",
+                "管理用于说明风险、影响和应对措施的图片。",
+                "管理用嚟說明風險、影響同應對措施嘅圖片。",
+            ),
+            (
+                "Hae riskikuvia tiedostonimellä tai kuvauksella",
+                "Search risk images by filename or description",
+                "按文件名或说明搜索风险图片",
+                "按檔案名稱或者說明搜尋風險圖片",
+            ),
+        ),
+        "dokumentaatio_assets": (
+            ("Dokumentaation kuvat", "Documentation images", "文档图片", "文件圖片"),
+            (
+                "Hallinnoi ohjeissa ja dokumentaatiossa käytettäviä kuvia sekä niiden kuvauksia.",
+                "Manage images used in guidance and documentation, together with their descriptions.",
+                "管理指南和文档中使用的图片及其说明。",
+                "管理指南同文件使用嘅圖片同說明。",
+            ),
+            (
+                "Hae dokumentaation kuvia tiedostonimellä tai kuvauksella",
+                "Search documentation images by filename or description",
+                "按文件名或说明搜索文档图片",
+                "按檔案名稱或者說明搜尋文件圖片",
+            ),
+        ),
+        "tiketit_assets": (
+            ("Tikettien kuvat", "Ticket images", "工单图片", "工單圖片"),
+            (
+                "Hallinnoi tiketteihin liitettyjä kuvakaappauksia, kuvia ja kuvauksia.",
+                "Manage screenshots, images, and descriptions linked to tickets.",
+                "管理与工单关联的截图、图片和说明。",
+                "管理同工單相關嘅螢幕截圖、圖片同說明。",
+            ),
+            (
+                "Hae tikettien kuvia tiedostonimellä tai kuvauksella",
+                "Search ticket images by filename or description",
+                "按文件名或说明搜索工单图片",
+                "按檔案名稱或者說明搜尋工單圖片",
+            ),
+        ),
+    }
+
+    for table_name, (title, slogan, placeholder) in expected_copy.items():
+        assert rows_by_key[table_name][1:5] == title
+        assert rows_by_key[f"{table_name}_front_page"][1:5] == title
+        assert rows_by_key[f"search_slogan_{table_name}"][1:5] == slogan
+        assert rows_by_key[f"search_for_{table_name}"][1:5] == placeholder
+
+        rendered_copy = (*title, *slogan, *placeholder)
+        assert not any(
+            forbidden in value.lower()
+            for value in rendered_copy
+            for forbidden in ("front page", "etusivu", "search slogan")
+        )
+
+
 def test_public_runtime_metadata_has_complete_four_language_seed_rows() -> None:
     metadata_rows = {
         row[0]: row

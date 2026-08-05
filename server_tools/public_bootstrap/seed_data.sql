@@ -569,6 +569,28 @@ INSERT INTO public.system_lang_keys (lang_key, fi, en, ch, yue, creation_spec) V
   ('search_for_dokumentaatio', 'Hae ohjeita otsikolla, kohdetiimillä tai voimassaololla', 'Search guidance by title, audience, or validity', '按标题、目标团队或有效性搜索文档', '按標題、目標團隊或者有效性搜尋文件', 'public fixture seed'),
   ('add_row_dokumentaatio', 'Lisää dokumentti', 'Add document', '添加文档', '新增文件', 'public fixture seed'),
 
+  -- Image-asset datasets use curated public labels instead of exposing their
+  -- technical table names or generated "front page" search copy.
+  ('palvelukatalogi_assets', 'Palvelukuvat', 'Service images', '服务图片', '服務圖片', 'public fixture seed'),
+  ('palvelukatalogi_assets_front_page', 'Palvelukuvat', 'Service images', '服务图片', '服務圖片', 'public fixture seed'),
+  ('search_slogan_palvelukatalogi_assets', 'Hallinnoi palveluihin liitettyjä kuvia ja niiden kuvauksia.', 'Manage images linked to services and their descriptions.', '管理与服务关联的图片及其说明。', '管理同服務相關嘅圖片同說明。', 'public fixture seed'),
+  ('search_for_palvelukatalogi_assets', 'Hae palvelukuvia tiedostonimellä tai kuvauksella', 'Search service images by filename or description', '按文件名或说明搜索服务图片', '按檔案名稱或者說明搜尋服務圖片', 'public fixture seed'),
+
+  ('riskienhallinta_assets', 'Riskikuvat', 'Risk images', '风险图片', '風險圖片', 'public fixture seed'),
+  ('riskienhallinta_assets_front_page', 'Riskikuvat', 'Risk images', '风险图片', '風險圖片', 'public fixture seed'),
+  ('search_slogan_riskienhallinta_assets', 'Hallinnoi riskejä, vaikutuksia ja hallintatoimia havainnollistavia kuvia.', 'Manage images that illustrate risks, impacts, and mitigating actions.', '管理用于说明风险、影响和应对措施的图片。', '管理用嚟說明風險、影響同應對措施嘅圖片。', 'public fixture seed'),
+  ('search_for_riskienhallinta_assets', 'Hae riskikuvia tiedostonimellä tai kuvauksella', 'Search risk images by filename or description', '按文件名或说明搜索风险图片', '按檔案名稱或者說明搜尋風險圖片', 'public fixture seed'),
+
+  ('dokumentaatio_assets', 'Dokumentaation kuvat', 'Documentation images', '文档图片', '文件圖片', 'public fixture seed'),
+  ('dokumentaatio_assets_front_page', 'Dokumentaation kuvat', 'Documentation images', '文档图片', '文件圖片', 'public fixture seed'),
+  ('search_slogan_dokumentaatio_assets', 'Hallinnoi ohjeissa ja dokumentaatiossa käytettäviä kuvia sekä niiden kuvauksia.', 'Manage images used in guidance and documentation, together with their descriptions.', '管理指南和文档中使用的图片及其说明。', '管理指南同文件使用嘅圖片同說明。', 'public fixture seed'),
+  ('search_for_dokumentaatio_assets', 'Hae dokumentaation kuvia tiedostonimellä tai kuvauksella', 'Search documentation images by filename or description', '按文件名或说明搜索文档图片', '按檔案名稱或者說明搜尋文件圖片', 'public fixture seed'),
+
+  ('tiketit_assets', 'Tikettien kuvat', 'Ticket images', '工单图片', '工單圖片', 'public fixture seed'),
+  ('tiketit_assets_front_page', 'Tikettien kuvat', 'Ticket images', '工单图片', '工單圖片', 'public fixture seed'),
+  ('search_slogan_tiketit_assets', 'Hallinnoi tiketteihin liitettyjä kuvakaappauksia, kuvia ja kuvauksia.', 'Manage screenshots, images, and descriptions linked to tickets.', '管理与工单关联的截图、图片和说明。', '管理同工單相關嘅螢幕截圖、圖片同說明。', 'public fixture seed'),
+  ('search_for_tiketit_assets', 'Hae tikettien kuvia tiedostonimellä tai kuvauksella', 'Search ticket images by filename or description', '按文件名或说明搜索工单图片', '按檔案名稱或者說明搜尋工單圖片', 'public fixture seed'),
+
   ('palvelu', 'Palvelu', 'Service', '服务', '服務', 'public fixture seed'),
   ('kuvaus', 'Kuvaus', 'Description', '描述', '描述', 'public fixture seed'),
   ('omistava_tiimi', 'Omistava tiimi', 'Owning team', '负责团队', '負責團隊', 'public fixture seed'),

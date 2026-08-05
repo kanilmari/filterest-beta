@@ -16,11 +16,13 @@ import (
 // uuden tiedostonimen lapsirivin "filename"-sarakkeeseen.
 // Between: saveUploadedFiles -> Database
 // Why: Updates the filename column in the child row after file upload.
-func updateFilenameInChildRow(q queryExecer, childTableName string, childRowID int64, newFileName string) {
+func updateFilenameInChildRow(q queryExecer, childTableName string, childRowID int64, newFileName string) error {
 	updateQ := fmt.Sprintf(`UPDATE %s SET filename=$1 WHERE id=$2`, pq.QuoteIdentifier(childTableName))
 	if _, err := q.Exec(updateQ, newFileName, childRowID); err != nil {
 		fmt.Printf("\033[31merror: filename update failed for table=%s, id=%d: %s\033[0m\n", childTableName, childRowID, err.Error())
+		return fmt.Errorf("update filename for table=%s id=%d: %w", childTableName, childRowID, err)
 	}
+	return nil
 }
 
 // updateCacheTargets (transaktion sisällä) – kutsuu yhteistä base-funktiota.

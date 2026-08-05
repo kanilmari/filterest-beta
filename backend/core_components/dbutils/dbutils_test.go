@@ -27,6 +27,7 @@ var registerDBUtilsTestDriverOnce sync.Once
 
 type dbutilsDriverState struct {
 	beginErr      error
+	commitErr     error
 	queryErr      error
 	execErr       error
 	columns       []string
@@ -111,7 +112,7 @@ func (*dbutilsTestConn) ExecContext(_ context.Context, query string, args []driv
 }
 
 func (*dbutilsTestTx) Commit() error {
-	return nil
+	return snapshotDBUtilsState().commitErr
 }
 
 func (*dbutilsTestTx) Rollback() error {
@@ -152,6 +153,7 @@ func snapshotDBUtilsState() dbutilsDriverState {
 	defer dbutilsStateMu.Unlock()
 	return dbutilsDriverState{
 		beginErr:      dbutilsState.beginErr,
+		commitErr:     dbutilsState.commitErr,
 		queryErr:      dbutilsState.queryErr,
 		execErr:       dbutilsState.execErr,
 		columns:       append([]string(nil), dbutilsState.columns...),
@@ -366,6 +368,64 @@ func TestLazyTxAfterCommitHooksClearedOnRollback(t *testing.T) {
 	}
 	if called {
 		t.Fatal("after commit hook ran on rollback, want not called")
+	}
+}
+
+func TestLazyTxAfterRollbackHooksRunOnlyOnRollback(t *testing.T) {
+	db := openDBUtilsTestDB(t, nil)
+	lt := NewLazyTx(db)
+
+	if _, err := lt.Begin(); err != nil {
+		t.Fatalf("Begin() returned error: %v", err)
+	}
+
+	called := false
+	lt.AddAfterRollbackHook(func() { called = true })
+	if err := lt.Rollback(); err != nil {
+		t.Fatalf("Rollback() returned error: %v", err)
+	}
+	if !called {
+		t.Fatal("after rollback hook did not run")
+	}
+}
+
+func TestLazyTxAfterRollbackHooksClearedOnSuccessfulCommit(t *testing.T) {
+	db := openDBUtilsTestDB(t, nil)
+	lt := NewLazyTx(db)
+
+	if _, err := lt.Begin(); err != nil {
+		t.Fatalf("Begin() returned error: %v", err)
+	}
+
+	called := false
+	lt.AddAfterRollbackHook(func() { called = true })
+	if err := lt.Commit(); err != nil {
+		t.Fatalf("Commit() returned error: %v", err)
+	}
+	if called {
+		t.Fatal("after rollback hook ran on successful commit")
+	}
+}
+
+func TestLazyTxAfterRollbackHooksRunAfterCommitFailure(t *testing.T) {
+	db := openDBUtilsTestDB(t, nil)
+	dbutilsStateMu.Lock()
+	dbutilsState.commitErr = errors.New("commit failed")
+	dbutilsStateMu.Unlock()
+	lt := NewLazyTx(db)
+
+	if _, err := lt.Begin(); err != nil {
+		t.Fatalf("Begin() returned error: %v", err)
+	}
+
+	called := false
+	lt.AddAfterRollbackHook(func() { called = true })
+	if err := lt.Commit(); err == nil {
+		t.Fatal("Commit() error = nil, want simulated failure")
+	}
+	_ = lt.Rollback()
+	if !called {
+		t.Fatal("after rollback hook did not run after commit failure")
 	}
 }
 
@@ -597,5 +657,29 @@ func TestRegisterAfterCommitHookContextHelper(t *testing.T) {
 
 	if ok := RegisterAfterCommitHook(context.Background(), func() {}); ok {
 		t.Fatal("RegisterAfterCommitHook(background) = true, want false")
+	}
+}
+
+func TestRegisterAfterRollbackHookContextHelper(t *testing.T) {
+	db := openDBUtilsTestDB(t, nil)
+	lt := NewLazyTx(db)
+	ctx := SetLazyTx(context.Background(), lt)
+
+	called := false
+	if ok := RegisterAfterRollbackHook(ctx, func() { called = true }); !ok {
+		t.Fatal("RegisterAfterRollbackHook() returned false, want true")
+	}
+	if _, err := lt.Begin(); err != nil {
+		t.Fatalf("Begin() returned error: %v", err)
+	}
+	if err := lt.Rollback(); err != nil {
+		t.Fatalf("Rollback() returned error: %v", err)
+	}
+	if !called {
+		t.Fatal("after rollback hook did not run")
+	}
+
+	if ok := RegisterAfterRollbackHook(context.Background(), func() {}); ok {
+		t.Fatal("RegisterAfterRollbackHook(background) = true, want false")
 	}
 }

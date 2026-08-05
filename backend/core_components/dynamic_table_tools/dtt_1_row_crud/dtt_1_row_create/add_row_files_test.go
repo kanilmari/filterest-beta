@@ -64,6 +64,29 @@ func TestRequiredUploadSubfoldersForImage(t *testing.T) {
 	}
 }
 
+func TestCanonicalSharedAssetProfileResolvesImageDisplayVariants(t *testing.T) {
+	config := dtt_asset_linking.FileUploadConfig{
+		ProfileKey: dtt_asset_linking.SharedAssetProfileKey,
+		Profiles: map[string]dtt_asset_linking.FileUploadProfileConfig{
+			dtt_asset_linking.AssetProfileImage: {
+				Enabled:    true,
+				AssetKinds: []dtt_asset_linking.AssetKind{dtt_asset_linking.AssetKindImage},
+			},
+		},
+	}
+	profileKey := dtt_asset_linking.ResolveProfileKeyForAssetKind(string(dtt_asset_linking.AssetKindImage))
+	effective, ok := dtt_asset_linking.ResolveEffectiveUploadConfigForProfile(config, "palvelukatalogi_assets", profileKey)
+	if !ok {
+		t.Fatal("canonical asset_linking image profile was not resolved")
+	}
+	if !isImageUpload(effective) {
+		t.Fatal("resolved canonical asset upload was not classified as an image")
+	}
+	if got := requiredUploadSubfolders(effective); len(got) != len(media_utils.RequiredSubfolders) {
+		t.Fatalf("image upload subfolders = %#v, want all display variants %#v", got, media_utils.RequiredSubfolders)
+	}
+}
+
 func TestCreateImageDisplayVariantCopiesBrowserImageWithoutLocalDecoder(t *testing.T) {
 	if !shouldCopySourceAsDisplayVariant("example.avif") {
 		t.Fatal("expected avif to use passthrough display variant")
@@ -123,5 +146,44 @@ func TestResolveUploadStorageCoordinatesFallsBackWhenNoParentContextExists(t *te
 	}
 	if tableUID != "2758" || rowID != 9 {
 		t.Fatalf("resolveUploadStorageCoordinates fallback = (%q, %d), want (2758, 9)", tableUID, rowID)
+	}
+}
+
+func TestRemoveUploadedFileVariantsRemovesOnlyCurrentUpload(t *testing.T) {
+	baseFolder := t.TempDir()
+	subfolders := []string{"original", "320", "640", "1280"}
+	for _, subfolder := range subfolders {
+		if err := os.MkdirAll(filepath.Join(baseFolder, subfolder), 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", subfolder, err)
+		}
+		if err := os.WriteFile(filepath.Join(baseFolder, subfolder, "new.jpg"), []byte("new"), 0o644); err != nil {
+			t.Fatalf("write new file: %v", err)
+		}
+	}
+	existingPath := filepath.Join(baseFolder, "original", "existing.jpg")
+	if err := os.WriteFile(existingPath, []byte("existing"), 0o644); err != nil {
+		t.Fatalf("write existing file: %v", err)
+	}
+
+	removeUploadedFileVariants(baseFolder, subfolders, "new.jpg")
+
+	if _, err := os.Stat(existingPath); err != nil {
+		t.Fatalf("pre-existing file was removed: %v", err)
+	}
+	for _, subfolder := range subfolders {
+		if _, err := os.Stat(filepath.Join(baseFolder, subfolder, "new.jpg")); !os.IsNotExist(err) {
+			t.Fatalf("current upload remains in %s: %v", subfolder, err)
+		}
+	}
+}
+
+func TestLoadFileUploadConfigPropagatesDatabaseErrors(t *testing.T) {
+	t.Cleanup(resetQueues)
+	db := newTestDB(t)
+	defer db.Close()
+	pushQuery(queuedQuery{err: errMock("transaction aborted")})
+
+	if _, _, err := loadFileUploadConfigForUpload(db, "palvelukatalogi_assets", "palvelukatalogi_id"); err == nil {
+		t.Fatal("loadFileUploadConfigForUpload() error = nil, want database failure")
 	}
 }

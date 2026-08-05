@@ -26,12 +26,13 @@ type LazyTxBeginHook func(*sql.Tx) error
 // LazyTx holds a database reference and opens a transaction only when first requested.
 // This avoids reserving a connection from the pool for requests that never use a transaction.
 type LazyTx struct {
-	db               *sql.DB
-	tx               *sql.Tx
-	started          bool
-	onBegin          LazyTxBeginHook
-	afterCommitHooks []func()
-	mu               sync.Mutex
+	db                 *sql.DB
+	tx                 *sql.Tx
+	started            bool
+	onBegin            LazyTxBeginHook
+	afterCommitHooks   []func()
+	afterRollbackHooks []func()
+	mu                 sync.Mutex
 }
 
 // NewLazyTx creates a new LazyTx bound to the given database pool.
@@ -80,6 +81,7 @@ func (lt *LazyTx) Commit() error {
 	lt.mu.Lock()
 	if !lt.started {
 		lt.afterCommitHooks = nil
+		lt.afterRollbackHooks = nil
 		lt.mu.Unlock()
 		return nil
 	}
@@ -91,6 +93,9 @@ func (lt *LazyTx) Commit() error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
+	lt.mu.Lock()
+	lt.afterRollbackHooks = nil
+	lt.mu.Unlock()
 	for _, hook := range hooks {
 		if hook != nil {
 			hook()
@@ -102,13 +107,25 @@ func (lt *LazyTx) Commit() error {
 // Rollback rolls back the transaction if it was started. No-op otherwise.
 func (lt *LazyTx) Rollback() error {
 	lt.mu.Lock()
-	defer lt.mu.Unlock()
 	if !lt.started {
 		lt.afterCommitHooks = nil
+		lt.afterRollbackHooks = nil
+		lt.mu.Unlock()
 		return nil
 	}
+	tx := lt.tx
+	hooks := append([]func(){}, lt.afterRollbackHooks...)
 	lt.afterCommitHooks = nil
-	return lt.tx.Rollback()
+	lt.afterRollbackHooks = nil
+	lt.mu.Unlock()
+
+	err := tx.Rollback()
+	for _, hook := range hooks {
+		if hook != nil {
+			hook()
+		}
+	}
+	return err
 }
 
 // AddAfterCommitHook registers a callback that runs after a successful commit.
@@ -120,6 +137,19 @@ func (lt *LazyTx) AddAfterCommitHook(hook func()) bool {
 	lt.mu.Lock()
 	defer lt.mu.Unlock()
 	lt.afterCommitHooks = append(lt.afterCommitHooks, hook)
+	return true
+}
+
+// AddAfterRollbackHook registers a callback that runs after rollback is attempted.
+// Hooks are cleared by a successful commit and also run after a failed commit when
+// the request middleware subsequently rolls the transaction back.
+func (lt *LazyTx) AddAfterRollbackHook(hook func()) bool {
+	if hook == nil {
+		return false
+	}
+	lt.mu.Lock()
+	defer lt.mu.Unlock()
+	lt.afterRollbackHooks = append(lt.afterRollbackHooks, hook)
 	return true
 }
 
@@ -141,6 +171,16 @@ func RegisterAfterCommitHook(ctx context.Context, hook func()) bool {
 		return false
 	}
 	return lt.AddAfterCommitHook(hook)
+}
+
+// RegisterAfterRollbackHook registers a rollback callback for request-scoped LazyTx contexts.
+// Returns false when the context does not carry a LazyTx.
+func RegisterAfterRollbackHook(ctx context.Context, hook func()) bool {
+	lt, ok := ctx.Value(txKey).(*LazyTx)
+	if !ok || lt == nil {
+		return false
+	}
+	return lt.AddAfterRollbackHook(hook)
 }
 
 // RequireTx retrieves or opens a database transaction from the context.

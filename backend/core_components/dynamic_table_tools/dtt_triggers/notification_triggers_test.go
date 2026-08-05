@@ -5,21 +5,101 @@ package dtt_triggers
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 )
 
+const triggerCapabilityDriverName = "easelect-trigger-capability-test"
+
+var (
+	registerTriggerCapabilityDriver sync.Once
+	triggerCapabilityMu             sync.Mutex
+	triggerCapabilityState          = struct {
+		tableAvailable bool
+		directQueries  int
+		assetInserts   int
+		commits        int
+	}{}
+)
+
+type triggerCapabilityDriver struct{}
+type triggerCapabilityConn struct{}
+type triggerCapabilityTx struct{}
+type triggerCapabilityRows struct {
+	values [][]driver.Value
+	index  int
+}
+
+func (triggerCapabilityDriver) Open(string) (driver.Conn, error) {
+	return &triggerCapabilityConn{}, nil
+}
+func (*triggerCapabilityConn) Prepare(string) (driver.Stmt, error) {
+	return nil, errors.New("prepare not implemented")
+}
+func (*triggerCapabilityConn) Close() error { return nil }
+func (c *triggerCapabilityConn) Begin() (driver.Tx, error) {
+	return c.BeginTx(context.Background(), driver.TxOptions{})
+}
+func (*triggerCapabilityConn) BeginTx(context.Context, driver.TxOptions) (driver.Tx, error) {
+	return &triggerCapabilityTx{}, nil
+}
+func (*triggerCapabilityConn) QueryContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Rows, error) {
+	triggerCapabilityMu.Lock()
+	defer triggerCapabilityMu.Unlock()
+	if strings.Contains(query, "to_regclass") {
+		return &triggerCapabilityRows{values: [][]driver.Value{{triggerCapabilityState.tableAvailable}}}, nil
+	}
+	if strings.Contains(query, "FROM system_triggers") {
+		triggerCapabilityState.directQueries++
+		if !triggerCapabilityState.tableAvailable {
+			return nil, errors.New(`relation "system_triggers" does not exist`)
+		}
+		return &triggerCapabilityRows{}, nil
+	}
+	return nil, errors.New("unexpected query")
+}
+func (*triggerCapabilityConn) ExecContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Result, error) {
+	triggerCapabilityMu.Lock()
+	defer triggerCapabilityMu.Unlock()
+	if !strings.Contains(query, "INSERT INTO palvelukatalogi_assets") {
+		return nil, errors.New("unexpected exec")
+	}
+	triggerCapabilityState.assetInserts++
+	return triggerResultStub(1), nil
+}
+func (*triggerCapabilityTx) Commit() error {
+	triggerCapabilityMu.Lock()
+	triggerCapabilityState.commits++
+	triggerCapabilityMu.Unlock()
+	return nil
+}
+func (*triggerCapabilityTx) Rollback() error     { return nil }
+func (*triggerCapabilityRows) Columns() []string { return []string{"available"} }
+func (*triggerCapabilityRows) Close() error      { return nil }
+func (r *triggerCapabilityRows) Next(dest []driver.Value) error {
+	if r.index >= len(r.values) {
+		return io.EOF
+	}
+	copy(dest, r.values[r.index])
+	r.index++
+	return nil
+}
+
 type triggerExecStub struct {
-	query    string
-	args     []interface{}
-	execErr  error
-	called   bool
+	query   string
+	args    []interface{}
+	execErr error
+	called  bool
 }
 
 func (s *triggerExecStub) Query(string, ...interface{}) (*sql.Rows, error) { return nil, nil }
@@ -124,6 +204,48 @@ func TestInsertTriggerIntoDBUsesExpectedQueryAndArgs(t *testing.T) {
 	}
 	if stub.args[0] != "orders" || stub.args[2] != "notifications" {
 		t.Fatalf("args = %#v, want source/target datasets", stub.args)
+	}
+}
+
+func TestExecuteTriggersSkipsMissingOptionalTableWithoutPoisoningAssetTransaction(t *testing.T) {
+	registerTriggerCapabilityDriver.Do(func() {
+		sql.Register(triggerCapabilityDriverName, triggerCapabilityDriver{})
+	})
+	triggerCapabilityMu.Lock()
+	triggerCapabilityState.tableAvailable = false
+	triggerCapabilityState.directQueries = 0
+	triggerCapabilityState.assetInserts = 0
+	triggerCapabilityState.commits = 0
+	triggerCapabilityMu.Unlock()
+
+	db, err := sql.Open(triggerCapabilityDriverName, "")
+	if err != nil {
+		t.Fatalf("sql.Open() returned error: %v", err)
+	}
+	defer db.Close()
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatalf("db.Begin() returned error: %v", err)
+	}
+
+	if err := ExecuteTriggers(tx, "palvelukatalogi_assets", map[string]interface{}{"id": int64(4)}); err != nil {
+		t.Fatalf("ExecuteTriggers() returned error for triggerless install: %v", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO palvelukatalogi_assets (id) VALUES ($1)`, 4); err != nil {
+		t.Fatalf("asset insert after trigger check returned error: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("Commit() returned error: %v", err)
+	}
+
+	triggerCapabilityMu.Lock()
+	state := triggerCapabilityState
+	triggerCapabilityMu.Unlock()
+	if state.directQueries != 0 {
+		t.Fatalf("direct system_triggers queries = %d, want 0 when capability is absent", state.directQueries)
+	}
+	if state.assetInserts != 1 || state.commits != 1 {
+		t.Fatalf("asset inserts/commits = %d/%d, want 1/1", state.assetInserts, state.commits)
 	}
 }
 

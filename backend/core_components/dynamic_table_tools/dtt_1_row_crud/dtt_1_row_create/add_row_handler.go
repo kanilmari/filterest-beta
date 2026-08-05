@@ -103,7 +103,9 @@ func AddRowMultipartHandler(w http.ResponseWriter, r *http.Request, tableName st
 	}
 
 	// 2) Tallennetaan tiedostot
-	saveUploadedFiles(tx, w, r.MultipartForm.File, "storage", tableName, tableUID, mainRowID, childInsertResults)
+	if err := saveUploadedFiles(r.Context(), tx, w, r.MultipartForm.File, "storage", tableName, tableUID, mainRowID, childInsertResults); err != nil {
+		return
+	}
 
 	// 3) Tarkista, onko taulussa embedding_vector-sarake -> jos kyllä, generoi embedding
 	if hasEmbeddingVectorColumn(tableName, tx) {

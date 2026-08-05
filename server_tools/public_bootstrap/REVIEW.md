@@ -102,7 +102,7 @@ PASS
 - `public.system_foreign_key_relations_1_m`: 4
 - `public.system_functions`: 15
 - `public.system_group_table_func_rights`: 20
-- `public.system_lang_keys`: 471
+- `public.system_lang_keys`: 487
 - `public.system_table_folders`: 14
 - `public.system_user_group_memberships`: 1
 - `public.system_user_groups`: 3

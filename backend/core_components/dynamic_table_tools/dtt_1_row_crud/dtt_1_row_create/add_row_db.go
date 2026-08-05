@@ -295,10 +295,20 @@ func insertDataAccordingToPayload(
 	// 6) TRIGGERIT
 	//------------------------------------------------------------------
 	if err := dtt_triggers.ExecuteTriggers(tx, tableName, map[string]interface{}{"id": mainRowID}); err != nil {
-		fmt.Printf("\033[31m[add_row_db.go] [executeTriggers] error: %s\033[0m\n", err.Error())
+		return 0, nil, respondToTriggerExecutionError(w, tableName, err)
 	}
 
 	return mainRowID, childResults, nil
+}
+
+func respondToTriggerExecutionError(w http.ResponseWriter, tableName string, triggerErr error) error {
+	if triggerErr == nil {
+		return nil
+	}
+	wrappedErr := fmt.Errorf("execute triggers for %s: %w", tableName, triggerErr)
+	fmt.Printf("\033[31m[add_row_db.go] [executeTriggers] error: %s\033[0m\n", wrappedErr.Error())
+	httpresponse.RespondWithError(w, http.StatusInternalServerError, "error executing triggers")
+	return wrappedErr
 }
 
 // insertMainRow lisää päärivin tauluun ja palauttaa luodun rivin id-arvon

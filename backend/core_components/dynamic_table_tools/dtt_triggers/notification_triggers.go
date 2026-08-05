@@ -7,15 +7,15 @@ package dtt_triggers
 
 import (
 	"database/sql"
-
-	"easelect/backend/core_components/dbutils"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"easelect/backend/core_components/httpresponse"
 	"strconv"
 	"strings"
+
+	"easelect/backend/core_components/dbutils"
+	"easelect/backend/core_components/httpresponse"
 
 	"github.com/lib/pq"
 )
@@ -159,6 +159,15 @@ func fetchAllTriggers(q queryer) ([]map[string]interface{}, error) {
 func ExecuteTriggers(q queryer, tableName string, newRow map[string]interface{}) error {
 	log.Printf("Executing triggers for table: %s", tableName)
 
+	available, err := triggerTableAvailable(q)
+	if err != nil {
+		return fmt.Errorf("check system_triggers availability: %w", err)
+	}
+	if !available {
+		log.Printf("Skipping triggers for table %s: system_triggers is not installed", tableName)
+		return nil
+	}
+
 	triggers, err := fetchTriggersForTable(q, tableName)
 	if err != nil {
 		return err
@@ -186,6 +195,17 @@ func ExecuteTriggers(q queryer, tableName string, newRow map[string]interface{})
 		}
 	}
 	return nil
+}
+
+// triggerTableAvailable checks the optional trigger capability without querying
+// the table itself. PostgreSQL's to_regclass returns NULL for a missing table,
+// so triggerless public installations stay usable without aborting a transaction.
+func triggerTableAvailable(q queryer) (bool, error) {
+	var available bool
+	if err := q.QueryRow(`SELECT pg_catalog.to_regclass('public.system_triggers') IS NOT NULL`).Scan(&available); err != nil {
+		return false, err
+	}
+	return available, nil
 }
 
 // DBTrigger on rakenteena sama kuin system_triggers-taulun rivit (paitsi ID).

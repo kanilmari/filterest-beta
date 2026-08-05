@@ -20,19 +20,20 @@ func TestUpdateFilenameInChildRow(t *testing.T) {
 
 		pushExec(queuedExec{rowsAffected: 1})
 
-		// Should not panic or log a fatal; function swallows errors internally.
-		updateFilenameInChildRow(db, "attachments", 42, "photo.png")
+		if err := updateFilenameInChildRow(db, "attachments", 42, "photo.png"); err != nil {
+			t.Fatalf("updateFilenameInChildRow() returned error: %v", err)
+		}
 	})
 
-	t.Run("exec error is silently logged", func(t *testing.T) {
-		// The function prints an error but does not return one.
-		// We just verify it doesn't panic.
+	t.Run("exec error is returned", func(t *testing.T) {
 		db := newTestDB(t)
 		defer db.Close()
 
 		pushExec(queuedExec{err: errMock("simulated exec error")})
 
-		updateFilenameInChildRow(db, "attachments", 1, "bad.png")
+		if err := updateFilenameInChildRow(db, "attachments", 1, "bad.png"); err == nil {
+			t.Fatal("updateFilenameInChildRow() error = nil, want exec failure")
+		}
 	})
 }
 
